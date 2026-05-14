@@ -1,0 +1,92 @@
+# Magento sandbox for IronCartM2 integration tests.
+#
+# Image: bitnami/magento ships a fully provisioned Magento + Apache stack
+# pinned by MAGENTO_VERSION (e.g. 2.4.7). We bind-mount the module source
+# at /var/www/html/ironcart-module so the CI step can `composer require`
+# it via a path repository — no Packagist round-trip required.
+#
+# Sidecar services match Magento 2 system requirements:
+#   - MariaDB 10.6 (Magento 2.4.4–2.4.6) / 10.6+ (2.4.7)
+#   - OpenSearch 2.x (Magento 2.4.6+ default catalog engine)
+#   - Redis 7 (cache + session)
+#
+# All services bind to localhost-only; no public ports are exposed in CI.
+#
+# Note: the top-level `version` key has been intentionally removed —
+# docker compose v2 treats it as obsolete and emits a warning. The schema
+# is auto-detected.
+
+services:
+  mariadb:
+    image: mariadb:10.6
+    environment:
+      MARIADB_ROOT_PASSWORD: magento
+      MARIADB_DATABASE: magento
+      MARIADB_USER: magento
+      MARIADB_PASSWORD: magento
+    healthcheck:
+      test: ['CMD', 'healthcheck.sh', '--connect', '--innodb_initialized']
+      interval: 10s
+      timeout: 5s
+      retries: 20
+    tmpfs:
+      - /var/lib/mysql
+
+  opensearch:
+    image: opensearchproject/opensearch:2.11.1
+    environment:
+      discovery.type: single-node
+      DISABLE_SECURITY_PLUGIN: 'true'
+      DISABLE_INSTALL_DEMO_CONFIG: 'true'
+      OPENSEARCH_JAVA_OPTS: '-Xms512m -Xmx512m'
+    healthcheck:
+      test: ['CMD-SHELL', 'curl -sf http://localhost:9200/_cluster/health || exit 1']
+      interval: 10s
+      timeout: 5s
+      retries: 30
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+
+  redis:
+    image: redis:7-alpine
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  magento:
+    image: bitnami/magento:${MAGENTO_VERSION:-2.4.7}
+    depends_on:
+      mariadb:
+        condition: service_healthy
+      opensearch:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      MAGENTO_HOST: magento.test
+      MAGENTO_USERNAME: admin
+      MAGENTO_PASSWORD: magento-ci-123!
+      MAGENTO_EMAIL: ci@ironcart.dev
+      MAGENTO_DATABASE_HOST: mariadb
+      MAGENTO_DATABASE_NAME: magento
+      MAGENTO_DATABASE_USER: magento
+      MAGENTO_DATABASE_PASSWORD: magento
+      MAGENTO_ELASTICSEARCH_HOST: opensearch
+      MAGENTO_ELASTICSEARCH_PORT_NUMBER: 9200
+      MAGENTO_SKIP_BOOTSTRAP: 'no'
+      MAGENTO_MODE: developer
+    volumes:
+      # The module checkout lives one directory up from this compose file
+      # (workflow checks the module out into ./module, so from
+      # module/tests/sandbox/ the project root is ../../).
+      - ../../:/var/www/html/ironcart-module:ro
+    healthcheck:
+      test: ['CMD-SHELL', 'php /var/www/html/bin/magento --version || exit 1']
+      interval: 15s
+      timeout: 10s
+      retries: 40
+      start_period: 120s
