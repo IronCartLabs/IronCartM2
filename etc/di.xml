@@ -5,8 +5,8 @@
  /
  / Registers the `ironcart:scan` console command with Magento's CommandList
  / and wires the CheckRegistry. Check entries below are ADDITIVE — sibling
- / check-pack PRs (#3, #4, #5, #7) must only append new keys and must not
- / reorder or remove the existing ones to keep merges conflict-free.
+ / check-pack PRs must only append new keys and must not reorder or remove
+ / the existing ones to keep merges conflict-free.
 -->
 <config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         xsi:noNamespaceSchemaLocation="urn:magento:framework:ObjectManager/etc/config.xsd">
@@ -35,6 +35,12 @@
                 <item name="IC-041" xsi:type="object">IronCart\Scan\Check\Operational\CronLastRunCheck</item>
                 <item name="IC-042" xsi:type="object">IronCart\Scan\Check\Operational\CronErrorRateCheck</item>
                 <item name="IC-043" xsi:type="object">IronCart\Scan\Check\Operational\MessageQueueBacklogCheck</item>
+                <!-- Runtime config check pack (#5) -->
+                <item name="IC-020" xsi:type="object">IronCart\Scan\Check\Runtime\MageModeCheck</item>
+                <item name="IC-021" xsi:type="object">IronCart\Scan\Check\Runtime\SecureCookieCheck</item>
+                <item name="IC-022" xsi:type="object">IronCart\Scan\Check\Runtime\HttpsEnforcementCheck</item>
+                <item name="IC-023" xsi:type="object">IronCart\Scan\Check\Runtime\CspModeCheck</item>
+                <item name="IC-024" xsi:type="object">IronCart\Scan\Check\Runtime\ProfilerCheck</item>
             </argument>
         </arguments>
     </type>
