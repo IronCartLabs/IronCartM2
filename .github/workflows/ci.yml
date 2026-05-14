@@ -1,0 +1,355 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+# Cancel superseded runs on the same PR / branch.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    name: Lint (phpcs Magento2 + phpstan L6)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Setup PHP
+        # Pinned to PHP 8.2 because magento/magento-coding-standard ^32
+        # constrains itself to PHP ~8.1 || ~8.2. The standard still emits
+        # PSR-12 violations across the whole tree regardless of the PHP
+        # version that runs the linter — the constraint only affects the
+        # phpcs binary's own runtime.
+        uses: shivammathur/setup-php@9e72090525849c5e82e596468b86eb55e9cc5401 # v2.32.0
+        with:
+          php-version: '8.2'
+          tools: composer:v2, cs2pr
+          coverage: none
+
+      - name: Install lint tooling
+        # Globally so the module's composer.json is not touched. The
+        # `dealerdirect/phpcodesniffer-composer-installer` plugin is what
+        # registers the Magento2 standard with phpcs.
+        run: |
+          composer global config --no-plugins allow-plugins.dealerdirect/phpcodesniffer-composer-installer true
+          composer global require --no-interaction --no-progress \
+            squizlabs/php_codesniffer:^3.10 \
+            magento/magento-coding-standard:^32 \
+            phpstan/phpstan:^1.12
+          echo "$HOME/.composer/vendor/bin" >> "$GITHUB_PATH"
+
+      - name: PSR-12 / Magento Coding Standard (phpcs)
+        # `-n` suppresses warnings — they are surfaced by phpcs as guidance
+        # (docblock style, discouraged stdlib calls) but should not gate
+        # merge. The two FinalImplementation sniff variants are excluded
+        # because the constants-only Report\Severity class uses `final` +
+        # private constructor as a pre-PHP-8.1 enum, which Magento2 flags
+        # by default; the design is intentional and discussed in #2.
+        run: |
+          phpcs -n \
+            --standard=Magento2 \
+            --extensions=php,phtml \
+            --ignore=vendor,_m2-workspace,tests/_sandbox \
+            --exclude=Magento2.PHP.FinalImplementation,Magento2.Classes.FinalImplementation \
+            --report=full \
+            --report-checkstyle=phpcs-report.xml \
+            .
+          cs2pr --graceful-warnings phpcs-report.xml
+
+      - name: Write phpstan config
+        run: |
+          # PHPStan analyses only the pure-PHP slice of the module that
+          # doesn't reference framework classes:
+          #   - Report/ReportBuilder.php (array shape builder)
+          #   - Report/Severity.php (constants-only)
+          #
+          # Excluded paths reference classes that aren't on the autoload
+          # classpath without `composer install` against repo.magento.com
+          # or symfony/console (which itself comes via magento metapackage):
+          #   - Console/ — Symfony\Component\Console + Magento\Framework
+          #   - Report/ReportRenderer.php — Symfony\Component\Console
+          #   - registration.php — Magento\Framework\Component\ComponentRegistrar
+          #   - Test/Unit/ — PHPUnit\Framework\TestCase
+          # Those paths are validated end-to-end by the integration job
+          # inside the docker-compose Magento sandbox. Tightening this
+          # scope is tracked as a follow-up to #8.
+          cat > phpstan.neon <<'NEON'
+          parameters:
+            level: 6
+            # PHPDoc array shapes (e.g. `list<array{severity:string}>`) are
+            # treated as best-effort documentation, not load-bearing
+            # invariants — defensive `?? null` checks against
+            # incorrectly-shaped callers should not be flagged as dead
+            # code. This mirrors how most Magento modules ship.
+            treatPhpDocTypesAsCertain: false
+            paths:
+              - Report/ReportBuilder.php
+              - Report/Severity.php
+            excludePaths:
+              - vendor
+              - _m2-workspace
+          NEON
+
+      - name: PHPStan level 6
+        run: phpstan analyse --no-progress --error-format=github
+
+  unit:
+    name: Unit (PHPUnit / PHP ${{ matrix.php }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['8.1', '8.2', '8.3']
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Setup PHP ${{ matrix.php }}
+        uses: shivammathur/setup-php@9e72090525849c5e82e596468b86eb55e9cc5401 # v2.32.0
+        with:
+          php-version: ${{ matrix.php }}
+          tools: composer:v2, phpunit:10
+          coverage: none
+
+      - name: Generate vendor autoloader (no magento/framework)
+        # The module's composer.json requires magento/framework, which is
+        # only published on repo.magento.com (auth required). For unit
+        # tests we rewrite composer.json in-place to:
+        #   - drop the magento/framework requirement
+        #   - drop autoload.files (registration.php executes
+        #     ComponentRegistrar::register() at autoload time, which would
+        #     blow up without magento/framework)
+        #   - add symfony/console as a require-dev (the ReportRenderer
+        #     tests instantiate Symfony\Component\Console\Output\BufferedOutput;
+        #     symfony/console is on Packagist so no auth is required)
+        # then generate the autoloader and restore the original file so
+        # the working tree is unchanged for any subsequent steps.
+        run: |
+          cp composer.json composer.json.bak
+          php -r '
+            $j = json_decode(file_get_contents("composer.json"), true);
+            unset($j["require"]["magento/framework"]);
+            unset($j["autoload"]["files"]);
+            $j["require-dev"] = ($j["require-dev"] ?? []) + ["symfony/console" => "^6.4 || ^7.0"];
+            file_put_contents("composer.json", json_encode($j, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+          '
+          composer install --no-interaction --no-progress --no-scripts --no-plugins
+          mv composer.json.bak composer.json
+
+      - name: Write phpunit config (CI override)
+        # At v0 the unit job runs without magento/framework on the
+        # classpath (see "Generate vendor autoloader" step above). That
+        # means any test under Test/Unit that touches Magento types fails
+        # at autoload. We restrict the testsuite to Test/Unit/Report (the
+        # Magento-free slice authored alongside the v0 report schema in
+        # #2). Magento-dependent test subtrees (Test/Unit/Check/**, etc.)
+        # are validated end-to-end by the integration job inside the
+        # docker-compose Magento sandbox. We always write phpunit.xml
+        # here so the test scope is deterministic regardless of whatever
+        # phpunit.xml the repo grows over time — the override is
+        # CI-specific and never persists to the working tree.
+        run: |
+          mkdir -p Test/Unit/Report
+          cat > phpunit.xml <<'XML'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <phpunit
+            xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+            bootstrap="vendor/autoload.php"
+            colors="true">
+            <testsuites>
+              <testsuite name="unit">
+                <directory>Test/Unit/Report</directory>
+              </testsuite>
+            </testsuites>
+          </phpunit>
+          XML
+
+      - name: PHPUnit (Test/Unit/Report/**)
+        run: phpunit --testsuite=unit --do-not-cache-result
+
+  integration:
+    name: Integration (Magento ${{ matrix.magento }} / PHP ${{ matrix.php }})
+    runs-on: ubuntu-latest
+    needs: [lint, unit]
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        # Default smoke cell: latest Magento × latest PHP. The full
+        # compat matrix runs only when the PR is labelled `v0` or on
+        # pushes to `main` — see the `integration-full-matrix` job
+        # below. This keeps free-tier GHA minutes lean on PRs.
+        magento: ['2.4.7']
+        php: ['8.3']
+    steps:
+      - name: Checkout module
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          path: module
+
+      - name: Setup PHP ${{ matrix.php }}
+        uses: shivammathur/setup-php@9e72090525849c5e82e596468b86eb55e9cc5401 # v2.32.0
+        with:
+          php-version: ${{ matrix.php }}
+          tools: composer:v2
+          extensions: bcmath, ctype, curl, dom, gd, hash, iconv, intl, mbstring, openssl, pdo_mysql, simplexml, soap, sockets, sodium, tokenizer, xmlwriter, xsl, zip
+          coverage: none
+
+      - name: Boot Magento sandbox (MariaDB + OpenSearch + Redis)
+        working-directory: module
+        env:
+          MAGENTO_VERSION: ${{ matrix.magento }}
+          PHP_VERSION: ${{ matrix.php }}
+        run: |
+          docker compose -f tests/sandbox/docker-compose.yml up -d --wait
+          docker compose -f tests/sandbox/docker-compose.yml ps
+
+      - name: Install Magento + module
+        working-directory: module
+        env:
+          MAGENTO_VERSION: ${{ matrix.magento }}
+        run: |
+          # Magento install + module wiring happens inside the magento container
+          # using the bind-mounted module source at /var/www/html/ironcart-module.
+          docker compose -f tests/sandbox/docker-compose.yml exec -T magento bash -lc '
+            set -euo pipefail
+            cd /var/www/html
+            composer config repositories.ironcart path /var/www/html/ironcart-module
+            composer require --no-interaction --no-progress ironcartlabs/magento-scan:@dev
+            bin/magento module:enable IronCart_Scan
+            bin/magento setup:upgrade
+          '
+
+      - name: Run ironcart:scan and assert exit 0 + valid JSON
+        working-directory: module
+        run: |
+          docker compose -f tests/sandbox/docker-compose.yml exec -T magento bash -lc '
+            set -euo pipefail
+            cd /var/www/html
+            bin/magento ironcart:scan --format=json > /tmp/scan.json
+          '
+          docker compose -f tests/sandbox/docker-compose.yml cp magento:/tmp/scan.json ./scan.json
+          python3 - <<'PY'
+          import json
+          with open('scan.json') as f:
+              data = json.load(f)
+          assert isinstance(data, dict), 'top-level must be object'
+          assert data.get('schema_version') == 'v0', f'schema_version: {data.get("schema_version")}'
+          assert 'findings' in data and isinstance(data['findings'], list)
+          assert 'summary' in data and isinstance(data['summary'], dict)
+          print('scan.json OK:', json.dumps(data['summary']))
+          PY
+
+      - name: Surface sandbox logs on failure
+        if: failure()
+        working-directory: module
+        run: docker compose -f tests/sandbox/docker-compose.yml logs --no-color --tail=200
+
+      - name: Tear down sandbox
+        if: always()
+        working-directory: module
+        run: docker compose -f tests/sandbox/docker-compose.yml down --volumes --remove-orphans
+
+  # Full compat matrix — gated on the `v0` label or `main` pushes.
+  # Models the constraint via job-level `if:` so the default-PR run keeps
+  # free-tier GHA minutes lean (one integration cell + lint + unit-matrix).
+  integration-full-matrix:
+    name: Integration (full) — Magento ${{ matrix.magento }} / PHP ${{ matrix.php }}
+    if: contains(github.event.pull_request.labels.*.name, 'v0') || github.event_name == 'push'
+    runs-on: ubuntu-latest
+    needs: [lint, unit]
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        # Pruned to supported intersections per Magento system requirements:
+        #   2.4.4 → PHP 8.1
+        #   2.4.5 → PHP 8.1
+        #   2.4.6 → PHP 8.1, 8.2
+        #   2.4.7 → PHP 8.2, 8.3
+        # The 2.4.7 × 8.3 cell is already covered by the default `integration`
+        # job, so it is omitted here to avoid double-spending minutes.
+        include:
+          - magento: '2.4.4'
+            php: '8.1'
+          - magento: '2.4.5'
+            php: '8.1'
+          - magento: '2.4.6'
+            php: '8.1'
+          - magento: '2.4.6'
+            php: '8.2'
+          - magento: '2.4.7'
+            php: '8.2'
+    steps:
+      - name: Checkout module
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          path: module
+
+      - name: Setup PHP ${{ matrix.php }}
+        uses: shivammathur/setup-php@9e72090525849c5e82e596468b86eb55e9cc5401 # v2.32.0
+        with:
+          php-version: ${{ matrix.php }}
+          tools: composer:v2
+          extensions: bcmath, ctype, curl, dom, gd, hash, iconv, intl, mbstring, openssl, pdo_mysql, simplexml, soap, sockets, sodium, tokenizer, xmlwriter, xsl, zip
+          coverage: none
+
+      - name: Boot Magento sandbox (MariaDB + OpenSearch + Redis)
+        working-directory: module
+        env:
+          MAGENTO_VERSION: ${{ matrix.magento }}
+          PHP_VERSION: ${{ matrix.php }}
+        run: |
+          docker compose -f tests/sandbox/docker-compose.yml up -d --wait
+          docker compose -f tests/sandbox/docker-compose.yml ps
+
+      - name: Install Magento + module
+        working-directory: module
+        env:
+          MAGENTO_VERSION: ${{ matrix.magento }}
+        run: |
+          docker compose -f tests/sandbox/docker-compose.yml exec -T magento bash -lc '
+            set -euo pipefail
+            cd /var/www/html
+            composer config repositories.ironcart path /var/www/html/ironcart-module
+            composer require --no-interaction --no-progress ironcartlabs/magento-scan:@dev
+            bin/magento module:enable IronCart_Scan
+            bin/magento setup:upgrade
+          '
+
+      - name: Run ironcart:scan and assert exit 0 + valid JSON
+        working-directory: module
+        run: |
+          docker compose -f tests/sandbox/docker-compose.yml exec -T magento bash -lc '
+            set -euo pipefail
+            cd /var/www/html
+            bin/magento ironcart:scan --format=json > /tmp/scan.json
+          '
+          docker compose -f tests/sandbox/docker-compose.yml cp magento:/tmp/scan.json ./scan.json
+          python3 - <<'PY'
+          import json
+          with open('scan.json') as f:
+              data = json.load(f)
+          assert isinstance(data, dict), 'top-level must be object'
+          assert data.get('schema_version') == 'v0', f'schema_version: {data.get("schema_version")}'
+          assert 'findings' in data and isinstance(data['findings'], list)
+          assert 'summary' in data and isinstance(data['summary'], dict)
+          print('scan.json OK:', json.dumps(data['summary']))
+          PY
+
+      - name: Surface sandbox logs on failure
+        if: failure()
+        working-directory: module
+        run: docker compose -f tests/sandbox/docker-compose.yml logs --no-color --tail=200
+
+      - name: Tear down sandbox
+        if: always()
+        working-directory: module
+        run: docker compose -f tests/sandbox/docker-compose.yml down --volumes --remove-orphans
