@@ -41,6 +41,11 @@
                 <item name="IC-022" xsi:type="object">IronCart\Scan\Check\Runtime\HttpsEnforcementCheck</item>
                 <item name="IC-023" xsi:type="object">IronCart\Scan\Check\Runtime\CspModeCheck</item>
                 <item name="IC-024" xsi:type="object">IronCart\Scan\Check\Runtime\ProfilerCheck</item>
+                <!-- Admin posture check pack (#4) -->
+                <item name="IC-010" xsi:type="object">IronCart\Scan\Check\Admin\AdminUrlFrontnameCheck</item>
+                <item name="IC-011" xsi:type="object">IronCart\Scan\Check\Admin\AdminUserInventoryCheck</item>
+                <item name="IC-012" xsi:type="object">IronCart\Scan\Check\Admin\TwoFactorCoverageCheck</item>
+                <item name="IC-013" xsi:type="object">IronCart\Scan\Check\Admin\WeakPasswordIndicatorCheck</item>
             </argument>
         </arguments>
     </type>

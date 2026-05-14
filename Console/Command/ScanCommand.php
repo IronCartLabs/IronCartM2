@@ -20,6 +20,7 @@ declare(strict_types=1);
 namespace IronCart\Scan\Console\Command;
 
 use IronCart\Scan\Check\CheckRegistry;
+use IronCart\Scan\Check\ScanSession;
 use IronCart\Scan\Report\ReportBuilder;
 use IronCart\Scan\Report\ReportRenderer;
 use Magento\Framework\App\ProductMetadataInterface;
@@ -38,6 +39,7 @@ class ScanCommand extends Command
 
     public const OPTION_FORMAT = 'format';
     public const OPTION_OUTPUT = 'output';
+    public const OPTION_INCLUDE_USERNAMES = 'include-usernames';
 
     public const FORMAT_JSON = 'json';
     public const FORMAT_TEXT = 'text';
@@ -57,6 +59,7 @@ class ScanCommand extends Command
         private readonly ReportBuilder $reportBuilder,
         private readonly ReportRenderer $reportRenderer,
         private readonly CheckRegistry $checkRegistry,
+        private readonly ScanSession $session,
         ?string $name = null
     ) {
         parent::__construct($name);
@@ -79,6 +82,14 @@ class ScanCommand extends Command
                 InputOption::VALUE_REQUIRED,
                 'Write report to this file path instead of stdout',
                 null
+            )
+            ->addOption(
+                self::OPTION_INCLUDE_USERNAMES,
+                null,
+                InputOption::VALUE_NONE,
+                'Include admin usernames in finding evidence. '
+                . 'Off by default — usernames are PII under the IronCartM2 v0 policy '
+                . 'and must be explicitly opted into per-run.'
             );
     }
 
@@ -94,6 +105,10 @@ class ScanCommand extends Command
 
                 return self::EXIT_FAILURE;
             }
+
+            $this->session->setIncludeUsernames(
+                (bool) $input->getOption(self::OPTION_INCLUDE_USERNAMES)
+            );
 
             $findings = $this->checkRegistry->runAll();
 
