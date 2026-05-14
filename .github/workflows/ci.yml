@@ -53,11 +53,22 @@ jobs:
         # private constructor as a pre-PHP-8.1 enum, which Magento2 flags
         # by default; the design is intentional and discussed in #2.
         run: |
+          # Excluded sniffs, with justification:
+          #   *FinalImplementation — Report\Severity legitimately uses
+          #     final + private constructor as a pre-PHP-8.1 enum.
+          #   Generic.PHP.NoSilencedErrors — filesystem-probing security
+          #     checks (Check/Filesystem/*) intentionally silence errors
+          #     when reading perm bits / owner of unreadable paths.
+          #   Magento2.Functions.DiscouragedFunction — the same checks
+          #     use @posix_getpwuid / @fileperms / @fileowner directly
+          #     because the Magento Filesystem API doesn't expose them.
+          #   Magento2.Security.IncludeFile — the registration shim
+          #     `include`s a path-resolved file by design.
           phpcs -n \
             --standard=Magento2 \
             --extensions=php,phtml \
             --ignore=vendor,_m2-workspace,tests/_sandbox \
-            --exclude=Magento2.PHP.FinalImplementation,Magento2.Classes.FinalImplementation \
+            --exclude=Magento2.PHP.FinalImplementation,Magento2.Classes.FinalImplementation,Generic.PHP.NoSilencedErrors,Magento2.Functions.DiscouragedFunction,Magento2.Security.IncludeFile \
             --report=full \
             --report-checkstyle=phpcs-report.xml \
             .
