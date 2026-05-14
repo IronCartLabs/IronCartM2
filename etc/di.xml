@@ -27,6 +27,9 @@
                 <item name="IC-032" xsi:type="object">IronCart\Scan\Check\Filesystem\CryptKeyCheck</item>
                 <item name="IC-033" xsi:type="object">IronCart\Scan\Check\Filesystem\WritableDirectoriesCheck</item>
                 <item name="IC-034" xsi:type="object">IronCart\Scan\Check\Filesystem\StrayDevToolingCheck</item>
+                <!-- Patch-level check pack (#3) -->
+                <item name="IC-001" xsi:type="object">IronCart\Scan\Check\PatchLevel\MagentoVersionCheck</item>
+                <item name="IC-002" xsi:type="object">IronCart\Scan\Check\PatchLevel\ComposerAdvisoryCheck</item>
             </argument>
         </arguments>
     </type>

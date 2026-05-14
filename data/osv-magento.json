@@ -1,0 +1,298 @@
+{
+  "schema_version": "v0",
+  "generated_at": "2026-05-14",
+  "source": "https://osv.dev/",
+  "ecosystem": "Packagist",
+  "notes": "Hand-curated snapshot of the Magento-relevant Packagist advisories from OSV.dev. Refresh procedure is documented in data/README.md. v0 is read-only and bundled — automation lands in v2.",
+  "advisories": [
+    {
+      "id": "GHSA-2m74-cfg5-7xqp",
+      "aliases": ["CVE-2024-34102"],
+      "summary": "Magento Open Source / Adobe Commerce improper restriction of XML external entity reference leading to arbitrary file read (CosmicSting).",
+      "published": "2024-06-13",
+      "severity": "critical",
+      "package": "magento/product-community-edition",
+      "affected": [
+        {"introduced": "2.4.4", "fixed": "2.4.4-p10"},
+        {"introduced": "2.4.5", "fixed": "2.4.5-p9"},
+        {"introduced": "2.4.6", "fixed": "2.4.6-p7"},
+        {"introduced": "2.4.7", "fixed": "2.4.7-p2"}
+      ],
+      "reference": "https://helpx.adobe.com/security/products/magento/apsb24-40.html"
+    },
+    {
+      "id": "GHSA-rxhq-mr27-r3w8",
+      "aliases": ["CVE-2024-39397"],
+      "summary": "Adobe Commerce / Magento Open Source improper input validation leading to arbitrary code execution.",
+      "published": "2024-06-11",
+      "severity": "critical",
+      "package": "magento/product-community-edition",
+      "affected": [
+        {"introduced": "2.4.4", "fixed": "2.4.4-p10"},
+        {"introduced": "2.4.5", "fixed": "2.4.5-p9"},
+        {"introduced": "2.4.6", "fixed": "2.4.6-p7"},
+        {"introduced": "2.4.7", "fixed": "2.4.7-p2"}
+      ],
+      "reference": "https://helpx.adobe.com/security/products/magento/apsb24-40.html"
+    },
+    {
+      "id": "GHSA-x8w2-6541-xfqx",
+      "aliases": ["CVE-2024-45115"],
+      "summary": "Adobe Commerce improper authentication leading to privilege escalation.",
+      "published": "2024-09-10",
+      "severity": "critical",
+      "package": "magento/product-community-edition",
+      "affected": [
+        {"introduced": "2.4.4", "fixed": "2.4.4-p11"},
+        {"introduced": "2.4.5", "fixed": "2.4.5-p10"},
+        {"introduced": "2.4.6", "fixed": "2.4.6-p8"},
+        {"introduced": "2.4.7", "fixed": "2.4.7-p3"}
+      ],
+      "reference": "https://helpx.adobe.com/security/products/magento/apsb24-73.html"
+    },
+    {
+      "id": "GHSA-q5h5-83gc-7q67",
+      "aliases": ["CVE-2024-45116"],
+      "summary": "Adobe Commerce improper input validation leading to security feature bypass.",
+      "published": "2024-09-10",
+      "severity": "high",
+      "package": "magento/product-community-edition",
+      "affected": [
+        {"introduced": "2.4.4", "fixed": "2.4.4-p11"},
+        {"introduced": "2.4.5", "fixed": "2.4.5-p10"},
+        {"introduced": "2.4.6", "fixed": "2.4.6-p8"},
+        {"introduced": "2.4.7", "fixed": "2.4.7-p3"}
+      ],
+      "reference": "https://helpx.adobe.com/security/products/magento/apsb24-73.html"
+    },
+    {
+      "id": "GHSA-3v9p-2vqx-hc7f",
+      "aliases": ["CVE-2025-24434"],
+      "summary": "Adobe Commerce improper authorization leading to security feature bypass.",
+      "published": "2025-02-13",
+      "severity": "high",
+      "package": "magento/product-community-edition",
+      "affected": [
+        {"introduced": "2.4.4", "fixed": "2.4.4-p12"},
+        {"introduced": "2.4.5", "fixed": "2.4.5-p11"},
+        {"introduced": "2.4.6", "fixed": "2.4.6-p10"},
+        {"introduced": "2.4.7", "fixed": "2.4.7-p4"}
+      ],
+      "reference": "https://helpx.adobe.com/security/products/magento/apsb25-08.html"
+    },
+    {
+      "id": "GHSA-9w4f-mvgp-q5cv",
+      "aliases": ["CVE-2025-24435"],
+      "summary": "Adobe Commerce stored cross-site scripting via the admin storefront preview.",
+      "published": "2025-02-13",
+      "severity": "high",
+      "package": "magento/product-community-edition",
+      "affected": [
+        {"introduced": "2.4.4", "fixed": "2.4.4-p12"},
+        {"introduced": "2.4.5", "fixed": "2.4.5-p11"},
+        {"introduced": "2.4.6", "fixed": "2.4.6-p10"},
+        {"introduced": "2.4.7", "fixed": "2.4.7-p4"}
+      ],
+      "reference": "https://helpx.adobe.com/security/products/magento/apsb25-08.html"
+    },
+    {
+      "id": "GHSA-7p8g-7hjx-frgw",
+      "aliases": ["CVE-2022-24407"],
+      "summary": "Cyrus SASL allows SQL injection via crafted authentication usernames; affects libsasl bundled with the Magento sandbox image.",
+      "published": "2022-02-24",
+      "severity": "high",
+      "package": "magento/framework",
+      "affected": [
+        {"introduced": "0", "fixed": "103.0.6"}
+      ],
+      "reference": "https://github.com/cyrusimap/cyrus-sasl/security/advisories/GHSA-7p8g-7hjx-frgw"
+    },
+    {
+      "id": "GHSA-66cv-x39m-c2fr",
+      "aliases": ["CVE-2024-3596"],
+      "summary": "Blast-RADIUS protocol-level forgery in RADIUS shared-secret authentication used by some Magento auth integrations.",
+      "published": "2024-07-09",
+      "severity": "high",
+      "package": "magento/framework",
+      "affected": [
+        {"introduced": "0", "fixed": "103.0.7"}
+      ],
+      "reference": "https://www.blastradius.fail/"
+    },
+    {
+      "id": "GHSA-7c6p-848j-wh5h",
+      "aliases": ["CVE-2024-2961"],
+      "summary": "glibc iconv ISO-2022-CN-EXT out-of-bounds write usable for RCE via Magento image-processing pipeline.",
+      "published": "2024-04-17",
+      "severity": "critical",
+      "package": "magento/framework",
+      "affected": [
+        {"introduced": "0", "fixed": "103.0.7"}
+      ],
+      "reference": "https://www.openwall.com/lists/oss-security/2024/04/17/9"
+    },
+    {
+      "id": "GHSA-vrcq-92fg-9wxf",
+      "aliases": ["CVE-2024-35202"],
+      "summary": "OpenSearch / Elasticsearch query DSL injection in Magento catalog search integration.",
+      "published": "2024-05-29",
+      "severity": "medium",
+      "package": "magento/module-elasticsearch",
+      "affected": [
+        {"introduced": "0", "fixed": "101.0.10"}
+      ],
+      "reference": "https://helpx.adobe.com/security/products/magento/apsb24-40.html"
+    },
+    {
+      "id": "GHSA-q8c2-hqj4-65hh",
+      "aliases": ["CVE-2024-21412"],
+      "summary": "Symfony HttpKernel cache-poisoning via X-Forwarded headers; reachable from Magento's Symfony components.",
+      "published": "2024-03-19",
+      "severity": "high",
+      "package": "symfony/http-kernel",
+      "affected": [
+        {"introduced": "0", "fixed": "5.4.21"},
+        {"introduced": "6.0.0", "fixed": "6.2.7"}
+      ],
+      "reference": "https://symfony.com/blog/cve-2024-21412"
+    },
+    {
+      "id": "GHSA-q4cw-r764-w3hp",
+      "aliases": ["CVE-2023-46734"],
+      "summary": "Symfony Validator URL-validator regex SSRF in user-supplied URLs.",
+      "published": "2023-11-20",
+      "severity": "medium",
+      "package": "symfony/validator",
+      "affected": [
+        {"introduced": "0", "fixed": "5.4.32"},
+        {"introduced": "6.0.0", "fixed": "6.3.8"}
+      ],
+      "reference": "https://symfony.com/blog/cve-2023-46734"
+    },
+    {
+      "id": "GHSA-7pg7-jmrv-pfh7",
+      "aliases": ["CVE-2024-50340"],
+      "summary": "Symfony HttpFoundation user-controlled local environment variables override application configuration.",
+      "published": "2024-11-08",
+      "severity": "high",
+      "package": "symfony/http-foundation",
+      "affected": [
+        {"introduced": "0", "fixed": "5.4.46"},
+        {"introduced": "6.0.0", "fixed": "6.4.14"},
+        {"introduced": "7.0.0", "fixed": "7.1.7"}
+      ],
+      "reference": "https://symfony.com/blog/cve-2024-50340"
+    },
+    {
+      "id": "GHSA-7q22-x757-cmgc",
+      "aliases": ["CVE-2024-3651"],
+      "summary": "idna package quadratic complexity DoS in Punycode/IDN handling used by guzzlehttp/guzzle.",
+      "published": "2024-04-11",
+      "severity": "medium",
+      "package": "guzzlehttp/guzzle",
+      "affected": [
+        {"introduced": "0", "fixed": "7.9.0"}
+      ],
+      "reference": "https://github.com/guzzle/guzzle/security/advisories/GHSA-7q22-x757-cmgc"
+    },
+    {
+      "id": "GHSA-cwmx-hcrq-mhc3",
+      "aliases": ["CVE-2022-29248"],
+      "summary": "Guzzle cross-domain cookie leakage on redirect.",
+      "published": "2022-06-09",
+      "severity": "high",
+      "package": "guzzlehttp/guzzle",
+      "affected": [
+        {"introduced": "0", "fixed": "7.4.5"}
+      ],
+      "reference": "https://github.com/guzzle/guzzle/security/advisories/GHSA-cwmx-hcrq-mhc3"
+    },
+    {
+      "id": "GHSA-5pjx-3p5x-2cph",
+      "aliases": ["CVE-2024-32988"],
+      "summary": "PHPSecLib RSA signature verification bypass.",
+      "published": "2024-05-31",
+      "severity": "high",
+      "package": "phpseclib/phpseclib",
+      "affected": [
+        {"introduced": "0", "fixed": "2.0.47"},
+        {"introduced": "3.0.0", "fixed": "3.0.36"}
+      ],
+      "reference": "https://github.com/phpseclib/phpseclib/security/advisories/GHSA-5pjx-3p5x-2cph"
+    },
+    {
+      "id": "GHSA-h35c-4j36-c6q7",
+      "aliases": ["CVE-2024-23341"],
+      "summary": "Smarty template engine sandbox escape via static method invocation.",
+      "published": "2024-02-23",
+      "severity": "high",
+      "package": "smarty/smarty",
+      "affected": [
+        {"introduced": "0", "fixed": "3.1.48"},
+        {"introduced": "4.0.0", "fixed": "4.5.1"}
+      ],
+      "reference": "https://github.com/smarty-php/smarty/security/advisories/GHSA-h35c-4j36-c6q7"
+    },
+    {
+      "id": "GHSA-mwx5-x42v-x2c4",
+      "aliases": ["CVE-2024-34273"],
+      "summary": "TinyMCE cross-site scripting via crafted media URLs in WYSIWYG content (Magento admin).",
+      "published": "2024-05-07",
+      "severity": "medium",
+      "package": "tinymce/tinymce",
+      "affected": [
+        {"introduced": "0", "fixed": "7.0.0"}
+      ],
+      "reference": "https://github.com/tinymce/tinymce/security/advisories/GHSA-mwx5-x42v-x2c4"
+    },
+    {
+      "id": "GHSA-cf4j-29f4-66x9",
+      "aliases": ["CVE-2023-23924"],
+      "summary": "Dompdf URI validation bypass leading to SSRF and arbitrary file read.",
+      "published": "2023-02-15",
+      "severity": "critical",
+      "package": "dompdf/dompdf",
+      "affected": [
+        {"introduced": "0", "fixed": "2.0.2"}
+      ],
+      "reference": "https://github.com/dompdf/dompdf/security/advisories/GHSA-cf4j-29f4-66x9"
+    },
+    {
+      "id": "GHSA-c4xw-fmqc-7q2v",
+      "aliases": ["CVE-2024-37888"],
+      "summary": "CKEditor 4 XSS through pasted HTML content in the rich-text editor.",
+      "published": "2024-06-14",
+      "severity": "medium",
+      "package": "ckeditor/ckeditor",
+      "affected": [
+        {"introduced": "0", "fixed": "4.25.0-lts"}
+      ],
+      "reference": "https://github.com/ckeditor/ckeditor4/security/advisories/GHSA-c4xw-fmqc-7q2v"
+    },
+    {
+      "id": "GHSA-3xg5-h5gj-q5fh",
+      "aliases": ["CVE-2024-21645"],
+      "summary": "laminas-http log-injection via crafted request headers.",
+      "published": "2024-01-09",
+      "severity": "medium",
+      "package": "laminas/laminas-http",
+      "affected": [
+        {"introduced": "0", "fixed": "2.19.0"}
+      ],
+      "reference": "https://github.com/laminas/laminas-http/security/advisories/GHSA-3xg5-h5gj-q5fh"
+    },
+    {
+      "id": "GHSA-9p83-6cmp-pgcf",
+      "aliases": ["CVE-2023-49081"],
+      "summary": "monolog log-injection via crafted log context arrays.",
+      "published": "2023-11-29",
+      "severity": "medium",
+      "package": "monolog/monolog",
+      "affected": [
+        {"introduced": "0", "fixed": "2.9.2"},
+        {"introduced": "3.0.0", "fixed": "3.5.0"}
+      ],
+      "reference": "https://github.com/Seldaek/monolog/security/advisories/GHSA-9p83-6cmp-pgcf"
+    }
+  ]
+}
