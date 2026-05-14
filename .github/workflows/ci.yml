@@ -94,12 +94,6 @@ jobs:
           cat > phpstan.neon <<'NEON'
           parameters:
             level: 6
-            # PHPDoc array shapes (e.g. `list<array{severity:string}>`) are
-            # treated as best-effort documentation, not load-bearing
-            # invariants — defensive `?? null` checks against
-            # incorrectly-shaped callers should not be flagged as dead
-            # code. This mirrors how most Magento modules ship.
-            treatPhpDocTypesAsCertain: false
             paths:
               - Report/ReportBuilder.php
               - Report/Severity.php
@@ -137,18 +131,17 @@ jobs:
         #   - drop autoload.files (registration.php executes
         #     ComponentRegistrar::register() at autoload time, which would
         #     blow up without magento/framework)
-        #   - add symfony/console as a require-dev (the ReportRenderer
-        #     tests instantiate Symfony\Component\Console\Output\BufferedOutput;
-        #     symfony/console is on Packagist so no auth is required)
-        # then generate the autoloader and restore the original file so
-        # the working tree is unchanged for any subsequent steps.
+        # symfony/console is declared as require-dev in composer.json so
+        # it satisfies the ReportRenderer tests' BufferedOutput import
+        # without any further CI surgery.
+        # The original composer.json is restored so the working tree is
+        # unchanged for any subsequent steps.
         run: |
           cp composer.json composer.json.bak
           php -r '
             $j = json_decode(file_get_contents("composer.json"), true);
             unset($j["require"]["magento/framework"]);
             unset($j["autoload"]["files"]);
-            $j["require-dev"] = ($j["require-dev"] ?? []) + ["symfony/console" => "^6.4 || ^7.0"];
             file_put_contents("composer.json", json_encode($j, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
           '
           composer install --no-interaction --no-progress --no-scripts --no-plugins
@@ -189,6 +182,13 @@ jobs:
     name: Integration (Magento ${{ matrix.magento }} / PHP ${{ matrix.php }})
     runs-on: ubuntu-latest
     needs: [lint, unit]
+    # Gated on the `INTEGRATION_ENABLED` repo variable. The integration
+    # cell boots a real Magento sandbox, which requires authenticated
+    # access to repo.magento.com (Adobe Marketplace Composer keys). Until
+    # those keys are configured as repo secrets and INTEGRATION_ENABLED
+    # is set to 'true', this job is skipped rather than failed — see #18
+    # for the secret-wiring + Magento image follow-up.
+    if: ${{ vars.INTEGRATION_ENABLED == 'true' }}
     timeout-minutes: 20
     strategy:
       fail-fast: false
@@ -268,12 +268,14 @@ jobs:
         working-directory: module
         run: docker compose -f tests/sandbox/docker-compose.yml down --volumes --remove-orphans
 
-  # Full compat matrix — gated on the `v0` label or `main` pushes.
+  # Full compat matrix — gated on the `v0` label or `main` pushes, AND
+  # on the INTEGRATION_ENABLED repo variable (Magento auth wiring; see
+  # the comment on the `integration` job above).
   # Models the constraint via job-level `if:` so the default-PR run keeps
   # free-tier GHA minutes lean (one integration cell + lint + unit-matrix).
   integration-full-matrix:
     name: Integration (full) — Magento ${{ matrix.magento }} / PHP ${{ matrix.php }}
-    if: contains(github.event.pull_request.labels.*.name, 'v0') || github.event_name == 'push'
+    if: ${{ vars.INTEGRATION_ENABLED == 'true' && (contains(github.event.pull_request.labels.*.name, 'v0') || github.event_name == 'push') }}
     runs-on: ubuntu-latest
     needs: [lint, unit]
     timeout-minutes: 20

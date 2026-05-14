@@ -11,8 +11,10 @@
 #   - Redis 7 (cache + session)
 #
 # All services bind to localhost-only; no public ports are exposed in CI.
-
-version: '3.9'
+#
+# Note: the top-level `version` key has been intentionally removed —
+# docker compose v2 treats it as obsolete and emits a warning. The schema
+# is auto-detected.
 
 services:
   mariadb:
