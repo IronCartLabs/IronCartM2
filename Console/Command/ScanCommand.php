@@ -4,8 +4,9 @@
  * IronCart_Scan — scan command.
  *
  * Implements `bin/magento ironcart:scan`, the entry point for the read-only
- * Magento security scanner. v0 emits a stub report (zero findings) but freezes
- * the JSON schema so future versions remain backwards-compatible — see
+ * Magento security scanner. v0 wires the {@see CheckRegistry} so every
+ * registered {@see \IronCart\Scan\Check\CheckInterface} contributes findings
+ * into the canonical v0 JSON report — see
  * {@link https://github.com/IronCartLabs/IronCartM2/issues/2}.
  *
  * No outbound network calls are made by this command (v0 invariant).
@@ -18,6 +19,7 @@ declare(strict_types=1);
 
 namespace IronCart\Scan\Console\Command;
 
+use IronCart\Scan\Check\CheckRegistry;
 use IronCart\Scan\Report\ReportBuilder;
 use IronCart\Scan\Report\ReportRenderer;
 use Magento\Framework\App\ProductMetadataInterface;
@@ -54,6 +56,7 @@ class ScanCommand extends Command
         private readonly ProductMetadataInterface $productMetadata,
         private readonly ReportBuilder $reportBuilder,
         private readonly ReportRenderer $reportRenderer,
+        private readonly CheckRegistry $checkRegistry,
         ?string $name = null
     ) {
         parent::__construct($name);
@@ -92,10 +95,12 @@ class ScanCommand extends Command
                 return self::EXIT_FAILURE;
             }
 
+            $findings = $this->checkRegistry->runAll();
+
             $report = $this->reportBuilder->build(
                 magentoVersion: $this->productMetadata->getVersion(),
                 magentoEdition: $this->productMetadata->getEdition(),
-                findings: []
+                findings: $findings
             );
 
             $rendered = $this->reportRenderer->render($report, $format, $output);
