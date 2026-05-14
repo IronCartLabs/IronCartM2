@@ -1,0 +1,10 @@
+# Default owners — every PR requires review from a code owner.
+*                       @krobins-security-agent
+
+# Anything that affects how the module loads, registers, or runs.
+/etc/                   @krobins-security-agent
+/registration.php       @krobins-security-agent
+/composer.json          @krobins-security-agent
+
+# CI workflows — pinned-SHA policy enforced here.
+/.github/workflows/     @krobins-security-agent

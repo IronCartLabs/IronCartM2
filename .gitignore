@@ -1,0 +1,24 @@
+# Composer
+/vendor/
+composer.phar
+
+# IDE
+/.idea/
+/.vscode/
+*.iml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Local test artifacts
+/tests/_output/
+/tests/_data/
+/dev/tests/integration/tmp/
+
+# Scan outputs
+ironcart-scan*.json
+
+# Env
+.env
+.env.local

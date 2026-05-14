@@ -1,0 +1,27 @@
+{
+    "name": "ironcartlabs/magento-scan",
+    "description": "Magento 2 security scanner module by Ironcart — read-only checks and JSON reporting.",
+    "type": "magento2-module",
+    "license": "MIT",
+    "homepage": "https://ironcart.dev",
+    "support": {
+        "issues": "https://github.com/IronCartLabs/IronCartM2/issues",
+        "source": "https://github.com/IronCartLabs/IronCartM2",
+        "security": "https://github.com/IronCartLabs/IronCartM2/security/policy"
+    },
+    "require": {
+        "php": "~8.1.0||~8.2.0||~8.3.0",
+        "magento/framework": "^103.0"
+    },
+    "autoload": {
+        "files": ["registration.php"],
+        "psr-4": {
+            "IronCart\\Scan\\": ""
+        }
+    },
+    "extra": {
+        "map": [
+            ["*", "IronCart/Scan"]
+        ]
+    }
+}
