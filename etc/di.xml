@@ -30,6 +30,11 @@
                 <!-- Patch-level check pack (#3) -->
                 <item name="IC-001" xsi:type="object">IronCart\Scan\Check\PatchLevel\MagentoVersionCheck</item>
                 <item name="IC-002" xsi:type="object">IronCart\Scan\Check\PatchLevel\ComposerAdvisoryCheck</item>
+                <!-- Operational health check pack (#7) -->
+                <item name="IC-040" xsi:type="object">IronCart\Scan\Check\Operational\IndexerStateCheck</item>
+                <item name="IC-041" xsi:type="object">IronCart\Scan\Check\Operational\CronLastRunCheck</item>
+                <item name="IC-042" xsi:type="object">IronCart\Scan\Check\Operational\CronErrorRateCheck</item>
+                <item name="IC-043" xsi:type="object">IronCart\Scan\Check\Operational\MessageQueueBacklogCheck</item>
             </argument>
         </arguments>
     </type>
