@@ -29,6 +29,8 @@ class MessageQueueBacklogCheck implements CheckInterface
 {
     public const ID = 'IC-043';
 
+    private const REMEDIATION_URL = 'https://ironcart.dev/docs/checks/IC-043';
+
     /** Depth threshold per queue. */
     public const DEPTH_THRESHOLD = 10000;
 
@@ -102,7 +104,7 @@ class MessageQueueBacklogCheck implements CheckInterface
                     'threshold' => self::DEPTH_THRESHOLD,
                     'queues' => $over,
                 ],
-                remediationUrl: 'https://developer.adobe.com/commerce/php/development/components/message-queues/'
+                remediationUrl: self::REMEDIATION_URL
             ),
         ];
     }

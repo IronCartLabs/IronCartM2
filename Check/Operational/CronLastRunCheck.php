@@ -29,6 +29,8 @@ class CronLastRunCheck implements CheckInterface
 {
     public const ID = 'IC-041';
 
+    private const REMEDIATION_URL = 'https://ironcart.dev/docs/checks/IC-041';
+
     /** Group name to monitor — Magento's catch-all housekeeping group. */
     public const GROUP = 'default';
 
@@ -90,7 +92,7 @@ class CronLastRunCheck implements CheckInterface
                         'group' => self::GROUP,
                         'inspected_rows' => self::SAMPLE_SIZE,
                     ],
-                    remediationUrl: 'https://developer.adobe.com/commerce/php/development/components/cron/'
+                    remediationUrl: self::REMEDIATION_URL
                 ),
             ];
         }
@@ -116,7 +118,7 @@ class CronLastRunCheck implements CheckInterface
                     'last_job_code' => $latestJobCode,
                     'age_seconds' => $age,
                 ],
-                remediationUrl: 'https://developer.adobe.com/commerce/php/development/components/cron/'
+                remediationUrl: self::REMEDIATION_URL
             ),
         ];
     }
