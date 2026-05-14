@@ -41,6 +41,13 @@ bin/magento ironcart:scan --format=json --output=./ironcart-scan.json
 - PHP 8.1, 8.2, 8.3
 - Adobe Commerce and Magento Open Source
 
+## Local development
+
+Run `make sandbox` for a one-command Magento 2 install with this module
+symlinked in (wraps [markshust/docker-magento](https://github.com/markshust/docker-magento)).
+See [docs/sandbox.md](docs/sandbox.md) for prerequisites, Adobe auth keys, the
+M2/PHP matrix, and known papercuts.
+
 ## Security
 
 This module is read-only and performs **no outbound network calls** in v0–v2. Opt-in hosted reporting arrives in v3. See [SECURITY.md](SECURITY.md) for the vulnerability disclosure policy.

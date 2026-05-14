@@ -22,3 +22,6 @@ ironcart-scan*.json
 # Env
 .env
 .env.local
+
+# Local Magento sandbox (markshust/docker-magento harness — see docs/sandbox.md)
+/.sandbox/
