@@ -75,7 +75,7 @@ class ReportBuilder
         }
 
         foreach ($findings as $finding) {
-            $severity = $finding['severity'] ?? null;
+            $severity = $finding['severity'];
             if (is_string($severity) && Severity::isValid($severity)) {
                 $summary[$severity]++;
             }
