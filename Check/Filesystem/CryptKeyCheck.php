@@ -29,8 +29,7 @@ class CryptKeyCheck implements CheckInterface
 {
     public const ID = 'IC-032';
 
-    private const REMEDIATION_URL =
-        'https://experienceleague.adobe.com/docs/commerce-operations/installation-guide/next-steps/encryption-key.html';
+    private const REMEDIATION_URL = 'https://ironcart.dev/docs/checks/IC-032';
 
     /**
      * Placeholder strings that appear in Adobe / community documentation
