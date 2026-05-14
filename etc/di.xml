@@ -3,8 +3,16 @@
  / Copyright (c) Ironcart (https://ironcart.dev)
  / Licensed under MIT.
  /
- / Placeholder DI configuration. Check-class wiring lands in later issues.
+ / Registers the `ironcart:scan` console command with Magento's CommandList.
+ / Check-class wiring lands in later issues.
 -->
 <config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         xsi:noNamespaceSchemaLocation="urn:magento:framework:ObjectManager/etc/config.xsd">
+    <type name="Magento\Framework\Console\CommandList">
+        <arguments>
+            <argument name="commands" xsi:type="array">
+                <item name="ironcart_scan" xsi:type="object">IronCart\Scan\Console\Command\ScanCommand</item>
+            </argument>
+        </arguments>
+    </type>
 </config>
