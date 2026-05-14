@@ -29,8 +29,7 @@ class WritableDirectoriesCheck implements CheckInterface
 {
     public const ID = 'IC-033';
 
-    private const REMEDIATION_URL =
-        'https://experienceleague.adobe.com/docs/commerce-operations/installation-guide/prerequisites/file-system/overview.html';
+    private const REMEDIATION_URL = 'https://ironcart.dev/docs/checks/IC-033';
 
     private const TARGETS = ['pub/media', 'var'];
 

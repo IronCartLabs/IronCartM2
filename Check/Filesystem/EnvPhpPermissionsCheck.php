@@ -30,8 +30,7 @@ class EnvPhpPermissionsCheck implements CheckInterface
     public const ID = 'IC-030';
 
     private const TITLE = 'app/etc/env.php is world-readable';
-    private const REMEDIATION_URL =
-        'https://experienceleague.adobe.com/docs/commerce-operations/installation-guide/prerequisites/file-system/overview.html';
+    private const REMEDIATION_URL = 'https://ironcart.dev/docs/checks/IC-030';
 
     public function __construct(private readonly MagentoRoot $root)
     {

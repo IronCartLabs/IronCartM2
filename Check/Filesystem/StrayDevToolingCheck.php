@@ -29,8 +29,7 @@ class StrayDevToolingCheck implements CheckInterface
 {
     public const ID = 'IC-034';
 
-    private const REMEDIATION_URL =
-        'https://experienceleague.adobe.com/docs/commerce-operations/configuration-guide/cli/set-up-cron-jobs.html';
+    private const REMEDIATION_URL = 'https://ironcart.dev/docs/checks/IC-034';
 
     /**
      * Relative paths (under the project root) that should never be reachable
