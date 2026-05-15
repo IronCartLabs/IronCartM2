@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<!--
+ / Copyright (c) Ironcart (https://ironcart.dev)
+ / Licensed under MIT.
+ /
+ / Registers the "Security Scans" entry under System -> Tools.
+ / Action `ironcartscan/scans/index` routes to {@see \IronCart\Scan\Controller\Adminhtml\Scans\Index};
+ / the listing UI hangs off that controller in a follow-up issue.
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Backend:etc/menu.xsd">
+    <menu>
+        <add id="IronCart_Scan::scans"
+             title="Security Scans"
+             translate="title"
+             module="IronCart_Scan"
+             parent="Magento_Backend::system_tools"
+             action="ironcartscan/scans/index"
+             resource="IronCart_Scan::scan"
+             sortOrder="50"/>
+    </menu>
+</config>
