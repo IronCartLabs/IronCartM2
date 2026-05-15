@@ -1,9 +1,29 @@
 # Magento sandbox for IronCartM2 integration tests.
 #
-# Image: bitnami/magento ships a fully provisioned Magento + Apache stack
-# pinned by MAGENTO_VERSION (e.g. 2.4.7). We bind-mount the module source
-# at /var/www/html/ironcart-module so the CI step can `composer require`
-# it via a path repository — no Packagist round-trip required.
+# Image strategy
+# --------------
+# Magento Open Source is distributed only via repo.magento.com (Adobe
+# Marketplace Composer auth). There is no public "fully provisioned"
+# Magento image we can pull rootless (the previously-used bitnami/magento
+# was de-listed: `pull access denied for bitnami/magento`). We resolve the
+# auth gap as follows:
+#
+#   1. The CI workflow runs `composer create-project magento/community-edition`
+#      on the GHA runner with COMPOSER_AUTH populated from the
+#      MAGENTO_PUBLIC_KEY / MAGENTO_PRIVATE_KEY repo secrets, producing a
+#      Magento source tree at ${MAGENTO_SRC_HOST} (default ./.magento).
+#   2. This compose file bind-mounts that prepared source into the
+#      `markshust/magento-php` container at /var/www/html. Shust's image
+#      bundles every PHP extension Magento 2.4.x requires (intl, soap,
+#      xsl, sodium, …) and is the same base used by the local dev
+#      sandbox (#16 / PR #20), so we reuse the validated image.
+#   3. The module under test is bind-mounted at
+#      /var/www/html/ironcart-module so the workflow can wire it in via
+#      a path composer repository.
+#
+# All Magento-source population lives in the workflow — this compose
+# file just stitches services together. Bind-mounts are read-write so
+# `bin/magento setup:upgrade` can write generated/, var/, pub/static/.
 #
 # Sidecar services match Magento 2 system requirements:
 #   - MariaDB 10.6 (Magento 2.4.4–2.4.6) / 10.6+ (2.4.7)
@@ -12,9 +32,15 @@
 #
 # All services bind to localhost-only; no public ports are exposed in CI.
 #
+# Required env vars (the workflow sets all of these):
+#   - PHP_VERSION         e.g. 8.3  → selects markshust/magento-php tag
+#   - MAGENTO_SRC_HOST    absolute path on the runner to the prepared
+#                         Magento source tree (composer create-project
+#                         output). Defaults to ../../.magento relative
+#                         to this file when running locally.
+#
 # Note: the top-level `version` key has been intentionally removed —
-# docker compose v2 treats it as obsolete and emits a warning. The schema
-# is auto-detected.
+# docker compose v2 treats it as obsolete and emits a warning.
 
 services:
   mariadb:
@@ -58,7 +84,20 @@ services:
       retries: 10
 
   magento:
-    image: bitnami/magento:${MAGENTO_VERSION:-2.4.7}
+    # markshust/magento-php is publicly pullable and bundles every PHP
+    # extension required by Magento 2.4.x. Tag pattern: `<php>-fpm`.
+    # We don't actually need fpm — we exec CLI commands — but Shust only
+    # publishes `-fpm` tags. The image also ships composer 2.
+    #
+    # MAGENTO_PHP_IMAGE override
+    # --------------------------
+    # CI pins this to a sha256 digest (per matrix cell) so the integration
+    # job is reproducible: `markoshust/magento-php@sha256:<digest>` — see
+    # the env block in `.github/workflows/ci.yml`. Local dev keeps the
+    # floating `:<php>-fpm` tag because hand-typing digests during local
+    # debugging is awful. The digest is the multi-arch manifest-list
+    # digest (works on amd64 + arm64 runners and Macs).
+    image: ${MAGENTO_PHP_IMAGE:-markoshust/magento-php:${PHP_VERSION:-8.3}-fpm}
     depends_on:
       mariadb:
         condition: service_healthy
@@ -66,27 +105,26 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-    environment:
-      MAGENTO_HOST: magento.test
-      MAGENTO_USERNAME: admin
-      MAGENTO_PASSWORD: magento-ci-123!
-      MAGENTO_EMAIL: ci@ironcart.dev
-      MAGENTO_DATABASE_HOST: mariadb
-      MAGENTO_DATABASE_NAME: magento
-      MAGENTO_DATABASE_USER: magento
-      MAGENTO_DATABASE_PASSWORD: magento
-      MAGENTO_ELASTICSEARCH_HOST: opensearch
-      MAGENTO_ELASTICSEARCH_PORT_NUMBER: 9200
-      MAGENTO_SKIP_BOOTSTRAP: 'no'
-      MAGENTO_MODE: developer
-    volumes:
-      # The module checkout lives one directory up from this compose file
-      # (workflow checks the module out into ./module, so from
-      # module/tests/sandbox/ the project root is ../../).
-      - ../../:/var/www/html/ironcart-module:ro
+    working_dir: /var/www/html
+    # Keep the container alive so `docker compose exec` can run commands
+    # in it. The default markshust entrypoint launches php-fpm in the
+    # foreground; we override to tail so the workflow's exec steps work
+    # without competing with fpm.
+    command: ['tail', '-f', '/dev/null']
     healthcheck:
-      test: ['CMD-SHELL', 'php /var/www/html/bin/magento --version || exit 1']
-      interval: 15s
-      timeout: 10s
-      retries: 40
-      start_period: 120s
+      # The container is healthy as soon as PHP responds — Magento isn't
+      # installed yet at compose-up time (the workflow does setup:install
+      # after the stack is up).
+      test: ['CMD-SHELL', 'php -v >/dev/null 2>&1 || exit 1']
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 10s
+    volumes:
+      # Prepared Magento source (composer create-project output) mounted
+      # read-write so `setup:install` / `setup:upgrade` can write
+      # generated/, var/, pub/static/.
+      - ${MAGENTO_SRC_HOST:-../../.magento}:/var/www/html
+      # The module under test, mounted read-only — the workflow wires it
+      # in via `composer config repositories.ironcart path ...`.
+      - ../../:/var/www/html/ironcart-module:ro
