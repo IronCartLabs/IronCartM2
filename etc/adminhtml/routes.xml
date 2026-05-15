@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<!--
+ / Copyright (c) Ironcart (https://ironcart.dev)
+ / Licensed under MIT.
+ /
+ / Registers the `ironcartscan` frontName under the admin router so
+ / `/admin/ironcartscan/scans/index` resolves to the Adminhtml/Scans controller.
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:framework:App/etc/routes.xsd">
+    <router id="admin">
+        <route id="ironcartscan" frontName="ironcartscan">
+            <module name="IronCart_Scan"/>
+        </route>
+    </router>
+</config>
