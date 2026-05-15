@@ -307,9 +307,53 @@ jobs:
             cd "${GITHUB_WORKSPACE}/.magento"
             composer install --no-interaction --no-progress
           )
-          # Make the source writable for the container's www-data user
-          # so setup:install can land generated/, var/, pub/static/.
-          chmod -R a+rwX "${GITHUB_WORKSPACE}/.magento"
+
+      - name: Drop module into Magento app/code/IronCart/Scan
+        # Architectural fix for issue #34, bug 4 — see issue body for the
+        # full chain. Previously the workflow did
+        # `composer require ironcartlabs/magento-scan:@dev` from a `path`
+        # repository pointing at the bind-mounted module, which:
+        #   - tripped the host→container COMPOSER_AUTH forwarding gap
+        #     (bug 1),
+        #   - tripped git "dubious ownership" inside the container (bug 2),
+        #   - tripped a chmod() ownership failure from magento-composer-
+        #     installer's post-install hook (bug 3),
+        #   - and finally produced a duplicate registration of
+        #     IronCart_Scan from `vendor/ironcartlabs/magento-scan`
+        #     (path-repo source) AND `app/code/IronCart/Scan` (magento-
+        #     composer-installer copy), aborting `bin/magento` (bug 4).
+        #
+        # The canonical way to test a Magento module in CI is to drop it
+        # into `app/code/<vendor>/<module>` on the prepared source tree
+        # before booting the container. Magento auto-discovers anything
+        # in `app/code/`, and there's no composer round-trip inside the
+        # container so bugs 1-3 evaporate too. Bug 5 (the spurious phpcs
+        # installed_paths warning) also disappears because we no longer
+        # run `composer require` inside the container.
+        env:
+          MODULE_DEST: ${{ github.workspace }}/.magento/app/code/IronCart/Scan
+        run: |
+          set -euo pipefail
+          mkdir -p "${MODULE_DEST}"
+          # Copy the module checkout (the `module/` path set by the
+          # checkout step above) into the Magento source. Exclude .git
+          # because Magento walks the tree at boot and large .git/objects
+          # trees would just slow it down for no benefit.
+          rsync -a --delete --exclude='.git' --exclude='_m2-workspace' \
+            "${GITHUB_WORKSPACE}/module/" "${MODULE_DEST}/"
+
+      - name: Align bind-mount ownership with container uid 1000
+        # Bug 3 fix from issue #34. markoshust/magento-php runs as the
+        # `app` user (uid 1000) but the GHA runner writes files as uid
+        # 1001. Magento's `setup:install` / `setup:upgrade` need to
+        # create generated/, var/, pub/static/ and the app/code/ tree
+        # inherits the same uid mismatch. `chmod a+rwX` is not enough —
+        # chmod(2) itself requires file ownership in some kernel paths
+        # (e.g. magento-composer-installer's perm fixups). GHA runners
+        # have passwordless sudo, so we chown the entire prepared tree
+        # to 1000:1000 before booting the container.
+        run: |
+          sudo chown -R 1000:1000 "${GITHUB_WORKSPACE}/.magento"
 
       - name: Boot Magento sandbox (MariaDB + OpenSearch + Redis)
         working-directory: module
@@ -320,23 +364,19 @@ jobs:
           docker compose -f tests/sandbox/docker-compose.yml up -d --wait
           docker compose -f tests/sandbox/docker-compose.yml ps
 
-      - name: Install Magento + module
+      - name: Install Magento + enable module
         working-directory: module
         env:
           PHP_VERSION: ${{ matrix.php }}
           MAGENTO_SRC_HOST: ${{ github.workspace }}/.magento
         run: |
           set -euo pipefail
+          # No `composer require` here — the module is already in
+          # app/code/IronCart/Scan from the previous step. Magento's
+          # ComponentRegistrar auto-discovers it at setup:install time.
           docker compose -f tests/sandbox/docker-compose.yml exec -T magento bash -lc '
             set -euo pipefail
             cd /var/www/html
-            # Wire the module under test via a path composer repository.
-            composer config repositories.ironcart path /var/www/html/ironcart-module
-            composer require --no-interaction --no-progress ironcartlabs/magento-scan:@dev
-            # Install Magento against the sidecar services. We use the
-            # minimum-viable flag set for a CLI-driven install — no
-            # storefront serving needed, just enough that bin/magento
-            # is bootstrappable and the database schema is present.
             bin/magento setup:install \
               --base-url=http://magento.test/ \
               --db-host=mariadb \
@@ -513,7 +553,25 @@ jobs:
             cd "${GITHUB_WORKSPACE}/.magento"
             composer install --no-interaction --no-progress
           )
-          chmod -R a+rwX "${GITHUB_WORKSPACE}/.magento"
+
+      - name: Drop module into Magento app/code/IronCart/Scan
+        # See the matching step on the `integration` job for rationale —
+        # this is the canonical Magento module testing pattern and avoids
+        # the composer-require chain of bugs documented in #34.
+        env:
+          MODULE_DEST: ${{ github.workspace }}/.magento/app/code/IronCart/Scan
+        run: |
+          set -euo pipefail
+          mkdir -p "${MODULE_DEST}"
+          rsync -a --delete --exclude='.git' --exclude='_m2-workspace' \
+            "${GITHUB_WORKSPACE}/module/" "${MODULE_DEST}/"
+
+      - name: Align bind-mount ownership with container uid 1000
+        # Bug 3 fix from #34 — see the matching step on the `integration`
+        # job. Container runs as uid 1000; runner writes as uid 1001;
+        # `setup:install` needs to chown/chmod the bind-mounted tree.
+        run: |
+          sudo chown -R 1000:1000 "${GITHUB_WORKSPACE}/.magento"
 
       - name: Boot Magento sandbox (MariaDB + OpenSearch + Redis)
         working-directory: module
@@ -524,7 +582,7 @@ jobs:
           docker compose -f tests/sandbox/docker-compose.yml up -d --wait
           docker compose -f tests/sandbox/docker-compose.yml ps
 
-      - name: Install Magento + module
+      - name: Install Magento + enable module
         working-directory: module
         env:
           PHP_VERSION: ${{ matrix.php }}
@@ -534,8 +592,6 @@ jobs:
           docker compose -f tests/sandbox/docker-compose.yml exec -T magento bash -lc '
             set -euo pipefail
             cd /var/www/html
-            composer config repositories.ironcart path /var/www/html/ironcart-module
-            composer require --no-interaction --no-progress ironcartlabs/magento-scan:@dev
             bin/magento setup:install \
               --base-url=http://magento.test/ \
               --db-host=mariadb \

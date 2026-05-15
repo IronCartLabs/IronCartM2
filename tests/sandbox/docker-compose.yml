@@ -12,17 +12,29 @@
 #      on the GHA runner with COMPOSER_AUTH populated from the
 #      MAGENTO_PUBLIC_KEY / MAGENTO_PRIVATE_KEY repo secrets, producing a
 #      Magento source tree at ${MAGENTO_SRC_HOST} (default ./.magento).
-#   2. This compose file bind-mounts that prepared source into the
-#      `markshust/magento-php` container at /var/www/html. Shust's image
-#      bundles every PHP extension Magento 2.4.x requires (intl, soap,
-#      xsl, sodium, …) and is the same base used by the local dev
-#      sandbox (#16 / PR #20), so we reuse the validated image.
-#   3. The module under test is bind-mounted at
-#      /var/www/html/ironcart-module so the workflow can wire it in via
-#      a path composer repository.
+#   2. The workflow then drops the module under test into
+#      ${MAGENTO_SRC_HOST}/app/code/IronCart/Scan (the canonical Magento
+#      module testing location) — see the "Drop module into Magento
+#      app/code/IronCart/Scan" step in `.github/workflows/ci.yml`.
+#   3. This compose file bind-mounts that prepared source (Magento +
+#      module) into the `markshust/magento-php` container at
+#      /var/www/html. Shust's image bundles every PHP extension Magento
+#      2.4.x requires (intl, soap, xsl, sodium, …) and is the same base
+#      used by the local dev sandbox (#16 / PR #20), so we reuse the
+#      validated image.
+#
+# Why the module is NOT a separate bind-mount any more (changed in #34):
+#   The previous design mounted the module at /var/www/html/ironcart-module
+#   and the workflow wired it via `composer config repositories.ironcart
+#   path …` + `composer require @dev`. That triggered a chain of bugs
+#   (host→container COMPOSER_AUTH forwarding gap, git "dubious ownership",
+#   chmod() ownership failure from magento-composer-installer, and finally
+#   a duplicate IronCart_Scan registration from both vendor/ and app/code/).
+#   Dropping the module into app/code/ on the host before compose-up is
+#   the canonical Magento pattern and avoids every one of those failures.
 #
 # All Magento-source population lives in the workflow — this compose
-# file just stitches services together. Bind-mounts are read-write so
+# file just stitches services together. The bind-mount is read-write so
 # `bin/magento setup:upgrade` can write generated/, var/, pub/static/.
 #
 # Sidecar services match Magento 2 system requirements:
@@ -36,8 +48,9 @@
 #   - PHP_VERSION         e.g. 8.3  → selects markshust/magento-php tag
 #   - MAGENTO_SRC_HOST    absolute path on the runner to the prepared
 #                         Magento source tree (composer create-project
-#                         output). Defaults to ../../.magento relative
-#                         to this file when running locally.
+#                         output + app/code/IronCart/Scan). Defaults to
+#                         ../../.magento relative to this file when
+#                         running locally.
 #
 # Note: the top-level `version` key has been intentionally removed —
 # docker compose v2 treats it as obsolete and emits a warning.
@@ -121,10 +134,11 @@ services:
       retries: 20
       start_period: 10s
     volumes:
-      # Prepared Magento source (composer create-project output) mounted
-      # read-write so `setup:install` / `setup:upgrade` can write
-      # generated/, var/, pub/static/.
+      # Prepared Magento source (composer create-project output, plus the
+      # module dropped into app/code/IronCart/Scan by the workflow). Bind
+      # mounted read-write so `setup:install` / `setup:upgrade` can write
+      # generated/, var/, pub/static/. Ownership is aligned to uid 1000
+      # on the host before compose-up (workflow step "Align bind-mount
+      # ownership with container uid 1000") so the in-container `app`
+      # user can chown/chmod files it doesn't directly own.
       - ${MAGENTO_SRC_HOST:-../../.magento}:/var/www/html
-      # The module under test, mounted read-only — the workflow wires it
-      # in via `composer config repositories.ironcart path ...`.
-      - ../../:/var/www/html/ironcart-module:ro
