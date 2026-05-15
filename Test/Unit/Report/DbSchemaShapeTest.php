@@ -81,7 +81,7 @@ class DbSchemaShapeTest extends TestCase
         $table = $this->table('ironcart_scan_run');
         $pk = null;
         foreach ($table->constraint as $c) {
-            if ((string)$c['type'] === 'primary' || (string)$c['referenceId'] === 'PRIMARY') {
+            if ($this->xsiType($c) === 'primary' || (string)$c['referenceId'] === 'PRIMARY') {
                 $pk = $c;
                 break;
             }
@@ -129,7 +129,7 @@ class DbSchemaShapeTest extends TestCase
         $table = $this->table('ironcart_scan_finding');
         $fk = null;
         foreach ($table->constraint as $c) {
-            if ((string)$c['type'] === 'foreign') {
+            if ($this->xsiType($c) === 'foreign') {
                 $fk = $c;
                 break;
             }
@@ -139,6 +139,17 @@ class DbSchemaShapeTest extends TestCase
         self::assertSame('ironcart_scan_run', (string)$fk['referenceTable']);
         self::assertSame('entity_id', (string)$fk['referenceColumn']);
         self::assertSame('CASCADE', (string)$fk['onDelete']);
+    }
+
+    /**
+     * SimpleXML stores `xsi:type` under the XSI namespace, not as a plain
+     * attribute. Reading `$node['type']` returns null even though the XML
+     * source has `xsi:type="foreign"`. We need the namespaced accessor.
+     */
+    private function xsiType(SimpleXMLElement $node): string
+    {
+        $attrs = $node->attributes('http://www.w3.org/2001/XMLSchema-instance');
+        return $attrs === null ? '' : (string)$attrs['type'];
     }
 
     public function testScanFindingHasRunSeverityAndCheckIdIndexes(): void
