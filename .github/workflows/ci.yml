@@ -192,11 +192,24 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # Default smoke cell: latest Magento × latest PHP. The full
-        # compat matrix runs only when the PR is labelled `v0` or on
-        # pushes to `main` — see the `integration-full-matrix` job
+        # Default smoke cell: latest patched Magento × latest PHP. The
+        # full compat matrix runs only when the PR is labelled `v0` or
+        # on pushes to `main` — see the `integration-full-matrix` job
         # below. This keeps free-tier GHA minutes lean on PRs.
-        magento: ['2.4.7']
+        #
+        # Why `2.4.7-p5` and not `2.4.7`:
+        #   - Composer's `block-insecure` policy refuses to install
+        #     `magento/product-community-edition:2.4.7` because of
+        #     advisory PKSA-db8d-773v-rd1n (CVE-2024-34102, CosmicSting
+        #     XXE → RCE, fixed in 2.4.7-p1).
+        #   - We pin to `-p5` (Adobe Security Bulletin APSB25-26)
+        #     rather than `-p1` to also pick up the cumulative security
+        #     fixes that have landed since. We deliberately stop short
+        #     of `-p8+` because those releases hit a separate composer
+        #     resolve bug on PHP 8.3 (magento/magento2#40539) — until
+        #     that's resolved upstream, `-p5` is the highest patch we
+        #     can install cleanly on the 8.3 cell.
+        magento: ['2.4.7-p5']
         php: ['8.3']
     steps:
       - name: Checkout module
@@ -227,6 +240,36 @@ jobs:
             echo "See https://github.com/IronCartLabs/IronCartM2/issues/18 for the wiring steps."
             exit 1
           fi
+
+      - name: Resolve markoshust/magento-php digest for PHP ${{ matrix.php }}
+        # Pin the Magento sandbox image to a sha256 digest so the
+        # integration cell is reproducible. The previous floating-tag
+        # version (`markoshust/magento-php:<php>-fpm`) was flagged by
+        # the agent:security review on #18 / PR #32 as a non-blocking
+        # supply-chain risk: a forced or compromised retag would land
+        # silently on the next CI run.
+        #
+        # Digests are the multi-arch manifest-list digests (so the
+        # image works on both amd64 and arm64 runners), captured from
+        # Docker Hub on 2026-05-15. The 8.x-fpm tags have been stable
+        # for ~13 months at the time of pin (last_pushed 2025-04-17 /
+        # 2025-04-18 across all three).
+        #
+        # Bumping: re-run
+        #   curl https://hub.docker.com/v2/repositories/markoshust/magento-php/tags/<php>-fpm
+        # take the `digest` field, paste it here, and note the
+        # last_updated timestamp in the PR description.
+        run: |
+          case "${{ matrix.php }}" in
+            8.1) digest="sha256:66de4cc3b07014a439d80212efcbdcc8e8b461dba8fe9322e4d2ab35c6f95dcb" ;;  # last_updated 2025-04-18T18:42:33Z
+            8.2) digest="sha256:c7693a6843134ea0e834f72a09b7fa0b48d864f194c3b04a1aa609fc5c45d7ec" ;;  # last_updated 2025-04-18T18:45:08Z
+            8.3) digest="sha256:6905c3be235500c31d84029e1ec3e1d31d2b46959eda1ec73554a709d9f8c687" ;;  # last_updated 2025-04-17T22:58:36Z
+            *)
+              echo "::error::No pinned markoshust/magento-php digest for PHP ${{ matrix.php }}. Add one to this step in .github/workflows/ci.yml."
+              exit 1
+              ;;
+          esac
+          echo "MAGENTO_PHP_IMAGE=markoshust/magento-php@${digest}" >> "${GITHUB_ENV}"
 
       - name: Prepare Magento source (composer create-project)
         env:
@@ -380,16 +423,29 @@ jobs:
         #   2.4.7 → PHP 8.2, 8.3
         # The 2.4.7 × 8.3 cell is already covered by the default `integration`
         # job, so it is omitted here to avoid double-spending minutes.
+        #
+        # Why these specific patch versions (not bare `2.4.{4,5,6,7}`):
+        #   Advisory PKSA-db8d-773v-rd1n (CVE-2024-34102, CosmicSting
+        #   XXE → RCE) affects every unpatched 2.4.x branch. Composer's
+        #   `block-insecure` policy refuses to install any version
+        #   below the per-branch fix floor:
+        #     2.4.4 → fixed in -p9
+        #     2.4.5 → fixed in -p8
+        #     2.4.6 → fixed in -p6
+        #     2.4.7 → fixed in -p1
+        #   We pick the highest patch in each branch that's still
+        #   resolvable on composer 2.9 + PHP 8.x (i.e. avoiding the
+        #   2.4.7-p8+ resolve bug from magento/magento2#40539).
         include:
-          - magento: '2.4.4'
+          - magento: '2.4.4-p11'
             php: '8.1'
-          - magento: '2.4.5'
+          - magento: '2.4.5-p10'
             php: '8.1'
-          - magento: '2.4.6'
+          - magento: '2.4.6-p8'
             php: '8.1'
-          - magento: '2.4.6'
+          - magento: '2.4.6-p8'
             php: '8.2'
-          - magento: '2.4.7'
+          - magento: '2.4.7-p5'
             php: '8.2'
     steps:
       - name: Checkout module
@@ -415,6 +471,22 @@ jobs:
             echo "See https://github.com/IronCartLabs/IronCartM2/issues/18 for the wiring steps."
             exit 1
           fi
+
+      - name: Resolve markoshust/magento-php digest for PHP ${{ matrix.php }}
+        # See the matching step on the `integration` job for the rationale
+        # and the bump procedure. Digests must be kept in sync between
+        # both jobs.
+        run: |
+          case "${{ matrix.php }}" in
+            8.1) digest="sha256:66de4cc3b07014a439d80212efcbdcc8e8b461dba8fe9322e4d2ab35c6f95dcb" ;;  # last_updated 2025-04-18T18:42:33Z
+            8.2) digest="sha256:c7693a6843134ea0e834f72a09b7fa0b48d864f194c3b04a1aa609fc5c45d7ec" ;;  # last_updated 2025-04-18T18:45:08Z
+            8.3) digest="sha256:6905c3be235500c31d84029e1ec3e1d31d2b46959eda1ec73554a709d9f8c687" ;;  # last_updated 2025-04-17T22:58:36Z
+            *)
+              echo "::error::No pinned markoshust/magento-php digest for PHP ${{ matrix.php }}. Add one to this step in .github/workflows/ci.yml."
+              exit 1
+              ;;
+          esac
+          echo "MAGENTO_PHP_IMAGE=markoshust/magento-php@${digest}" >> "${GITHUB_ENV}"
 
       - name: Prepare Magento source (composer create-project)
         env:

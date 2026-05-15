@@ -88,7 +88,16 @@ services:
     # extension required by Magento 2.4.x. Tag pattern: `<php>-fpm`.
     # We don't actually need fpm — we exec CLI commands — but Shust only
     # publishes `-fpm` tags. The image also ships composer 2.
-    image: markoshust/magento-php:${PHP_VERSION:-8.3}-fpm
+    #
+    # MAGENTO_PHP_IMAGE override
+    # --------------------------
+    # CI pins this to a sha256 digest (per matrix cell) so the integration
+    # job is reproducible: `markoshust/magento-php@sha256:<digest>` — see
+    # the env block in `.github/workflows/ci.yml`. Local dev keeps the
+    # floating `:<php>-fpm` tag because hand-typing digests during local
+    # debugging is awful. The digest is the multi-arch manifest-list
+    # digest (works on amd64 + arm64 runners and Macs).
+    image: ${MAGENTO_PHP_IMAGE:-markoshust/magento-php:${PHP_VERSION:-8.3}-fpm}
     depends_on:
       mariadb:
         condition: service_healthy
