@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<!--
+ / Copyright (c) Ironcart (https://ironcart.dev)
+ / Licensed under MIT.
+ /
+ / Routes the `ironcart.scan.run` topic to the DB connection on the
+ / namespaced `ironcart-scan-exchange`. Magento's PublisherPool reads
+ / this file to resolve which connection / exchange a publish() call
+ / lands on.
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:framework-message-queue:etc/publisher.xsd">
+    <publisher topic="ironcart.scan.run">
+        <connection name="db" exchange="ironcart-scan-exchange"/>
+    </publisher>
+</config>
