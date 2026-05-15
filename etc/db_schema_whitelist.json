@@ -1,0 +1,40 @@
+{
+    "ironcart_scan_run": {
+        "column": {
+            "entity_id": true,
+            "status": true,
+            "triggered_by": true,
+            "started_at": true,
+            "finished_at": true,
+            "summary_json": true,
+            "created_at": true,
+            "updated_at": true
+        },
+        "index": {
+            "IRONCART_SCAN_RUN_STATUS_STARTED_AT": true
+        },
+        "constraint": {
+            "PRIMARY": true
+        }
+    },
+    "ironcart_scan_finding": {
+        "column": {
+            "entity_id": true,
+            "scan_run_id": true,
+            "check_id": true,
+            "severity": true,
+            "title": true,
+            "detail": true,
+            "evidence_json": true,
+            "created_at": true
+        },
+        "index": {
+            "IRONCART_SCAN_FINDING_SCAN_RUN_ID_SEVERITY": true,
+            "IRONCART_SCAN_FINDING_CHECK_ID": true
+        },
+        "constraint": {
+            "PRIMARY": true,
+            "IRONCART_SCAN_FINDING_SCAN_RUN_ID_IRONCART_SCAN_RUN_ENTITY_ID": true
+        }
+    }
+}

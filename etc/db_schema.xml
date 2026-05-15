@@ -1,0 +1,108 @@
+<?xml version="1.0"?>
+<!--
+ / Copyright (c) Ironcart (https://ironcart.dev)
+ / Licensed under MIT.
+ /
+ / Declarative schema for the v1 admin UI persistence tables.
+ /
+ / `ironcart_scan_run`     — one row per scan invocation (queued/running/.../failed)
+ / `ironcart_scan_finding` — N rows per run, one per emitted finding
+ /
+ / These tables are LOCAL-ONLY: no PII, no outbound network reads or writes
+ / depend on them. They back the v1 admin grid + detail screen (issue #4)
+ / and the queue consumer that materialises CLI scan output into rows
+ / (issue #2). Schema-version contract for the JSON report (Report\Severity,
+ / Report\ReportBuilder) is unaffected — these tables persist the same
+ / findings the CLI already emits.
+ /
+ / Conventions:
+ /   - `entity_id` PK on both tables (Magento idiom)
+ /   - `summary_json` / `evidence_json` are TEXT (not JSON column type) for
+ /     2.4.4 compatibility — declarative-schema JSON column requires
+ /     MariaDB ≥ 10.4 / MySQL ≥ 8.0 and Magento 2.4.6+ ships the JSON
+ /     column type as a tested option, so we keep TEXT for the full
+ /     2.4.4–2.4.7 matrix.
+ /   - FK from finding → run cascades on delete so deleting a run wipes
+ /     its findings; ON UPDATE CASCADE matches Magento core idiom even
+ /     though entity_id is autoincrement and won't change in practice.
+ /   - Indexes are scoped to the queries the v1 UI will run:
+ /       * IDX_RUN_STATUS_STARTED:    list runs filtered by status + recency
+ /       * IDX_FINDING_RUN_SEVERITY:  group findings by severity within a run
+ /       * IDX_FINDING_CHECK:         cross-run history for a single check id
+-->
+<schema xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:framework:Setup/Declaration/Schema/etc/schema.xsd">
+
+    <table name="ironcart_scan_run" resource="default" engine="innodb"
+           comment="Ironcart scan invocations (one row per bin/magento ironcart:scan run or queued/admin/cron trigger).">
+
+        <column xsi:type="int" name="entity_id" unsigned="true" nullable="false" identity="true"
+                comment="Primary key."/>
+        <column xsi:type="varchar" name="status" length="16" nullable="false" default="queued"
+                comment="Lifecycle status — one of: queued, running, succeeded, failed."/>
+        <column xsi:type="varchar" name="triggered_by" length="64" nullable="false" default="cli"
+                comment="Source of the run — admin user id (e.g. 'admin:42'), 'cron', or 'cli'."/>
+        <column xsi:type="timestamp" name="started_at" on_update="false" nullable="false" default="CURRENT_TIMESTAMP"
+                comment="When the run transitioned to status=running (or was queued, for queued rows)."/>
+        <column xsi:type="timestamp" name="finished_at" on_update="false" nullable="true"
+                comment="When the run reached a terminal status (succeeded/failed). Null while queued/running."/>
+        <column xsi:type="text" name="summary_json" nullable="true"
+                comment="Totals by severity for the v1 grid (JSON-encoded). Mirrors Report\ReportBuilder summary."/>
+        <column xsi:type="timestamp" name="created_at" on_update="false" nullable="false" default="CURRENT_TIMESTAMP"
+                comment="Row creation timestamp."/>
+        <column xsi:type="timestamp" name="updated_at" on_update="true" nullable="false" default="CURRENT_TIMESTAMP"
+                comment="Row last-update timestamp."/>
+
+        <constraint xsi:type="primary" referenceId="PRIMARY">
+            <column name="entity_id"/>
+        </constraint>
+
+        <index referenceId="IRONCART_SCAN_RUN_STATUS_STARTED_AT" indexType="btree">
+            <column name="status"/>
+            <column name="started_at"/>
+        </index>
+
+    </table>
+
+    <table name="ironcart_scan_finding" resource="default" engine="innodb"
+           comment="Findings emitted by a scan run — N rows per ironcart_scan_run (one per Check finding).">
+
+        <column xsi:type="int" name="entity_id" unsigned="true" nullable="false" identity="true"
+                comment="Primary key."/>
+        <column xsi:type="int" name="scan_run_id" unsigned="true" nullable="false"
+                comment="FK to ironcart_scan_run.entity_id."/>
+        <column xsi:type="varchar" name="check_id" length="32" nullable="false"
+                comment="Stable check identifier, e.g. IC-001, IC-030 (matches Check/* findings)."/>
+        <column xsi:type="varchar" name="severity" length="16" nullable="false"
+                comment="One of: critical, high, medium, low, info — mirrors Report\Severity."/>
+        <column xsi:type="varchar" name="title" length="255" nullable="false"
+                comment="Short human-readable title for the finding (Check-supplied)."/>
+        <column xsi:type="text" name="detail" nullable="true"
+                comment="Longer explanation / remediation text (Markdown allowed at admin render time)."/>
+        <column xsi:type="text" name="evidence_json" nullable="true"
+                comment="Structured evidence payload (JSON-encoded) — e.g. file paths, version strings, config keys."/>
+        <column xsi:type="timestamp" name="created_at" on_update="false" nullable="false" default="CURRENT_TIMESTAMP"
+                comment="Row creation timestamp."/>
+
+        <constraint xsi:type="primary" referenceId="PRIMARY">
+            <column name="entity_id"/>
+        </constraint>
+
+        <constraint xsi:type="foreign"
+                    referenceId="IRONCART_SCAN_FINDING_SCAN_RUN_ID_IRONCART_SCAN_RUN_ENTITY_ID"
+                    table="ironcart_scan_finding" column="scan_run_id"
+                    referenceTable="ironcart_scan_run" referenceColumn="entity_id"
+                    onDelete="CASCADE"/>
+
+        <index referenceId="IRONCART_SCAN_FINDING_SCAN_RUN_ID_SEVERITY" indexType="btree">
+            <column name="scan_run_id"/>
+            <column name="severity"/>
+        </index>
+
+        <index referenceId="IRONCART_SCAN_FINDING_CHECK_ID" indexType="btree">
+            <column name="check_id"/>
+        </index>
+
+    </table>
+
+</schema>
