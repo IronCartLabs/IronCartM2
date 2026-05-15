@@ -40,6 +40,8 @@ class ComposerAdvisoryCheck implements CheckInterface
 {
     public const ID = 'IC-002';
 
+    public const REMEDIATION_URL = 'https://ironcart.dev/docs/checks/IC-002';
+
     /**
      * Severity ranking (lower index = more severe). Lets us pick the
      * worse of the OSV-declared severity and the age-derived severity.
@@ -84,7 +86,7 @@ class ComposerAdvisoryCheck implements CheckInterface
                     'status' => 'composer.lock unavailable',
                     'reason' => $e->getMessage(),
                 ],
-                'remediation_url' => 'https://getcomposer.org/doc/01-basic-usage.md#composer-lock-the-lock-file',
+                'remediation_url' => self::REMEDIATION_URL,
             ]];
         }
 
@@ -99,7 +101,7 @@ class ComposerAdvisoryCheck implements CheckInterface
                     'status' => 'OSV snapshot unavailable',
                     'reason' => $e->getMessage(),
                 ],
-                'remediation_url' => 'https://github.com/IronCartLabs/IronCartM2/blob/main/data/README.md',
+                'remediation_url' => self::REMEDIATION_URL,
             ]];
         }
 
@@ -206,10 +208,11 @@ class ComposerAdvisoryCheck implements CheckInterface
                 'declared_severity' => $declaredSeverity,
                 'age_severity' => $ageSeverity,
                 'fixed_in' => array_values(array_unique($fixedVersions)),
+                'reference_url' => $advisory['reference'] !== ''
+                    ? $advisory['reference']
+                    : sprintf('https://osv.dev/vulnerability/%s', $advisory['id']),
             ],
-            'remediation_url' => $advisory['reference'] !== ''
-                ? $advisory['reference']
-                : sprintf('https://osv.dev/vulnerability/%s', $advisory['id']),
+            'remediation_url' => self::REMEDIATION_URL,
         ];
     }
 

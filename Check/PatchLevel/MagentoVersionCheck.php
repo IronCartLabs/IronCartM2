@@ -36,8 +36,7 @@ class MagentoVersionCheck implements CheckInterface
 {
     public const ID = 'IC-001';
 
-    public const REMEDIATION_URL =
-        'https://experienceleague.adobe.com/en/docs/commerce-operations/release/notes/security-patches/overview';
+    public const REMEDIATION_URL = 'https://ironcart.dev/docs/checks/IC-001';
 
     public function __construct(
         private readonly ProductMetadataInterface $productMetadata,

@@ -30,6 +30,8 @@ class CronErrorRateCheck implements CheckInterface
 {
     public const ID = 'IC-042';
 
+    private const REMEDIATION_URL = 'https://ironcart.dev/docs/checks/IC-042';
+
     /** Sample size we inspect for error rate. */
     public const SAMPLE_SIZE = 100;
 
@@ -103,7 +105,7 @@ class CronErrorRateCheck implements CheckInterface
                     'threshold_pct' => self::THRESHOLD_PCT,
                     'by_status' => $byStatus,
                 ],
-                remediationUrl: 'https://developer.adobe.com/commerce/php/development/components/cron/'
+                remediationUrl: self::REMEDIATION_URL
             ),
         ];
     }

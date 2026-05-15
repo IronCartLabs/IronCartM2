@@ -31,6 +31,8 @@ class IndexerStateCheck implements CheckInterface
 {
     public const ID = 'IC-040';
 
+    private const REMEDIATION_URL = 'https://ironcart.dev/docs/checks/IC-040';
+
     /** Hours before a stuck indexer is considered stale. */
     public const STALE_HOURS = 24;
 
@@ -104,7 +106,7 @@ class IndexerStateCheck implements CheckInterface
                     'threshold_hours' => self::STALE_HOURS,
                     'indexers' => $stale,
                 ],
-                remediationUrl: 'https://developer.adobe.com/commerce/php/development/components/indexing/'
+                remediationUrl: self::REMEDIATION_URL
             ),
         ];
     }
