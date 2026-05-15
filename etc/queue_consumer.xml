@@ -15,7 +15,7 @@
  / `maxMessages` is intentionally absent so the cron driver picks up the
  / global default (cron job `consumers_runner` in core, default 10000).
  / Operators who want to bound throughput can override via env.php or
- / pass `--max-messages` on the explicit `queue:consumers:start` call.
+ / pass the `max-messages` flag on the explicit `queue:consumers:start` call.
 -->
 <config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         xsi:noNamespaceSchemaLocation="urn:magento:framework-message-queue:etc/consumer.xsd">

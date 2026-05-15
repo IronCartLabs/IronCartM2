@@ -1,5 +1,11 @@
 <?php
 
+// phpcs:ignoreFile -- standalone CLI smoke; echo / exit / exec are
+// the right tools for the shape (immediate STDOUT for CI logs, numeric
+// exit codes for matrix scoring, exec() to drive `bin/magento`). The
+// script lives under tests/sandbox/ and is invoked directly from inside
+// the docker-compose Magento container — never loaded as part of the
+// module's autoload graph.
 /**
  * IronCart_Scan — async-queue integration smoke (sandbox-only).
  *
