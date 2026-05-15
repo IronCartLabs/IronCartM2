@@ -183,13 +183,12 @@ jobs:
     runs-on: ubuntu-latest
     needs: [lint, unit]
     # Gated on the `INTEGRATION_ENABLED` repo variable. The integration
-    # cell boots a real Magento sandbox, which requires authenticated
-    # access to repo.magento.com (Adobe Marketplace Composer keys). Until
-    # those keys are configured as repo secrets and INTEGRATION_ENABLED
-    # is set to 'true', this job is skipped rather than failed — see #18
-    # for the secret-wiring + Magento image follow-up.
+    # cell needs the MAGENTO_PUBLIC_KEY / MAGENTO_PRIVATE_KEY repo secrets
+    # to `composer create-project` against repo.magento.com. Until those
+    # secrets are wired and INTEGRATION_ENABLED is set to 'true', this
+    # job is skipped rather than failed — see #18.
     if: ${{ vars.INTEGRATION_ENABLED == 'true' }}
-    timeout-minutes: 20
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
@@ -206,6 +205,9 @@ jobs:
           path: module
 
       - name: Setup PHP ${{ matrix.php }}
+        # PHP on the runner is only used to drive composer
+        # create-project. The actual Magento install runs inside the
+        # docker-compose stack (markshust/magento-php:<php>-fpm).
         uses: shivammathur/setup-php@9e72090525849c5e82e596468b86eb55e9cc5401 # v2.32.0
         with:
           php-version: ${{ matrix.php }}
@@ -213,11 +215,64 @@ jobs:
           extensions: bcmath, ctype, curl, dom, gd, hash, iconv, intl, mbstring, openssl, pdo_mysql, simplexml, soap, sockets, sodium, tokenizer, xmlwriter, xsl, zip
           coverage: none
 
+      - name: Verify Magento Composer credentials are present
+        # Fail fast with a clear error if the secrets are missing rather
+        # than letting composer 401 with a noisy stack trace.
+        env:
+          MAGENTO_PUBLIC_KEY: ${{ secrets.MAGENTO_PUBLIC_KEY }}
+          MAGENTO_PRIVATE_KEY: ${{ secrets.MAGENTO_PRIVATE_KEY }}
+        run: |
+          if [ -z "${MAGENTO_PUBLIC_KEY}" ] || [ -z "${MAGENTO_PRIVATE_KEY}" ]; then
+            echo "::error::MAGENTO_PUBLIC_KEY and/or MAGENTO_PRIVATE_KEY repo secrets are not configured."
+            echo "See https://github.com/IronCartLabs/IronCartM2/issues/18 for the wiring steps."
+            exit 1
+          fi
+
+      - name: Prepare Magento source (composer create-project)
+        env:
+          MAGENTO_VERSION: ${{ matrix.magento }}
+          # COMPOSER_AUTH is composer's standard env-var override for
+          # auth.json. We embed the secrets via env so they never appear
+          # in the workflow file or on disk in a clear-text auth.json.
+          COMPOSER_AUTH: |
+            {
+              "http-basic": {
+                "repo.magento.com": {
+                  "username": "${{ secrets.MAGENTO_PUBLIC_KEY }}",
+                  "password": "${{ secrets.MAGENTO_PRIVATE_KEY }}"
+                }
+              }
+            }
+        run: |
+          set -euo pipefail
+          # Materialise Magento source at $GITHUB_WORKSPACE/.magento so
+          # the compose file (which uses ${MAGENTO_SRC_HOST}) can bind-
+          # mount it into the magento container.
+          composer create-project \
+            --no-interaction \
+            --no-progress \
+            --no-install \
+            --repository-url=https://repo.magento.com/ \
+            magento/project-community-edition:${MAGENTO_VERSION} \
+            "${GITHUB_WORKSPACE}/.magento"
+          # `--no-install` skipped the heavy resolve; do it now so the
+          # vendor/ tree is populated before we bind-mount into the
+          # container. Running composer install on the host instead of
+          # inside the container is markedly faster on GHA runners
+          # because of the ext-zip + ext-curl native speed-up.
+          (
+            cd "${GITHUB_WORKSPACE}/.magento"
+            composer install --no-interaction --no-progress
+          )
+          # Make the source writable for the container's www-data user
+          # so setup:install can land generated/, var/, pub/static/.
+          chmod -R a+rwX "${GITHUB_WORKSPACE}/.magento"
+
       - name: Boot Magento sandbox (MariaDB + OpenSearch + Redis)
         working-directory: module
         env:
-          MAGENTO_VERSION: ${{ matrix.magento }}
           PHP_VERSION: ${{ matrix.php }}
+          MAGENTO_SRC_HOST: ${{ github.workspace }}/.magento
         run: |
           docker compose -f tests/sandbox/docker-compose.yml up -d --wait
           docker compose -f tests/sandbox/docker-compose.yml ps
@@ -225,21 +280,51 @@ jobs:
       - name: Install Magento + module
         working-directory: module
         env:
-          MAGENTO_VERSION: ${{ matrix.magento }}
+          PHP_VERSION: ${{ matrix.php }}
+          MAGENTO_SRC_HOST: ${{ github.workspace }}/.magento
         run: |
-          # Magento install + module wiring happens inside the magento container
-          # using the bind-mounted module source at /var/www/html/ironcart-module.
+          set -euo pipefail
           docker compose -f tests/sandbox/docker-compose.yml exec -T magento bash -lc '
             set -euo pipefail
             cd /var/www/html
+            # Wire the module under test via a path composer repository.
             composer config repositories.ironcart path /var/www/html/ironcart-module
             composer require --no-interaction --no-progress ironcartlabs/magento-scan:@dev
+            # Install Magento against the sidecar services. We use the
+            # minimum-viable flag set for a CLI-driven install — no
+            # storefront serving needed, just enough that bin/magento
+            # is bootstrappable and the database schema is present.
+            bin/magento setup:install \
+              --base-url=http://magento.test/ \
+              --db-host=mariadb \
+              --db-name=magento \
+              --db-user=magento \
+              --db-password=magento \
+              --admin-firstname=ci \
+              --admin-lastname=ci \
+              --admin-email=ci@ironcart.dev \
+              --admin-user=admin \
+              --admin-password=magento-ci-123! \
+              --language=en_US \
+              --currency=USD \
+              --timezone=UTC \
+              --use-rewrites=1 \
+              --search-engine=opensearch \
+              --opensearch-host=opensearch \
+              --opensearch-port=9200 \
+              --session-save=redis \
+              --session-save-redis-host=redis \
+              --cache-backend=redis \
+              --cache-backend-redis-server=redis
             bin/magento module:enable IronCart_Scan
             bin/magento setup:upgrade
           '
 
       - name: Run ironcart:scan and assert exit 0 + valid JSON
         working-directory: module
+        env:
+          PHP_VERSION: ${{ matrix.php }}
+          MAGENTO_SRC_HOST: ${{ github.workspace }}/.magento
         run: |
           docker compose -f tests/sandbox/docker-compose.yml exec -T magento bash -lc '
             set -euo pipefail
@@ -261,11 +346,17 @@ jobs:
       - name: Surface sandbox logs on failure
         if: failure()
         working-directory: module
+        env:
+          PHP_VERSION: ${{ matrix.php }}
+          MAGENTO_SRC_HOST: ${{ github.workspace }}/.magento
         run: docker compose -f tests/sandbox/docker-compose.yml logs --no-color --tail=200
 
       - name: Tear down sandbox
         if: always()
         working-directory: module
+        env:
+          PHP_VERSION: ${{ matrix.php }}
+          MAGENTO_SRC_HOST: ${{ github.workspace }}/.magento
         run: docker compose -f tests/sandbox/docker-compose.yml down --volumes --remove-orphans
 
   # Full compat matrix — gated on the `v0` label or `main` pushes, AND
@@ -278,7 +369,7 @@ jobs:
     if: ${{ vars.INTEGRATION_ENABLED == 'true' && (contains(github.event.pull_request.labels.*.name, 'v0') || github.event_name == 'push') }}
     runs-on: ubuntu-latest
     needs: [lint, unit]
-    timeout-minutes: 20
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
@@ -314,11 +405,49 @@ jobs:
           extensions: bcmath, ctype, curl, dom, gd, hash, iconv, intl, mbstring, openssl, pdo_mysql, simplexml, soap, sockets, sodium, tokenizer, xmlwriter, xsl, zip
           coverage: none
 
+      - name: Verify Magento Composer credentials are present
+        env:
+          MAGENTO_PUBLIC_KEY: ${{ secrets.MAGENTO_PUBLIC_KEY }}
+          MAGENTO_PRIVATE_KEY: ${{ secrets.MAGENTO_PRIVATE_KEY }}
+        run: |
+          if [ -z "${MAGENTO_PUBLIC_KEY}" ] || [ -z "${MAGENTO_PRIVATE_KEY}" ]; then
+            echo "::error::MAGENTO_PUBLIC_KEY and/or MAGENTO_PRIVATE_KEY repo secrets are not configured."
+            echo "See https://github.com/IronCartLabs/IronCartM2/issues/18 for the wiring steps."
+            exit 1
+          fi
+
+      - name: Prepare Magento source (composer create-project)
+        env:
+          MAGENTO_VERSION: ${{ matrix.magento }}
+          COMPOSER_AUTH: |
+            {
+              "http-basic": {
+                "repo.magento.com": {
+                  "username": "${{ secrets.MAGENTO_PUBLIC_KEY }}",
+                  "password": "${{ secrets.MAGENTO_PRIVATE_KEY }}"
+                }
+              }
+            }
+        run: |
+          set -euo pipefail
+          composer create-project \
+            --no-interaction \
+            --no-progress \
+            --no-install \
+            --repository-url=https://repo.magento.com/ \
+            magento/project-community-edition:${MAGENTO_VERSION} \
+            "${GITHUB_WORKSPACE}/.magento"
+          (
+            cd "${GITHUB_WORKSPACE}/.magento"
+            composer install --no-interaction --no-progress
+          )
+          chmod -R a+rwX "${GITHUB_WORKSPACE}/.magento"
+
       - name: Boot Magento sandbox (MariaDB + OpenSearch + Redis)
         working-directory: module
         env:
-          MAGENTO_VERSION: ${{ matrix.magento }}
           PHP_VERSION: ${{ matrix.php }}
+          MAGENTO_SRC_HOST: ${{ github.workspace }}/.magento
         run: |
           docker compose -f tests/sandbox/docker-compose.yml up -d --wait
           docker compose -f tests/sandbox/docker-compose.yml ps
@@ -326,19 +455,46 @@ jobs:
       - name: Install Magento + module
         working-directory: module
         env:
-          MAGENTO_VERSION: ${{ matrix.magento }}
+          PHP_VERSION: ${{ matrix.php }}
+          MAGENTO_SRC_HOST: ${{ github.workspace }}/.magento
         run: |
+          set -euo pipefail
           docker compose -f tests/sandbox/docker-compose.yml exec -T magento bash -lc '
             set -euo pipefail
             cd /var/www/html
             composer config repositories.ironcart path /var/www/html/ironcart-module
             composer require --no-interaction --no-progress ironcartlabs/magento-scan:@dev
+            bin/magento setup:install \
+              --base-url=http://magento.test/ \
+              --db-host=mariadb \
+              --db-name=magento \
+              --db-user=magento \
+              --db-password=magento \
+              --admin-firstname=ci \
+              --admin-lastname=ci \
+              --admin-email=ci@ironcart.dev \
+              --admin-user=admin \
+              --admin-password=magento-ci-123! \
+              --language=en_US \
+              --currency=USD \
+              --timezone=UTC \
+              --use-rewrites=1 \
+              --search-engine=opensearch \
+              --opensearch-host=opensearch \
+              --opensearch-port=9200 \
+              --session-save=redis \
+              --session-save-redis-host=redis \
+              --cache-backend=redis \
+              --cache-backend-redis-server=redis
             bin/magento module:enable IronCart_Scan
             bin/magento setup:upgrade
           '
 
       - name: Run ironcart:scan and assert exit 0 + valid JSON
         working-directory: module
+        env:
+          PHP_VERSION: ${{ matrix.php }}
+          MAGENTO_SRC_HOST: ${{ github.workspace }}/.magento
         run: |
           docker compose -f tests/sandbox/docker-compose.yml exec -T magento bash -lc '
             set -euo pipefail
@@ -360,9 +516,15 @@ jobs:
       - name: Surface sandbox logs on failure
         if: failure()
         working-directory: module
+        env:
+          PHP_VERSION: ${{ matrix.php }}
+          MAGENTO_SRC_HOST: ${{ github.workspace }}/.magento
         run: docker compose -f tests/sandbox/docker-compose.yml logs --no-color --tail=200
 
       - name: Tear down sandbox
         if: always()
         working-directory: module
+        env:
+          PHP_VERSION: ${{ matrix.php }}
+          MAGENTO_SRC_HOST: ${{ github.workspace }}/.magento
         run: docker compose -f tests/sandbox/docker-compose.yml down --volumes --remove-orphans
