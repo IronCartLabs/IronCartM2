@@ -19,6 +19,10 @@ M2_VERSION ?= 2.4.7
 # chosen M2_VERSION.
 PHP_VERSION ?= 8.3
 
+# Magento edition consumed by `bin/download` (community | enterprise | mageos).
+# Community is the only edition that doesn't need an Adobe Commerce contract.
+M2_EDITION ?= community
+
 # Host used inside the Magento install. Add this to /etc/hosts pointing at
 # 127.0.0.1 (Shust's setup script does this on macOS/Linux; WSL2 needs a
 # manual entry).
@@ -26,7 +30,11 @@ SANDBOX_HOST ?= ironcart.test
 
 # Sandbox checkout location. Gitignored.
 SANDBOX_DIR := .sandbox
-SHUST_REPO  := https://github.com/markshust/docker-magento.git
+
+# Upstream `lib/template` URL. This is the supported bootstrap per upstream's
+# README; it hoists `compose/*` up to the project root so `bin/setup` et al.
+# live at the sandbox root rather than under `compose/`.
+SHUST_TEMPLATE_URL := https://raw.githubusercontent.com/markshust/docker-magento/master/lib/template
 
 # Path inside the sandbox where the module is symlinked. Shust's harness
 # bind-mounts $(SANDBOX_DIR)/src into the PHP container, so a symlink under
@@ -52,6 +60,7 @@ help: ## Show this help.
 	@echo "Tunables (override per invocation):"
 	@echo "  M2_VERSION   (default $(M2_VERSION))   — Magento version (2.4.4–2.4.7)"
 	@echo "  PHP_VERSION  (default $(PHP_VERSION))   — PHP version (8.1–8.3)"
+	@echo "  M2_EDITION   (default $(M2_EDITION)) — Magento edition for bin/download"
 	@echo "  SANDBOX_HOST (default $(SANDBOX_HOST)) — host for the install"
 
 # ---------------------------------------------------------------------------
@@ -61,18 +70,32 @@ help: ## Show this help.
 .PHONY: sandbox
 sandbox: $(SANDBOX_DIR)/.installed ## Bootstrap a full sandbox (clone, install, symlink, enable module).
 
-# Clone Shust's harness on first use.
+# Scaffold the Shust project layout via `lib/template`. This is the supported
+# bootstrap per upstream: it fetches `compose/` from the docker-magento repo
+# and hoists its contents up to the sandbox root, then `git init`s a fresh
+# repo there. Replaces the previous `git clone` against the repo root layout,
+# which no longer matches upstream (scripts moved to `compose/bin/`).
 $(SANDBOX_DIR)/.cloned:
-	@if [ -d "$(SANDBOX_DIR)/.git" ]; then \
-		echo ">>> $(SANDBOX_DIR) already cloned, skipping"; \
+	@if [ -f "$(SANDBOX_DIR)/bin/setup" ]; then \
+		echo ">>> $(SANDBOX_DIR) already bootstrapped, skipping template"; \
 	else \
-		echo ">>> cloning markshust/docker-magento into $(SANDBOX_DIR)"; \
-		git clone --depth 1 $(SHUST_REPO) $(SANDBOX_DIR); \
+		echo ">>> bootstrapping markshust/docker-magento template into $(SANDBOX_DIR)"; \
+		mkdir -p $(SANDBOX_DIR); \
+		if [ -d "$(SANDBOX_DIR)/bin" ]; then \
+			echo "ERROR: $(SANDBOX_DIR)/bin already exists but no bin/setup — sandbox is in a half-bootstrapped state. Run 'make sandbox-nuke' and retry."; exit 1; \
+		fi; \
+		cd $(SANDBOX_DIR) && curl -fsSL $(SHUST_TEMPLATE_URL) | bash; \
 	fi
-	@mkdir -p $(SANDBOX_DIR)
 	@touch $@
 
-# Run Shust's setup, pin PHP, symlink the module, enable + upgrade.
+# Run Shust's download + setup, pin PHP, symlink the module, enable + upgrade.
+#
+# Upstream split the old `bin/setup <DOMAIN> <VERSION>` flow into two steps:
+#   1. `bin/download <edition> <version>` — composer-creates Magento into src/
+#   2. `bin/setup <domain>` — installs Magento, generates SSL, sets admin user
+# These must run in that order. PHP version is no longer set by `bin/setup-php`
+# (which was removed); we sed the `phpfpm` image tag in `compose.yaml` before
+# either step kicks the containers.
 $(SANDBOX_DIR)/.installed: $(SANDBOX_DIR)/.cloned
 	@command -v docker >/dev/null 2>&1 || { \
 		echo "ERROR: docker not found in PATH. Install Docker Desktop (macOS/Windows) or docker.io (Linux)."; exit 1; }
@@ -82,11 +105,19 @@ $(SANDBOX_DIR)/.installed: $(SANDBOX_DIR)/.cloned
 		echo "         Press Ctrl-C now to abort, or wait 5s to try anyway..."; \
 		sleep 5; \
 	fi
-	@echo ">>> running Shust setup for $(SANDBOX_HOST) on Magento $(M2_VERSION)"
-	cd $(SANDBOX_DIR) && bin/setup $(SANDBOX_HOST) $(M2_VERSION)
-	@echo ">>> pinning PHP to $(PHP_VERSION)"
-	cd $(SANDBOX_DIR) && bin/setup-php $(PHP_VERSION) || \
-		echo "(bin/setup-php not present in this Shust release — edit compose.dev.yaml manually if PHP $(PHP_VERSION) is not the default)"
+	@echo ">>> pinning PHP to $(PHP_VERSION) in $(SANDBOX_DIR)/compose.yaml"
+	@if [ ! -f "$(SANDBOX_DIR)/compose.yaml" ]; then \
+		echo "ERROR: $(SANDBOX_DIR)/compose.yaml not found — template bootstrap is incomplete."; exit 1; \
+	fi
+	@# Replace the phpfpm image tag with PHP_VERSION. Upstream publishes both
+	@# `<ver>-fpm` and `<ver>-fpm-<patch>` tags; we use the un-patched form so
+	@# this stays valid as upstream rev-bumps the patch suffix.
+	@sed -i.bak -E 's|markoshust/magento-php:[0-9]+\.[0-9]+-fpm(-[0-9]+)?|markoshust/magento-php:$(PHP_VERSION)-fpm|' $(SANDBOX_DIR)/compose.yaml
+	@rm -f $(SANDBOX_DIR)/compose.yaml.bak
+	@echo ">>> downloading Magento $(M2_EDITION) $(M2_VERSION) via bin/download"
+	cd $(SANDBOX_DIR) && bin/download $(M2_EDITION) $(M2_VERSION)
+	@echo ">>> running Shust setup for $(SANDBOX_HOST)"
+	cd $(SANDBOX_DIR) && bin/setup $(SANDBOX_HOST)
 	@echo ">>> symlinking module: $(MODULE_DEST) -> $(REPO_ROOT)"
 	@mkdir -p $(SANDBOX_DIR)/src/app/code/IronCart
 	@rm -rf $(MODULE_DEST)
