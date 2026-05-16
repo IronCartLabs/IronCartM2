@@ -21,9 +21,13 @@ this sandbox in CI.
   supported** for this issue — use WSL2. A first-class Windows path is tracked
   separately if there's demand.
 - **Adobe Marketplace auth keys** (see below).
-- A free entry in `/etc/hosts` for `ironcart.test` (Shust's setup script will
-  attempt to add this on macOS/Linux; WSL2 users may need to add it manually
-  to the Windows hosts file).
+- Hosts file entries for `ironcart.test`:
+    - **Windows** (`C:\Windows\System32\drivers\etc\hosts`, admin) — required
+      for the browser to resolve the storefront. Add `127.0.0.1  ironcart.test`.
+    - **WSL2 guest** (`/etc/hosts`, sudo) — required to **pre-empt Shust's
+      `bin/setup`**, which tries to `sudo` mid-install and will time out if
+      `make sandbox` is running non-interactively. Pre-add it:
+      `echo '127.0.0.1  ironcart.test' | sudo tee -a /etc/hosts`.
 
 ## Adobe auth keys
 
@@ -59,21 +63,41 @@ make sandbox
 
 This will:
 
-1. Clone `markshust/docker-magento` into `.sandbox/` (gitignored).
-2. Run `bin/setup ironcart.test 2.4.7` — pulls Magento, starts containers,
-   installs Magento, sets up the admin user, indexes everything.
-3. Pin PHP to the configured version (`PHP_VERSION`, default 8.3).
-4. Symlink the repo root into `.sandbox/src/app/code/IronCart/Scan` so the
-   PHP container sees this module at the correct Magento module path.
-5. `bin/magento module:enable IronCart_Scan` + `setup:upgrade` +
+1. Scaffold `markshust/docker-magento` into `.sandbox/` via Shust's
+   [`lib/template`](https://github.com/markshust/docker-magento/blob/master/lib/template)
+   bootstrap (curl-piped, tracks upstream `master`). Drops `bin/`,
+   `compose.yaml`, `env/`, etc. at the sandbox root.
+2. Pin the `phpfpm` image tag in `compose.yaml` to the configured PHP
+   (`PHP_VERSION`, default 8.3) via `sed` (best-effort).
+3. Run `bin/download community 2.4.7` — pulls Magento source via
+   `composer create-project` against `repo.magento.com`. Requires auth keys.
+4. Run `bin/setup ironcart.test` — starts containers, installs Magento,
+   sets up the admin user, indexes everything.
+5. Inject a bind-mount into `compose.dev.yaml` so the repo root appears at
+   `/var/www/html/app/code/IronCart/Scan` inside the PHP container, plus an
+   anonymous-volume mask over `.../Scan/.sandbox` so the bind doesn't expose
+   `.sandbox/src/vendor` recursively (PHP autoload fatals on duplicate trait
+   declarations otherwise — the same gotcha as bind-mounting a JS project
+   with a populated `node_modules`).
+6. Disable `Magento_TwoFactorAuth` and `Magento_AdminAdobeImsTwoFactorAuth`
+   for the dev sandbox — Magento 2.4+ ships them mandatory and they email a
+   TOTP secret on first login, which a local sandbox can't deliver. **Never
+   disable these in production.**
+7. `bin/magento module:enable IronCart_Scan` + `setup:upgrade` +
    `setup:di:compile` + `cache:flush`.
 
 First run takes ~10–20 minutes depending on network speed. Subsequent
 `make sandbox` invocations are no-ops (the `.installed` sentinel short-circuits
 them).
 
-The default admin URL and credentials come from Shust's harness — see his
-README. The storefront is at `https://ironcart.test/`.
+The storefront is at `https://ironcart.test/`. Admin is
+`https://ironcart.test/admin/` with `user=john.smith` `pass=password123` (Shust
+defaults). Browser will warn about the self-signed cert — click through, or
+import `.sandbox/rootCA.pem` into Windows trusted roots to silence the warning.
+
+If you need to test something against real 2FA, re-enable the modules
+(`bin/clinotty bin/magento module:enable Magento_TwoFactorAuth …`) and read
+the setup email at the mailcatcher UI: `http://localhost:1080/`.
 
 ## Daily use
 
@@ -157,6 +181,13 @@ make sandbox-nuke
 - **Symlink + Windows native.** `ln -s` doesn't behave correctly under native
   Windows without developer mode and even then Docker Desktop sometimes
   refuses to follow the link into the container. Use WSL2.
-- **PHP pinning.** Older Shust releases don't ship `bin/setup-php`. If yours
-  doesn't, edit `.sandbox/compose.dev.yaml` and swap the `markshust/magento-php`
-  image tag manually.
+- **PHP pinning.** As of mid-2026 Shust no longer ships `bin/setup-php`; the
+  Makefile pins PHP by sed-ing the `phpfpm` image tag in `.sandbox/compose.yaml`
+  after `lib/template` lands it (line shaped like
+  `image: markoshust/magento-php:8.3-fpm-4`). If the sed misses (e.g. Shust
+  renames the image), edit `compose.yaml` manually before `make sandbox` runs
+  `bin/download`/`bin/setup`.
+- **Tracking upstream `master`.** `lib/template` is curl-piped from
+  `markshust/docker-magento@master`, so a Shust regression can break
+  `make sandbox` overnight. If you hit one, pin to a known-good revision by
+  swapping `SHUST_TEMPLATE_URL` in the Makefile to a specific commit SHA.
