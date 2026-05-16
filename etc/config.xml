@@ -1,0 +1,26 @@
+<?xml version="1.0"?>
+<!--
+ / Copyright (c) Ironcart (https://ironcart.dev)
+ / Licensed under MIT.
+ /
+ / Default scope values for the module's admin configuration tree.
+ / Every section here must default to a posture that preserves the
+ / "no outbound network without explicit opt-in" invariant from the
+ / v0/v1 tracking epic.
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Store:etc/config.xsd">
+    <default>
+        <ironcart_scan>
+            <!--
+                IC-060 / IC-061 — CVE cross-reference via the ironcart.dev
+                proxy. Default is `0` (disabled). When `0`, ComposerCveCheck
+                emits a single info-level finding that points the operator
+                at Stores → Configuration → Ironcart → Scan to opt in.
+            -->
+            <cve>
+                <enabled>0</enabled>
+            </cve>
+        </ironcart_scan>
+    </default>
+</config>

@@ -50,6 +50,8 @@ The full v0 check inventory, in stable ID order:
 | IC-052 | high     | CodeSmell   | Dynamic `include`/`require` (variable path) — LFI / RFI vector |
 | IC-053 | high     | CodeSmell   | Shell execution from PHP (`shell_exec`, `exec`, backticks, …) |
 | IC-054 | critical | CodeSmell   | `preg_replace` with `/e` modifier — RCE vector |
+| IC-060 | varies   | Cve         | Composer package CVE cross-reference via `ironcart.dev/api/cve` proxy (opt-in, default OFF; severity from advisory CVSS v3 score) |
+| IC-061 | low      | Cve         | OSV cross-reference unavailable (IC-060 transport / parse failure fallback) |
 | [IC-070](https://ironcart.dev/docs/checks/IC-070) | high     | FileIntegrity | Core file SHA-256 differs from bundled reference manifest |
 | [IC-071](https://ironcart.dev/docs/checks/IC-071) | low      | FileIntegrity | Core file integrity manifest not available for this Magento version |
 | [IC-072](https://ironcart.dev/docs/checks/IC-072) | high     | FileIntegrity | `composer.lock` package `dist.shasum` differs from reference manifest |
@@ -71,9 +73,12 @@ Remediation links follow the pattern `https://ironcart.dev/docs/checks/<ID>`.
 
 ### Network access posture
 
-Every check is **read-only by default**. The single exception is the IC-080..IC-085 CSP posture pack, which issues **one HEAD request to the merchant's own storefront base URL** per scan. The probe is gated by `LoopbackHostGuard` — the destination host must be loopback (`localhost`, `127.0.0.1`, `*.localhost`, `::1`), an RFC1918 / RFC3927 / RFC4193 private address, or exactly the hostname Magento has configured as its base URL. Anything else is rejected before any socket is opened. The probe sends `User-Agent: IronCart-Scan/<module-version> (security-posture-check)`, a 5s total timeout, and zero redirects. No outbound calls leave the merchant's infrastructure.
+Every check is **read-only by default**. Two outbound surfaces exist:
 
-Later stages add an Admin UI, expanded check library (CVE cross-reference, file integrity), opt-in hosted reporting, continuous scanning, and a Marketplace listing. See the [v0 epic](https://github.com/IronCartLabs/IronCartM2/issues) for the full roadmap.
+1. **IC-080..IC-085 CSP posture pack** — issues **one HEAD request to the merchant's own storefront base URL** per scan. Gated by `LoopbackHostGuard` (loopback `localhost` / `127.0.0.1` / `*.localhost` / `::1`, RFC1918 / RFC3927 / RFC4193 private addresses, or exactly the hostname Magento has configured as its base URL — anything else is rejected before any socket is opened). UA `IronCart-Scan/<module-version> (security-posture-check)`, 5s timeout, zero redirects. No outbound calls leave the merchant's infrastructure.
+2. **IC-060 CVE cross-reference** — **opt-in, default OFF.** When the operator enables `ironcart_scan/cve/enabled` in Stores → Configuration → Ironcart → Scan, the check POSTs the installed Composer package list (name + version only — no PII, no domain, no admin username, no IP) to `https://ironcart.dev/api/cve` for OSV.dev cross-referencing. The hardened cURL client asserts the URL host equals `ironcart.dev` *before* opening a socket; it follows zero redirects, constrains protocols to HTTP / HTTPS, sends no cookies, applies a 10s connect / 30s total timeout, and sends UA `IronCart-Scan/<module-version> (cve-cross-reference)`. Transport failure emits one `IC-061` LOW finding and continues the scan. Payloads with > 500 packages are batched into 200-package chunks.
+
+Later stages add an Admin UI, opt-in hosted reporting, continuous scanning, and a Marketplace listing. See the [v0 epic](https://github.com/IronCartLabs/IronCartM2/issues) for the full roadmap.
 
 ## Install
 
@@ -104,7 +109,7 @@ M2/PHP matrix, and known papercuts.
 
 ## Security
 
-This module is read-only. Through v1 it makes zero network calls of any kind. v2 adds the IC-080..IC-085 CSP posture pack, which issues exactly one HEAD request per scan against the merchant's own storefront base URL (gated by a loopback / RFC1918 / configured-base-URL allow-list — see [Network access posture](#network-access-posture) above). Opt-in hosted reporting arrives in v3. See [SECURITY.md](SECURITY.md) for the vulnerability disclosure policy.
+This module is read-only. Through v1 it makes zero network calls of any kind. v2 adds two outbound surfaces, both detailed in [Network access posture](#network-access-posture) above: the IC-080..IC-085 CSP HEAD probe (gated by a loopback / RFC1918 / configured-base-URL allow-list) and the opt-in IC-060 CVE cross-reference POST (gated by an `ironcart.dev`-host allowlist, default OFF). Opt-in hosted reporting arrives in v3. See [SECURITY.md](SECURITY.md) for the vulnerability disclosure policy.
 
 ## License
 

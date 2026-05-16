@@ -1,0 +1,58 @@
+<?xml version="1.0"?>
+<!--
+ / Copyright (c) Ironcart (https://ironcart.dev)
+ / Licensed under MIT.
+ /
+ / Admin System Configuration tree for IronCart_Scan. Currently exposes
+ / the IC-060 opt-in flag; future packs can append sibling <group> nodes
+ / under the `ironcart_scan` section without restructuring this file.
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Config:etc/system_file.xsd">
+    <system>
+        <tab id="ironcart" translate="label" sortOrder="900">
+            <label>Ironcart</label>
+        </tab>
+        <section id="ironcart_scan"
+                 translate="label"
+                 sortOrder="10"
+                 showInDefault="1"
+                 showInWebsite="1"
+                 showInStore="0">
+            <label>Scan</label>
+            <tab>ironcart</tab>
+            <resource>IronCart_Scan::scan</resource>
+            <group id="cve"
+                   translate="label comment"
+                   sortOrder="10"
+                   showInDefault="1"
+                   showInWebsite="1"
+                   showInStore="0">
+                <label>CVE cross-reference</label>
+                <comment>
+                    <![CDATA[
+                        When enabled, the IC-060 check POSTs the installed Composer
+                        package list (name + version, no PII) to
+                        <code>https://ironcart.dev/api/cve</code> for OSV.dev
+                        cross-referencing. Disabled by default to preserve the
+                        module's read-only, no-outbound-network invariant.
+                    ]]>
+                </comment>
+                <field id="enabled"
+                       translate="label comment"
+                       type="select"
+                       sortOrder="10"
+                       showInDefault="1"
+                       showInWebsite="1"
+                       showInStore="0">
+                    <label>Enable CVE lookup</label>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                    <comment>
+                        Sends package name + version only. No domain, admin user, IP, or
+                        store identifier. The destination host is pinned to ironcart.dev.
+                    </comment>
+                </field>
+            </group>
+        </section>
+    </system>
+</config>
