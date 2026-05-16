@@ -17,7 +17,20 @@ use PHPUnit\Framework\TestCase;
 
 final class MessageQueueBacklogCheckTest extends TestCase
 {
-    public function testNoFactoryReturnsNoFindings(): void
+    /**
+     * Default construction (no factory) must return no findings — this also
+     * proves the absence path: the unit cell strips `magento/framework` so
+     * `Magento\MysqlMq\Model\ResourceModel\Queue\CollectionFactory` does not
+     * class_exists() and ObjectManager is never consulted. The check must
+     * NOT throw a "class does not exist" error here.
+     */
+    public function testNoFactoryAndAbsentMagentoModuleReturnsNoFindings(): void
+    {
+        $check = new MessageQueueBacklogCheck();
+        self::assertSame([], $check->run());
+    }
+
+    public function testExplicitNullFactoryReturnsNoFindings(): void
     {
         $check = new MessageQueueBacklogCheck(null);
         self::assertSame([], $check->run());
