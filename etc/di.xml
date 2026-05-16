@@ -57,6 +57,10 @@
                 <item name="IC-052" xsi:type="object">IronCart\Scan\Check\CodeSmell\DynamicIncludeCheck</item>
                 <item name="IC-053" xsi:type="object">IronCart\Scan\Check\CodeSmell\ShellExecCheck</item>
                 <item name="IC-054" xsi:type="object">IronCart\Scan\Check\CodeSmell\PregReplaceEvalModifierCheck</item>
+                <!-- File-integrity check pack (#47). IC-071 is emitted by the same
+                     class when no manifest is available, so it is NOT registered
+                     separately here. -->
+                <item name="IC-070" xsi:type="object">IronCart\Scan\Check\FileIntegrity\CoreFileIntegrityCheck</item>
             </argument>
         </arguments>
     </type>
