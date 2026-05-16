@@ -46,6 +46,11 @@
                 <item name="IC-011" xsi:type="object">IronCart\Scan\Check\Admin\AdminUserInventoryCheck</item>
                 <item name="IC-012" xsi:type="object">IronCart\Scan\Check\Admin\TwoFactorCoverageCheck</item>
                 <item name="IC-013" xsi:type="object">IronCart\Scan\Check\Admin\WeakPasswordIndicatorCheck</item>
+                <!-- Webhook posture check pack (#49) -->
+                <item name="IC-090" xsi:type="object">IronCart\Scan\Check\Webhooks\PlaintextDestinationCheck</item>
+                <item name="IC-091" xsi:type="object">IronCart\Scan\Check\Webhooks\SignatureSecretCheck</item>
+                <item name="IC-092" xsi:type="object">IronCart\Scan\Check\Webhooks\RetryPolicyCheck</item>
+                <item name="IC-093" xsi:type="object">IronCart\Scan\Check\Webhooks\PrivateNetworkDestinationCheck</item>
             </argument>
         </arguments>
     </type>
