@@ -3,11 +3,18 @@
 /**
  * IronCart_Scan — IC-043 message-queue backlog.
  *
- * Iterates the Magento MessageQueue topology and flags any queue whose depth
+ * Iterates the Magento MysqlMq topology and flags any queue whose depth
  * exceeds 10k messages. A runaway queue is rarely a security finding on its
  * own but it routinely correlates with broken consumers — and broken consumers
  * mean async security tasks (re-index after permission change, customer-data
  * scrub, etc.) silently never run.
+ *
+ * Magento_MysqlMq was removed from Magento 2.4+ (RabbitMQ became the default
+ * queue transport). To stay compatible with both the legacy module and modern
+ * installs the factory is resolved lazily through ObjectManager rather than
+ * wired as a typed constructor dependency. When MysqlMq is absent the check
+ * returns no findings — a v3+ check can add a dedicated RabbitMQ
+ * management-API adapter for stores that ship without MysqlMq.
  *
  * @copyright Copyright (c) Ironcart (https://ironcart.dev)
  * @license   MIT
@@ -20,7 +27,7 @@ namespace IronCart\Scan\Check\Operational;
 use IronCart\Scan\Check\CheckInterface;
 use IronCart\Scan\Check\Finding;
 use IronCart\Scan\Report\Severity;
-use Magento\MysqlMq\Model\ResourceModel\Queue\CollectionFactory as QueueCollectionFactory;
+use Magento\Framework\ObjectManagerInterface;
 
 /**
  * IC-043 — flag message-queue backlogs that exceed the depth threshold.
@@ -34,13 +41,13 @@ class MessageQueueBacklogCheck implements CheckInterface
     /** Depth threshold per queue. */
     public const DEPTH_THRESHOLD = 10000;
 
-    /**
-     * @param QueueCollectionFactory|null $queueCollectionFactory Optional: only present
-     *                                                            when Magento_MysqlMq is
-     *                                                            installed (the default).
-     */
+    /** Default class-string for the optional MysqlMq factory. */
+    public const DEFAULT_FACTORY_FQCN
+        = 'Magento\\MysqlMq\\Model\\ResourceModel\\Queue\\CollectionFactory';
+
     public function __construct(
-        private readonly ?QueueCollectionFactory $queueCollectionFactory = null
+        private readonly ObjectManagerInterface $objectManager,
+        private readonly string $queueCollectionFactoryClass = self::DEFAULT_FACTORY_FQCN
     ) {
     }
 
@@ -51,14 +58,16 @@ class MessageQueueBacklogCheck implements CheckInterface
 
     public function run(): array
     {
-        if ($this->queueCollectionFactory === null) {
-            // Magento_MysqlMq is not installed (operator runs RabbitMQ only).
-            // v0 limits itself to read-only checks against Magento's local DB;
-            // a v3+ check can add an explicit RabbitMQ adapter.
+        // Magento 2.4+ ships without Magento_MysqlMq by default. Without the
+        // factory class on the autoload path the legacy MySQL queue topology
+        // cannot exist — return no findings rather than crash. v3+ scanner
+        // releases plan a dedicated RabbitMQ management-API adapter.
+        if (!class_exists($this->queueCollectionFactoryClass)) {
             return [];
         }
 
-        $collection = $this->queueCollectionFactory->create();
+        $queueCollectionFactory = $this->objectManager->get($this->queueCollectionFactoryClass);
+        $collection = $queueCollectionFactory->create();
         $over = [];
 
         foreach ($collection as $queue) {

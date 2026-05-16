@@ -13,13 +13,20 @@ namespace IronCart\Scan\Test\Unit\Check\Operational;
 
 use IronCart\Scan\Check\Operational\MessageQueueBacklogCheck;
 use IronCart\Scan\Report\Severity;
+use Magento\Framework\ObjectManagerInterface;
 use PHPUnit\Framework\TestCase;
 
 final class MessageQueueBacklogCheckTest extends TestCase
 {
-    public function testNoFactoryReturnsNoFindings(): void
+    public function testMissingFactoryClassReturnsNoFindings(): void
     {
-        $check = new MessageQueueBacklogCheck(null);
+        $objectManager = $this->createMock(ObjectManagerInterface::class);
+        $objectManager->expects(self::never())->method('get');
+
+        $check = new MessageQueueBacklogCheck(
+            $objectManager,
+            'Definitely\\Not\\A\\Real\\Class\\NonExistent_' . uniqid()
+        );
         self::assertSame([], $check->run());
     }
 
@@ -30,7 +37,7 @@ final class MessageQueueBacklogCheckTest extends TestCase
             ['name' => 'inventory.reservations.cleanup', 'depth' => 9999],
         ]);
 
-        $check = new MessageQueueBacklogCheck($factory);
+        $check = $this->makeCheckWithFactory($factory);
         self::assertSame([], $check->run());
     }
 
@@ -42,7 +49,7 @@ final class MessageQueueBacklogCheckTest extends TestCase
             ['name' => 'product.action.attribute.update', 'depth' => 11_500],
         ]);
 
-        $check = new MessageQueueBacklogCheck($factory);
+        $check = $this->makeCheckWithFactory($factory);
         $findings = $check->run();
 
         self::assertCount(1, $findings);
@@ -53,17 +60,30 @@ final class MessageQueueBacklogCheckTest extends TestCase
     }
 
     /**
+     * Build a check wired to a real (test-only) factory class so the
+     * production `class_exists` guard passes and ObjectManager returns the
+     * stub.
+     */
+    private function makeCheckWithFactory(object $factory): MessageQueueBacklogCheck
+    {
+        $factoryClass = $factory::class;
+        $objectManager = $this->createMock(ObjectManagerInterface::class);
+        $objectManager->method('get')->with($factoryClass)->willReturn($factory);
+
+        return new MessageQueueBacklogCheck($objectManager, $factoryClass);
+    }
+
+    /**
      * Build a stub QueueCollectionFactory whose collection yields queue
      * doubles exposing `getName()` + `getMessages()->getSize()`.
      *
      * @param list<array{name:string,depth:int}> $rows
      */
-    private function makeQueueFactory(array $rows): object
+    private function makeQueueFactory(array $rows): StubQueueCollectionFactory
     {
         $queues = [];
         foreach ($rows as $row) {
             $queues[] = new class ($row['name'], $row['depth']) {
-                /** @var object{getSize: callable} */
                 private object $messages;
 
                 public function __construct(private readonly string $name, int $depth)
@@ -104,15 +124,22 @@ final class MessageQueueBacklogCheckTest extends TestCase
             }
         };
 
-        return new class ($collection) {
-            public function __construct(private readonly object $collection)
-            {
-            }
+        return new StubQueueCollectionFactory($collection);
+    }
+}
 
-            public function create(): object
-            {
-                return $this->collection;
-            }
-        };
+/**
+ * Real (named) test-only class so `class_exists()` in the production guard
+ * returns true and ObjectManager has a concrete FQCN to resolve.
+ */
+final class StubQueueCollectionFactory
+{
+    public function __construct(private readonly object $collection)
+    {
+    }
+
+    public function create(): object
+    {
+        return $this->collection;
     }
 }
