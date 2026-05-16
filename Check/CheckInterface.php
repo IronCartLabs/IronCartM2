@@ -6,7 +6,10 @@
  * Every scanner check implements this interface. v0 is intentionally minimal:
  * checks are pure functions of their environment and return zero or more
  * findings shaped against the {@see \IronCart\Scan\Report\ReportBuilder} v0
- * schema. Checks must be read-only and must not make outbound network calls.
+ * schema. Checks must be read-only. The single sanctioned network surface is
+ * the IC-080..IC-085 CSP posture pack, which is restricted by
+ * {@see \IronCart\Scan\Check\Runtime\Csp\LoopbackHostGuard} to the merchant's
+ * own storefront base URL — anything else is a contract violation.
  *
  * @copyright Copyright (c) Ironcart (https://ironcart.dev)
  * @license   MIT
