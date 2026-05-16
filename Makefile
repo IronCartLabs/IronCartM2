@@ -171,12 +171,18 @@ sandbox-nuke: ## Stop containers and delete .sandbox/ entirely. Destructive.
 	fi
 
 # ---------------------------------------------------------------------------
-# File-integrity manifests (IC-070).
+# File-integrity manifests (IC-070, IC-072).
 #
-# Generates `etc/manifests/magento-core-community-<version>.json` for every
-# supported Magento Open Source tag by shallow-cloning `magento/magento2` at
-# the tag, walking the tree, and computing SHA-256 per file. See
-# docs/manifests.md and IronCartLabs/IronCartM2#47 for the design rationale.
+# Two manifest families live under etc/manifests/, one per integrity check:
+#
+#   - magento-core-community-<version>.json  — IC-070, SHA-256 per file
+#     across the magento/magento2 git tag (this section, `make core-manifests`).
+#   - composer-sha1-community-<version>.json — IC-072, SHA-1 per package's
+#     `dist.shasum` from a clean composer create-project (below,
+#     `make composer-manifests`).
+#
+# `make manifests` builds both. See docs/manifests.md and
+# IronCartLabs/IronCartM2#47 / #50 for the design rationale.
 #
 # Network required. NOT invoked at runtime — the scanner only ever reads the
 # generated JSON files from disk.
@@ -194,20 +200,49 @@ MANIFEST_VERSIONS ?= \
 MANIFEST_DIR := etc/manifests
 
 .PHONY: manifests
-manifests: ## Build IC-070 file-integrity manifests for every supported tag.
+manifests: core-manifests composer-manifests ## Build all bundled manifests (IC-070 + IC-072).
+
+.PHONY: core-manifests
+core-manifests: ## Build IC-070 file-integrity manifests for every supported tag.
 	@command -v git >/dev/null 2>&1 || { echo "ERROR: git not on PATH"; exit 1; }
 	@command -v php >/dev/null 2>&1 || { echo "ERROR: php not on PATH"; exit 1; }
 	@mkdir -p $(MANIFEST_DIR)
 	@for version in $(MANIFEST_VERSIONS); do \
-		echo ">>> building manifest for $$version"; \
+		echo ">>> building core manifest for $$version"; \
 		php bin/build-manifest.php --version=$$version || { echo "ERROR: $$version failed"; exit 1; }; \
 	done
-	@echo ">>> done. Manifests are under $(MANIFEST_DIR)/"
+	@echo ">>> done. Core manifests are under $(MANIFEST_DIR)/"
+
+# ---------------------------------------------------------------------------
+# Composer-lock SHA-1 manifests (IC-072).
+#
+# Generates `etc/manifests/composer-sha1-community-<version>.json` for every
+# supported Magento Open Source tag by running
+# `composer create-project --no-install magento/project-community-edition:<version>`
+# into a tmpdir and harvesting `dist.shasum` from the resulting composer.lock.
+# See docs/manifests.md and IronCartLabs/IronCartM2#50 for the design rationale.
+#
+# Network required (composer resolves against repo.magento.com).
+# NOT invoked at runtime — the scanner only ever reads the generated JSON
+# files from disk.
+# ---------------------------------------------------------------------------
+
+.PHONY: composer-manifests
+composer-manifests: ## Build IC-072 composer-lock SHA-1 manifests for every supported tag.
+	@command -v composer >/dev/null 2>&1 || { echo "ERROR: composer not on PATH"; exit 1; }
+	@command -v php >/dev/null 2>&1 || { echo "ERROR: php not on PATH"; exit 1; }
+	@mkdir -p $(MANIFEST_DIR)
+	@for version in $(MANIFEST_VERSIONS); do \
+		echo ">>> building composer-sha1 manifest for $$version"; \
+		php bin/build-composer-manifest.php --version=$$version || { echo "ERROR: $$version failed"; exit 1; }; \
+	done
+	@echo ">>> done. Composer-sha1 manifests are under $(MANIFEST_DIR)/"
 
 .PHONY: manifests-clean
 manifests-clean: ## Remove all generated manifests under etc/manifests/.
 	@if [ -d "$(MANIFEST_DIR)" ]; then \
 		find $(MANIFEST_DIR) -name 'magento-core-*.json' -delete; \
+		find $(MANIFEST_DIR) -name 'composer-sha1-*.json' -delete; \
 		echo ">>> cleared $(MANIFEST_DIR)"; \
 	else \
 		echo ">>> $(MANIFEST_DIR) already absent"; \

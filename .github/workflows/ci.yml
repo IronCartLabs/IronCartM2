@@ -428,6 +428,12 @@ jobs:
           assert data.get('schema_version') == 'v0', f'schema_version: {data.get("schema_version")}'
           assert 'findings' in data and isinstance(data['findings'], list)
           assert 'summary' in data and isinstance(data['summary'], dict)
+          # IC-072 — composer-lock integrity. A clean sandbox install must
+          # produce zero IC-072 HIGH findings; if it does, either the
+          # bundled manifest is wrong for the cell's Magento version, or
+          # the sandbox composer cache served a tampered package.
+          ic072 = [f for f in data['findings'] if f.get('id') == 'IC-072']
+          assert ic072 == [], f'unexpected IC-072 findings on clean install: {ic072}'
           print('scan.json OK:', json.dumps(data['summary']))
           PY
 
@@ -643,6 +649,12 @@ jobs:
           assert data.get('schema_version') == 'v0', f'schema_version: {data.get("schema_version")}'
           assert 'findings' in data and isinstance(data['findings'], list)
           assert 'summary' in data and isinstance(data['summary'], dict)
+          # IC-072 — composer-lock integrity. A clean sandbox install must
+          # produce zero IC-072 HIGH findings; if it does, either the
+          # bundled manifest is wrong for the cell's Magento version, or
+          # the sandbox composer cache served a tampered package.
+          ic072 = [f for f in data['findings'] if f.get('id') == 'IC-072']
+          assert ic072 == [], f'unexpected IC-072 findings on clean install: {ic072}'
           print('scan.json OK:', json.dumps(data['summary']))
           PY
 

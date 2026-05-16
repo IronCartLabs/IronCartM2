@@ -4,8 +4,9 @@
  * IronCart_Scan — composer.lock reader.
  *
  * Loads the project-level `composer.lock` so IC-002 can compare the
- * installed package versions against the bundled OSV advisory snapshot.
- * Read-only.
+ * installed package versions against the bundled OSV advisory snapshot,
+ * and so IC-072 can compare each package's `dist.shasum` against a
+ * bundled reference SHA-1 manifest. Read-only.
  *
  * @copyright Copyright (c) Ironcart (https://ironcart.dev)
  * @license   MIT
@@ -44,6 +45,69 @@ class ComposerLockReader
      */
     public function packages(): array
     {
+        $entries = $this->readEntries();
+        $packages = [];
+        foreach ($entries as $entry) {
+            $name = $entry['name'] ?? null;
+            $version = $entry['version'] ?? null;
+            if (is_string($name) && is_string($version) && $name !== '' && $version !== '') {
+                $packages[$name] = self::normaliseVersion($version);
+            }
+        }
+
+        return $packages;
+    }
+
+    /**
+     * Return the installed package name → `{version, dist_shasum}` map
+     * for every package that records a `dist.shasum`. Packages without
+     * a `dist` block (e.g. path/composer-plugin entries) are omitted —
+     * IC-072 has nothing to compare against in that case.
+     *
+     * Both `packages` and `packages-dev` are merged (a tampered dev tool
+     * is still tampered code on disk).
+     *
+     * @return array<string,array{version:string,dist_shasum:string}>
+     *
+     * @throws RuntimeException When the lockfile cannot be located or parsed.
+     */
+    public function packagesWithDist(): array
+    {
+        $entries = $this->readEntries();
+        $packages = [];
+        foreach ($entries as $entry) {
+            $name = $entry['name'] ?? null;
+            $version = $entry['version'] ?? null;
+            $dist = $entry['dist'] ?? null;
+            if (!is_string($name) || $name === '' || !is_string($version) || $version === '') {
+                continue;
+            }
+            if (!is_array($dist)) {
+                continue;
+            }
+            $shasum = $dist['shasum'] ?? null;
+            if (!is_string($shasum) || $shasum === '') {
+                continue;
+            }
+            $packages[$name] = [
+                'version' => self::normaliseVersion($version),
+                'dist_shasum' => strtolower($shasum),
+            ];
+        }
+
+        return $packages;
+    }
+
+    /**
+     * Decode the lockfile and return the raw entries from both
+     * `packages` and `packages-dev`.
+     *
+     * @return list<array<string,mixed>>
+     *
+     * @throws RuntimeException When the lockfile cannot be located or parsed.
+     */
+    private function readEntries(): array
+    {
         $path = $this->resolveLockPath();
         if ($path === null) {
             throw new RuntimeException('composer.lock not found in Magento root.');
@@ -64,25 +128,20 @@ class ComposerLockReader
             throw new RuntimeException(sprintf('Unexpected composer.lock shape in "%s".', $path));
         }
 
-        $packages = [];
+        $entries = [];
         foreach (['packages', 'packages-dev'] as $bucket) {
             $list = $decoded[$bucket] ?? [];
             if (!is_array($list)) {
                 continue;
             }
             foreach ($list as $entry) {
-                if (!is_array($entry)) {
-                    continue;
-                }
-                $name = $entry['name'] ?? null;
-                $version = $entry['version'] ?? null;
-                if (is_string($name) && is_string($version) && $name !== '' && $version !== '') {
-                    $packages[$name] = self::normaliseVersion($version);
+                if (is_array($entry)) {
+                    $entries[] = $entry;
                 }
             }
         }
 
-        return $packages;
+        return $entries;
     }
 
     /**
