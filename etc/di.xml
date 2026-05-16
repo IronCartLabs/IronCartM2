@@ -74,9 +74,26 @@
                 <item name="IC-083" xsi:type="object">IronCart\Scan\Check\Runtime\Csp\CspFrameAncestorsCheck</item>
                 <item name="IC-084" xsi:type="object">IronCart\Scan\Check\Runtime\Csp\CspReportOnlyInProductionCheck</item>
                 <item name="IC-085" xsi:type="object">IronCart\Scan\Check\Runtime\Csp\CspBaseUrlConfiguredCheck</item>
+                <!-- CVE cross-reference check pack (v2, #46). POSTs composer
+                     package list to https://ironcart.dev/api/cve (the proxied
+                     branch of the OSV.dev decision). Opt-in by default OFF —
+                     the check emits one info-level finding pointing the
+                     operator at the admin config until ironcart_scan/cve/enabled
+                     is flipped. IC-061 is emitted by the same class on transport
+                     failure so it is NOT registered separately here. -->
+                <item name="IC-060" xsi:type="object">IronCart\Scan\Check\Cve\ComposerCveCheck</item>
             </argument>
         </arguments>
     </type>
+
+    <!--
+        CVE proxy client — production wires the hardened ext-curl
+        implementation. Unit tests inject a fake; integration tests can
+        override this preference to a local stub for the docker-compose
+        sandbox without touching the check class itself.
+    -->
+    <preference for="IronCart\Scan\Check\Cve\CveProxyClient"
+                type="IronCart\Scan\Check\Cve\CurlCveProxyClient"/>
 
     <!--
         CSP probe runner — shared so all six IC-08x checks consult the same

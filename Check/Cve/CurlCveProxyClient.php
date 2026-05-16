@@ -1,0 +1,167 @@
+<?php
+
+/**
+ * IronCart_Scan — hardened cURL CVE proxy client.
+ *
+ * Production implementation of {@see CveProxyClient}. Uses ext-curl
+ * directly rather than `Magento\Framework\HTTP\Client\Curl` so we can
+ * pin `CURLOPT_PROTOCOLS`, `CURLOPT_FOLLOWLOCATION=false`, and
+ * `CURLOPT_MAXREDIRS=0` — the same hardening pattern the IC-08x CSP
+ * probe uses, sized for the longer round-trip of the proxy fan-out.
+ *
+ * The host-check is performed in pure PHP *before* `curl_exec` runs, so
+ * a misconfigured destination URL (e.g. `https://evil.com/api/cve` from
+ * a malicious admin config edit) never reaches DNS resolution. This is
+ * the egress allowlist that the IC-060 issue body locks in.
+ *
+ * @copyright Copyright (c) Ironcart (https://ironcart.dev)
+ * @license   MIT
+ */
+
+declare(strict_types=1);
+
+namespace IronCart\Scan\Check\Cve;
+
+use CurlHandle;
+use JsonException;
+
+/**
+ * Production CVE proxy client backed by ext-curl.
+ */
+class CurlCveProxyClient implements CveProxyClient
+{
+    /**
+     * Connect timeout — fail fast if the proxy is unreachable.
+     */
+    private const CONNECT_TIMEOUT_SECONDS = 10;
+
+    /**
+     * Total request timeout (connect + read). The proxy fan-outs to
+     * OSV.dev; cold-cache responses on a full Magento package list have
+     * been measured at ~10-15s, so 30s leaves headroom without blocking
+     * the scan indefinitely.
+     */
+    private const TIMEOUT_SECONDS = 30;
+
+    /**
+     * Maximum response body size we will buffer (in bytes). The proxy
+     * returns at most one finding per requested package; even a worst-
+     * case Magento install with 500 packages × ~1KB per finding fits
+     * comfortably here. Anything larger is almost certainly a misconfig
+     * or attack, so we abort the body read.
+     */
+    private const MAX_RESPONSE_BYTES = 5 * 1024 * 1024; // 5 MiB
+
+    /**
+     * @inheritDoc
+     */
+    public function post(string $url, array $payload, string $userAgent): ?array
+    {
+        if (!$this->hostIsAllowed($url)) {
+            // Hard reject — never reach DNS for a non-ironcart.dev host.
+            return null;
+        }
+
+        if (!function_exists('curl_init')) {
+            return null;
+        }
+
+        try {
+            $body = json_encode(
+                $payload,
+                JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES
+            );
+        } catch (JsonException) {
+            return null;
+        }
+
+        $ch = curl_init();
+        if (!$ch instanceof CurlHandle) {
+            return null;
+        }
+
+        $bytesRead = 0;
+        $bodyBuf = '';
+        $writeCallback = static function (CurlHandle $_handle, string $chunk) use (&$bytesRead, &$bodyBuf): int {
+            $bytesRead += strlen($chunk);
+            if ($bytesRead > self::MAX_RESPONSE_BYTES) {
+                // Returning a value other than strlen($chunk) aborts the
+                // transfer with CURLE_WRITE_ERROR. Belt-and-braces against
+                // a runaway response body.
+                return 0;
+            }
+            $bodyBuf .= $chunk;
+            return strlen($chunk);
+        };
+
+        curl_setopt_array($ch, [
+            CURLOPT_URL => $url,
+            CURLOPT_POST => true,
+            CURLOPT_POSTFIELDS => $body,
+            CURLOPT_HTTPHEADER => [
+                'Content-Type: application/json',
+                'Accept: application/json',
+                sprintf('Content-Length: %d', strlen($body)),
+            ],
+            // SSRF guard — never chase redirects. A 30x to a different host
+            // would defeat the ironcart.dev host check.
+            CURLOPT_FOLLOWLOCATION => false,
+            CURLOPT_MAXREDIRS => 0,
+            CURLOPT_CONNECTTIMEOUT => self::CONNECT_TIMEOUT_SECONDS,
+            CURLOPT_TIMEOUT => self::TIMEOUT_SECONDS,
+            // Constrain the protocol set so a redirect-injected
+            // `gopher://` / `file://` / `dict://` URL on a vulnerable
+            // libcurl can't escape. Belt-and-braces alongside
+            // FOLLOWLOCATION=false.
+            CURLOPT_PROTOCOLS => CURLPROTO_HTTP | CURLPROTO_HTTPS,
+            CURLOPT_REDIR_PROTOCOLS => CURLPROTO_HTTP | CURLPROTO_HTTPS,
+            CURLOPT_USERAGENT => $userAgent,
+            // Don't send cookies. The proxy is anonymous and must not
+            // pick up any session state from the caller's environment.
+            CURLOPT_COOKIE => '',
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_WRITEFUNCTION => $writeCallback,
+            // Public ironcart.dev — full TLS validation, no relaxation.
+            CURLOPT_SSL_VERIFYPEER => true,
+            CURLOPT_SSL_VERIFYHOST => 2,
+        ]);
+
+        $ok = curl_exec($ch);
+        $errno = curl_errno($ch);
+        $httpCode = (int) curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
+        curl_close($ch);
+
+        if ($ok === false || $errno !== 0) {
+            return null;
+        }
+
+        if ($httpCode < 200 || $httpCode >= 300) {
+            return null;
+        }
+
+        try {
+            $decoded = json_decode($bodyBuf, true, 32, JSON_THROW_ON_ERROR);
+        } catch (JsonException) {
+            return null;
+        }
+
+        return is_array($decoded) ? $decoded : null;
+    }
+
+    /**
+     * Return true iff the URL's host equals `ironcart.dev` (case-
+     * insensitive). Anything else — including subdomains like
+     * `evil.ironcart.dev.attacker.com` — is rejected.
+     *
+     * `parse_url` returns the raw host without the port, exactly what we
+     * want for an exact-string allowlist comparison.
+     */
+    private function hostIsAllowed(string $url): bool
+    {
+        $host = parse_url(trim($url), PHP_URL_HOST);
+        if (!is_string($host) || $host === '') {
+            return false;
+        }
+        return strcasecmp($host, self::ALLOWED_HOST) === 0;
+    }
+}
