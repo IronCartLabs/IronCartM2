@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<!--
+ / Copyright (c) Ironcart (https://ironcart.dev)
+ / Licensed under MIT.
+ /
+ / Layout handle for the admin scan-run detail page rendered by
+ / IronCart\Scan\Controller\Adminhtml\Scans\View. Hangs the findings
+ / UI Component (`ironcartscan_finding_listing`) off the page body —
+ / the data provider for that component reads the `id` route param to
+ / scope findings to the visited scan run.
+-->
+<page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      layout="admin-1column"
+      xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
+    <body>
+        <referenceContainer name="content">
+            <uiComponent name="ironcartscan_finding_listing"/>
+        </referenceContainer>
+    </body>
+</page>

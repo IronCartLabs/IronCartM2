@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+ / Copyright (c) Ironcart (https://ironcart.dev)
+ / Licensed under MIT.
+ /
+ / Admin grid for `ironcart_scan_finding` rows scoped to a single
+ / scan run via the `id` route param.
+ /
+ / Severity filter defaults to `severity IN (critical)` — applied at
+ / the data-provider layer (see ScanFindingDataProvider), NOT here as
+ / a `<filter>` default, so admin users cannot accidentally persist a
+ / different default via the bookmark UI. The "Show all severities"
+ / header button toggles a per-request `?showAll=1` route param.
+ /
+ / Columns: check_id, severity (badge), title, detail (truncated),
+ / created_at.
+-->
+<listing xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Ui:etc/ui_configuration.xsd">
+
+    <argument name="data" xsi:type="array">
+        <item name="js_config" xsi:type="array">
+            <item name="provider" xsi:type="string">ironcartscan_finding_listing.ironcartscan_finding_listing_data_source</item>
+        </item>
+        <item name="buttons" xsi:type="array">
+            <item name="show_all_severities" xsi:type="string">
+                IronCart\Scan\Ui\Component\Control\ShowAllSeveritiesButton
+            </item>
+        </item>
+    </argument>
+
+    <settings>
+        <spinner>ironcartscan_finding_listing_columns</spinner>
+        <deps>
+            <dep>ironcartscan_finding_listing.ironcartscan_finding_listing_data_source</dep>
+        </deps>
+    </settings>
+
+    <dataSource name="ironcartscan_finding_listing_data_source" component="Magento_Ui/js/grid/provider">
+        <settings>
+            <storageConfig>
+                <param name="indexField" xsi:type="string">entity_id</param>
+            </storageConfig>
+            <updateUrl path="mui/index/render"/>
+        </settings>
+        <aclResource>IronCart_Scan::view</aclResource>
+        <dataProvider name="ironcartscan_finding_listing_data_source"
+                      class="IronCart\Scan\Ui\DataProvider\ScanFindingDataProvider">
+            <settings>
+                <requestFieldName>id</requestFieldName>
+                <primaryFieldName>entity_id</primaryFieldName>
+            </settings>
+        </dataProvider>
+    </dataSource>
+
+    <listingToolbar name="listing_top">
+        <settings>
+            <sticky>true</sticky>
+        </settings>
+        <bookmark name="bookmarks"/>
+        <columnsControls name="columns_controls"/>
+        <paging name="listing_paging"/>
+    </listingToolbar>
+
+    <columns name="ironcartscan_finding_listing_columns">
+        <column name="check_id" sortOrder="10">
+            <settings>
+                <filter>text</filter>
+                <label translate="true">Check</label>
+            </settings>
+        </column>
+
+        <column name="severity" class="IronCart\Scan\Ui\Component\Listing\Column\SeverityBadge" sortOrder="20">
+            <settings>
+                <bodyTmpl>ui/grid/cells/html</bodyTmpl>
+                <filter>select</filter>
+                <options class="IronCart\Scan\Ui\Component\Listing\Column\Options\SeverityOptions"/>
+                <dataType>select</dataType>
+                <label translate="true">Severity</label>
+            </settings>
+        </column>
+
+        <column name="title" sortOrder="30">
+            <settings>
+                <filter>text</filter>
+                <label translate="true">Title</label>
+            </settings>
+        </column>
+
+        <column name="detail" sortOrder="40">
+            <settings>
+                <sortable>false</sortable>
+                <label translate="true">Detail</label>
+            </settings>
+        </column>
+
+        <column name="created_at" class="Magento\Ui\Component\Listing\Columns\Date" sortOrder="50">
+            <settings>
+                <filter>dateRange</filter>
+                <dataType>date</dataType>
+                <label translate="true">Created</label>
+            </settings>
+        </column>
+    </columns>
+
+</listing>

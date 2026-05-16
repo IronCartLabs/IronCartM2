@@ -1,0 +1,30 @@
+<?xml version="1.0"?>
+<!--
+ / Copyright (c) Ironcart (https://ironcart.dev)
+ / Licensed under MIT.
+ /
+ / Wires the two custom UI Component data providers into Magento's
+ / ui_component config pool. Without these `<argument>` entries the
+ / declarative XML in view/adminhtml/ui_component/* cannot resolve
+ / the `class` attribute on its `<dataProvider>` node.
+ /
+ / Scoped to the adminhtml area only — these classes have no business
+ / loading in storefront / frontend / API DI graphs.
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:framework:ObjectManager/etc/config.xsd">
+
+    <type name="Magento\Framework\View\Element\UiComponent\DataProvider\CollectionFactory">
+        <arguments>
+            <argument name="collections" xsi:type="array">
+                <item name="ironcartscan_run_listing_data_source" xsi:type="string">
+                    IronCart\Scan\Model\ResourceModel\ScanRun\Collection
+                </item>
+                <item name="ironcartscan_finding_listing_data_source" xsi:type="string">
+                    IronCart\Scan\Model\ResourceModel\ScanFinding\Collection
+                </item>
+            </argument>
+        </arguments>
+    </type>
+
+</config>
