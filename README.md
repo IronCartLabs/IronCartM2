@@ -45,14 +45,21 @@ The full v0 check inventory, in stable ID order:
 | IC-041 | medium   | Operational | Cron last-run age exceeds threshold |
 | IC-042 | medium   | Operational | Cron error rate over the recent window |
 | IC-043 | medium   | Operational | Message-queue backlog over depth threshold |
+| IC-050 | critical | CodeSmell   | `eval()` invocation in `app/code/**` |
+| IC-051 | critical | CodeSmell   | `unserialize($_REQUEST/$_GET/$_POST/$_COOKIE)` — RCE vector |
+| IC-052 | high     | CodeSmell   | Dynamic `include`/`require` (variable path) — LFI / RFI vector |
+| IC-053 | high     | CodeSmell   | Shell execution from PHP (`shell_exec`, `exec`, backticks, …) |
+| IC-054 | critical | CodeSmell   | `preg_replace` with `/e` modifier — RCE vector |
 | IC-090 | high     | Webhooks    | Webhook destination over plaintext HTTP |
 | IC-091 | high     | Webhooks    | Webhook signature secret missing |
 | IC-092 | medium   | Webhooks    | Webhook retry policy unsafe (too many / too short) |
 | IC-093 | medium   | Webhooks    | Webhook destination resolves to a private network |
 
+The v2 **CodeSmell** pack scans `<magento_root>/app/code/**/*.php` only. Composer-managed code under `vendor/` is covered by IC-001/IC-002; core code is covered by a separate file-integrity check.
+
 Remediation links follow the pattern `https://ironcart.dev/docs/checks/<ID>`.
 
-Later stages add an Admin UI, expanded check library (code smell, CVE cross-reference, file integrity), opt-in hosted reporting, continuous scanning, and a Marketplace listing. See the [v0 epic](https://github.com/IronCartLabs/IronCartM2/issues) for the full roadmap.
+Later stages add an Admin UI, expanded check library (CVE cross-reference, file integrity), opt-in hosted reporting, continuous scanning, and a Marketplace listing. See the [v0 epic](https://github.com/IronCartLabs/IronCartM2/issues) for the full roadmap.
 
 ## Install
 

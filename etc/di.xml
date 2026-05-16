@@ -51,6 +51,12 @@
                 <item name="IC-091" xsi:type="object">IronCart\Scan\Check\Webhooks\SignatureSecretCheck</item>
                 <item name="IC-092" xsi:type="object">IronCart\Scan\Check\Webhooks\RetryPolicyCheck</item>
                 <item name="IC-093" xsi:type="object">IronCart\Scan\Check\Webhooks\PrivateNetworkDestinationCheck</item>
+                <!-- Code-smell check pack (v2, #45) — strict pattern scan over app/code/** -->
+                <item name="IC-050" xsi:type="object">IronCart\Scan\Check\CodeSmell\EvalCheck</item>
+                <item name="IC-051" xsi:type="object">IronCart\Scan\Check\CodeSmell\UnserializeUntrustedCheck</item>
+                <item name="IC-052" xsi:type="object">IronCart\Scan\Check\CodeSmell\DynamicIncludeCheck</item>
+                <item name="IC-053" xsi:type="object">IronCart\Scan\Check\CodeSmell\ShellExecCheck</item>
+                <item name="IC-054" xsi:type="object">IronCart\Scan\Check\CodeSmell\PregReplaceEvalModifierCheck</item>
             </argument>
         </arguments>
     </type>
