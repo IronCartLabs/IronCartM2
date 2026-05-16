@@ -21,6 +21,19 @@
             <cve>
                 <enabled>0</enabled>
             </cve>
+            <!--
+                v3 — opt-in hosted scan reporting (#57).
+                `enabled` is the hard invariant: 0 by default so no operator
+                accidentally uploads scan data by composer-installing a newer
+                module version. The unit test
+                `UploadConfigDefaultsTest::testEnabledDefaultIsFalse` asserts
+                this stays true.
+            -->
+            <upload>
+                <enabled>0</enabled>
+                <endpoint>https://ironcart.dev/api/scan/ingest</endpoint>
+                <allowed_host>ironcart.dev</allowed_host>
+            </upload>
         </ironcart_scan>
     </default>
 </config>

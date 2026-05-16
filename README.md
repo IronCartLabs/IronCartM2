@@ -73,12 +73,13 @@ Remediation links follow the pattern `https://ironcart.dev/docs/checks/<ID>`.
 
 ### Network access posture
 
-Every check is **read-only by default**. Two outbound surfaces exist:
+Every check is **read-only by default**. The module's outbound surface is intentionally small and entirely opt-in:
 
 1. **IC-080..IC-085 CSP posture pack** — issues **one HEAD request to the merchant's own storefront base URL** per scan. Gated by `LoopbackHostGuard` (loopback `localhost` / `127.0.0.1` / `*.localhost` / `::1`, RFC1918 / RFC3927 / RFC4193 private addresses, or exactly the hostname Magento has configured as its base URL — anything else is rejected before any socket is opened). UA `IronCart-Scan/<module-version> (security-posture-check)`, 5s timeout, zero redirects. No outbound calls leave the merchant's infrastructure.
 2. **IC-060 CVE cross-reference** — **opt-in, default OFF.** When the operator enables `ironcart_scan/cve/enabled` in Stores → Configuration → Ironcart → Scan, the check POSTs the installed Composer package list (name + version only — no PII, no domain, no admin username, no IP) to `https://ironcart.dev/api/cve` for OSV.dev cross-referencing. The hardened cURL client asserts the URL host equals `ironcart.dev` *before* opening a socket; it follows zero redirects, constrains protocols to HTTP / HTTPS, sends no cookies, applies a 10s connect / 30s total timeout, and sends UA `IronCart-Scan/<module-version> (cve-cross-reference)`. Transport failure emits one `IC-061` LOW finding and continues the scan. Payloads with > 500 packages are batched into 200-package chunks.
+3. **`bin/magento ironcart:scan --upload`** (v3, optional) — one HTTPS POST to `https://ironcart.dev/api/scan/ingest` after a scan, gated by `ironcart_scan/upload/enabled` (default `0`). Host-pinned to `ironcart.dev`, full TLS verification, `FOLLOWLOCATION=0`, HTTPS-only protocol set. Payload contains findings, composer package list, Magento version + edition, and the store base URL — **never** the admin email or any customer / order PII. See [docs/UPLOAD.md](docs/UPLOAD.md).
 
-Later stages add an Admin UI, opt-in hosted reporting, continuous scanning, and a Marketplace listing. See the [v0 epic](https://github.com/IronCartLabs/IronCartM2/issues) for the full roadmap.
+Later stages add an Admin UI, continuous scanning, and a Marketplace listing. See the [v0 epic](https://github.com/IronCartLabs/IronCartM2/issues) for the full roadmap.
 
 ## Install
 
@@ -93,6 +94,32 @@ bin/magento setup:upgrade
 ```bash
 bin/magento ironcart:scan --format=json --output=./ironcart-scan.json
 ```
+
+## Upload to ironcart.dev (optional)
+
+v3 adds an optional `--upload` flag that POSTs the scan results to
+[ironcart.dev](https://ironcart.dev) for hosted viewing, alerting, and
+team sharing. **Off by default.** Enable in admin:
+
+1. Sign up at [ironcart.dev/scanner](https://ironcart.dev/scanner) (or claim an existing anonymous scan) and copy your token.
+2. In Magento admin: **Stores → Configuration → Ironcart → Scan → Scan Upload**.
+3. Set **Enable scan upload to ironcart.dev** = Yes.
+4. Paste your token into **ironcart.dev upload token**.
+5. Save.
+
+Then:
+
+```bash
+bin/magento ironcart:scan --upload --format=json
+```
+
+The command prints `Scan uploaded: <view_url>` after a successful upload.
+
+**What gets sent:** scan findings, composer package list, Magento version + edition, store base URL.<br/>
+**What is NEVER sent:** your Magento admin email, customer / order PII, secrets from `app/etc/env.php`, or any session cookies.
+
+Full wire contract, payload shape, and operator-troubleshooting matrix:
+[docs/UPLOAD.md](docs/UPLOAD.md).
 
 ## Compatibility
 
@@ -109,7 +136,7 @@ M2/PHP matrix, and known papercuts.
 
 ## Security
 
-This module is read-only. Through v1 it makes zero network calls of any kind. v2 adds two outbound surfaces, both detailed in [Network access posture](#network-access-posture) above: the IC-080..IC-085 CSP HEAD probe (gated by a loopback / RFC1918 / configured-base-URL allow-list) and the opt-in IC-060 CVE cross-reference POST (gated by an `ironcart.dev`-host allowlist, default OFF). Opt-in hosted reporting arrives in v3. See [SECURITY.md](SECURITY.md) for the vulnerability disclosure policy.
+This module is read-only. Through v1 it makes zero network calls of any kind. v2 adds two outbound surfaces, both detailed in [Network access posture](#network-access-posture) above: the IC-080..IC-085 CSP HEAD probe (gated by a loopback / RFC1918 / configured-base-URL allow-list) and the opt-in IC-060 CVE cross-reference POST (gated by an `ironcart.dev`-host allowlist, default OFF). v3 adds the optional `--upload` flag for hosted reporting at ironcart.dev (off by default; see [docs/UPLOAD.md](docs/UPLOAD.md)). See [SECURITY.md](SECURITY.md) for the vulnerability disclosure policy.
 
 ## License
 

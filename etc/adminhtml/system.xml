@@ -4,8 +4,9 @@
  / Licensed under MIT.
  /
  / Admin System Configuration tree for IronCart_Scan. Currently exposes
- / the IC-060 opt-in flag; future packs can append sibling <group> nodes
- / under the `ironcart_scan` section without restructuring this file.
+ / the IC-060 opt-in flag and the v3 scan-upload flag; future packs can
+ / append sibling <group> nodes under the `ironcart_scan` section without
+ / restructuring this file.
 -->
 <config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Config:etc/system_file.xsd">
@@ -51,6 +52,98 @@
                         Sends package name + version only. No domain, admin user, IP, or
                         store identifier. The destination host is pinned to ironcart.dev.
                     </comment>
+                </field>
+            </group>
+            <group id="upload"
+                   translate="label comment"
+                   sortOrder="20"
+                   showInDefault="1"
+                   showInWebsite="1"
+                   showInStore="0">
+                <label>Scan Upload</label>
+                <comment><![CDATA[
+                    Optional: upload `bin/magento ironcart:scan` results to ironcart.dev for hosted
+                    viewing, alerting, and team sharing. Off by default.<br/>
+                    <br/>
+                    <strong>What gets sent:</strong> scan findings, composer package list, Magento
+                    version + edition, and the store base URL.<br/>
+                    <strong>What is never sent:</strong> your Magento admin email, customer or order
+                    PII, secrets, or any cookies/sessions from this server.<br/>
+                    <br/>
+                    To get a token: sign up at <a href="https://ironcart.dev/scanner" target="_blank">
+                    ironcart.dev/scanner</a> (or claim an existing anonymous scan) and copy the token
+                    into the field below.<br/>
+                    <br/>
+                    Full wire-contract documentation:
+                    <a href="https://ironcart.dev/docs/scanner/upload" target="_blank">ironcart.dev/docs/scanner/upload</a>.
+                ]]></comment>
+
+                <field id="enabled"
+                       translate="label comment"
+                       type="select"
+                       sortOrder="10"
+                       showInDefault="1"
+                       showInWebsite="1"
+                       showInStore="0">
+                    <label>Enable scan upload to ironcart.dev</label>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                    <comment>Off by default. Toggling this to Yes enables `bin/magento ironcart:scan --upload`.</comment>
+                </field>
+
+                <field id="token"
+                       translate="label comment"
+                       type="obscure"
+                       sortOrder="20"
+                       showInDefault="1"
+                       showInWebsite="1"
+                       showInStore="0">
+                    <label>ironcart.dev upload token</label>
+                    <backend_model>Magento\Config\Model\Config\Backend\Encrypted</backend_model>
+                    <comment>Bearer token from ironcart.dev. Stored encrypted via Magento's standard encryption backend.</comment>
+                    <depends>
+                        <field id="enabled">1</field>
+                    </depends>
+                </field>
+
+                <field id="endpoint"
+                       translate="label comment"
+                       type="text"
+                       sortOrder="30"
+                       showInDefault="1"
+                       showInWebsite="1"
+                       showInStore="0"
+                       canRestore="1">
+                    <label>Endpoint URL (advanced — leave blank)</label>
+                    <comment><![CDATA[
+                        Leave blank to use the production endpoint
+                        (<code>https://ironcart.dev/api/scan/ingest</code>). Override only for QA
+                        against a local Next.js dev server. The destination host must match the
+                        Allowed Host field below or the upload client will reject the URL before
+                        any socket is opened.
+                    ]]></comment>
+                    <depends>
+                        <field id="enabled">1</field>
+                    </depends>
+                </field>
+
+                <field id="allowed_host"
+                       translate="label comment"
+                       type="text"
+                       sortOrder="40"
+                       showInDefault="1"
+                       showInWebsite="1"
+                       showInStore="0"
+                       canRestore="1">
+                    <label>Allowed host (advanced — leave blank)</label>
+                    <comment><![CDATA[
+                        Hard host-pin for the upload client. Leave blank to use the production value
+                        (<code>ironcart.dev</code>). Defense in depth — even if the Endpoint URL is
+                        overwritten at runtime, the upload client will refuse to POST anywhere whose
+                        host does not match this exact string.
+                    ]]></comment>
+                    <depends>
+                        <field id="enabled">1</field>
+                    </depends>
                 </field>
             </group>
         </section>

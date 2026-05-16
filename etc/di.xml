@@ -105,4 +105,29 @@
     <preference for="IronCart\Scan\Check\Runtime\Csp\CspProbeClient"
                 type="IronCart\Scan\Check\Runtime\Csp\CurlCspProbeClient"/>
     <type name="IronCart\Scan\Check\Runtime\Csp\CspProbeRunner" shared="true"/>
+
+    <!--
+        v3 — opt-in hosted scan reporting (#57).
+
+        Module-side companion to the IronCartWeb /api/scan/ingest endpoint.
+        Default OFF; gated by `ironcart_scan/upload/enabled`. The CurlUploadClient
+        is host-pinned to `ironcart.dev` and rejects any URL whose host does
+        not match before any socket is opened.
+
+        Integration tests inside the docker-compose Magento sandbox can swap
+        the UploadClient preference to a fake without touching the runner /
+        ScanCommand wiring.
+    -->
+    <preference for="IronCart\Scan\Check\Upload\UploadClient"
+                type="IronCart\Scan\Check\Upload\CurlUploadClient"/>
+    <type name="IronCart\Scan\Check\Upload\UploadPayloadBuilder">
+        <arguments>
+            <argument name="moduleVersion" xsi:type="string">0.3.0</argument>
+        </arguments>
+    </type>
+    <type name="IronCart\Scan\Check\Upload\UploadRunner">
+        <arguments>
+            <argument name="moduleVersion" xsi:type="string">0.3.0</argument>
+        </arguments>
+    </type>
 </config>
