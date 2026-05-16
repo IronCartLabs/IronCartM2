@@ -64,10 +64,15 @@ jobs:
           #     because the Magento Filesystem API doesn't expose them.
           #   Magento2.Security.IncludeFile — the registration shim
           #     `include`s a path-resolved file by design.
+          # Excluded paths:
+          #   bin/ — build-time CLI scripts (e.g. build-manifest.php)
+          #     never loaded by Magento at runtime; they legitimately
+          #     use `exit` and `passthru()` which the Magento2 standard
+          #     forbids in module code.
           phpcs -n \
             --standard=Magento2 \
             --extensions=php,phtml \
-            --ignore=vendor,_m2-workspace,tests/_sandbox \
+            --ignore=vendor,_m2-workspace,tests/_sandbox,bin \
             --exclude=Magento2.PHP.FinalImplementation,Magento2.Classes.FinalImplementation,Generic.PHP.NoSilencedErrors,Magento2.Functions.DiscouragedFunction,Magento2.Security.IncludeFile \
             --report=full \
             --report-checkstyle=phpcs-report.xml \

@@ -169,3 +169,46 @@ sandbox-nuke: ## Stop containers and delete .sandbox/ entirely. Destructive.
 	else \
 		echo ">>> $(SANDBOX_DIR) already absent"; \
 	fi
+
+# ---------------------------------------------------------------------------
+# File-integrity manifests (IC-070).
+#
+# Generates `etc/manifests/magento-core-community-<version>.json` for every
+# supported Magento Open Source tag by shallow-cloning `magento/magento2` at
+# the tag, walking the tree, and computing SHA-256 per file. See
+# docs/manifests.md and IronCartLabs/IronCartM2#47 for the design rationale.
+#
+# Network required. NOT invoked at runtime — the scanner only ever reads the
+# generated JSON files from disk.
+# ---------------------------------------------------------------------------
+
+# Supported tags. Update alongside Check/PatchLevel/MagentoPatchCatalog.
+# Adobe Commerce coverage is intentionally out of scope for v2 (deferred
+# to v3 hosted backend, which can run paid-composer auth server-side).
+MANIFEST_VERSIONS ?= \
+	2.4.4-p12 \
+	2.4.5-p11 \
+	2.4.6-p10 \
+	2.4.7-p5
+
+MANIFEST_DIR := etc/manifests
+
+.PHONY: manifests
+manifests: ## Build IC-070 file-integrity manifests for every supported tag.
+	@command -v git >/dev/null 2>&1 || { echo "ERROR: git not on PATH"; exit 1; }
+	@command -v php >/dev/null 2>&1 || { echo "ERROR: php not on PATH"; exit 1; }
+	@mkdir -p $(MANIFEST_DIR)
+	@for version in $(MANIFEST_VERSIONS); do \
+		echo ">>> building manifest for $$version"; \
+		php bin/build-manifest.php --version=$$version || { echo "ERROR: $$version failed"; exit 1; }; \
+	done
+	@echo ">>> done. Manifests are under $(MANIFEST_DIR)/"
+
+.PHONY: manifests-clean
+manifests-clean: ## Remove all generated manifests under etc/manifests/.
+	@if [ -d "$(MANIFEST_DIR)" ]; then \
+		find $(MANIFEST_DIR) -name 'magento-core-*.json' -delete; \
+		echo ">>> cleared $(MANIFEST_DIR)"; \
+	else \
+		echo ">>> $(MANIFEST_DIR) already absent"; \
+	fi
