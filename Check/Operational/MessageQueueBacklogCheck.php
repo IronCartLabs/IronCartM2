@@ -20,10 +20,22 @@ namespace IronCart\Scan\Check\Operational;
 use IronCart\Scan\Check\CheckInterface;
 use IronCart\Scan\Check\Finding;
 use IronCart\Scan\Report\Severity;
-use Magento\MysqlMq\Model\ResourceModel\Queue\CollectionFactory as QueueCollectionFactory;
+use Magento\Framework\App\ObjectManager;
 
 /**
  * IC-043 — flag message-queue backlogs that exceed the depth threshold.
+ *
+ * Note on the missing `use Magento\MysqlMq\...\CollectionFactory` import: the
+ * MysqlMq module is optional. It ships with Adobe Commerce and as an opt-in
+ * Open Source install, but a vanilla CE 2.4.7-p5 box does not have it. If we
+ * import the class or type-hint it on the constructor, Magento's
+ * `ClassReader::getParameterClass()` resolves the type eagerly at DI compile
+ * time — which means a missing `Magento_MysqlMq` aborts the whole
+ * `setup:di:compile` (and therefore every `bin/magento` command, including
+ * `setup:install`). Probing for the class lazily via `class_exists()` and a
+ * string-based ObjectManager lookup is the canonical Magento pattern for
+ * optional cross-module dependencies — see e.g. modules that probe for
+ * `Magento_AdobeIms` the same way.
  */
 class MessageQueueBacklogCheck implements CheckInterface
 {
@@ -31,16 +43,26 @@ class MessageQueueBacklogCheck implements CheckInterface
 
     private const REMEDIATION_URL = 'https://ironcart.dev/docs/checks/IC-043';
 
+    /** FQCN of the MysqlMq queue collection factory; kept as a string so that
+     *  reflection / ClassReader never resolves it at DI compile time. */
+    private const MYSQLMQ_FACTORY_FQCN =
+        'Magento\\MysqlMq\\Model\\ResourceModel\\Queue\\CollectionFactory';
+
     /** Depth threshold per queue. */
     public const DEPTH_THRESHOLD = 10000;
 
     /**
-     * @param QueueCollectionFactory|null $queueCollectionFactory Optional: only present
-     *                                                            when Magento_MysqlMq is
-     *                                                            installed (the default).
+     * The constructor takes a generic `?object` rather than a typed
+     * `?CollectionFactory` so DI reflection never touches the optional class.
+     * Production callers should leave both parameters at their defaults; the
+     * check resolves the factory itself via ObjectManager when present. The
+     * parameters exist purely as a test seam — unit tests inject a duck-typed
+     * factory stub directly.
+     *
+     * @param object|null $queueCollectionFactory Test seam; production leaves null.
      */
     public function __construct(
-        private readonly ?QueueCollectionFactory $queueCollectionFactory = null
+        private readonly ?object $queueCollectionFactory = null
     ) {
     }
 
@@ -51,14 +73,17 @@ class MessageQueueBacklogCheck implements CheckInterface
 
     public function run(): array
     {
-        if ($this->queueCollectionFactory === null) {
-            // Magento_MysqlMq is not installed (operator runs RabbitMQ only).
-            // v0 limits itself to read-only checks against Magento's local DB;
-            // a v3+ check can add an explicit RabbitMQ adapter.
+        $factory = $this->resolveFactory();
+        if ($factory === null) {
+            // Magento_MysqlMq is not installed (vanilla CE, RabbitMQ-only
+            // operator, etc.). v0 limits itself to read-only checks against
+            // Magento's local DB; a v3+ check can add an explicit RabbitMQ
+            // adapter. Returning no findings keeps the v0 `schema_version`
+            // JSON shape stable — no new severity, no new finding ID.
             return [];
         }
 
-        $collection = $this->queueCollectionFactory->create();
+        $collection = $factory->create();
         $over = [];
 
         foreach ($collection as $queue) {
@@ -107,5 +132,33 @@ class MessageQueueBacklogCheck implements CheckInterface
                 remediationUrl: self::REMEDIATION_URL
             ),
         ];
+    }
+
+    /**
+     * Resolve a queue collection factory if Magento_MysqlMq is installed.
+     *
+     * Precedence:
+     *   1. A factory injected through the constructor (unit-test seam).
+     *   2. ObjectManager lookup, *guarded* by `class_exists()` so the autoloader
+     *      never tries to load the absent class.
+     *   3. null — caller short-circuits to no findings.
+     */
+    private function resolveFactory(): ?object
+    {
+        if ($this->queueCollectionFactory !== null) {
+            return $this->queueCollectionFactory;
+        }
+
+        // `class_exists($fqcn, true)` will trigger autoload but Composer's
+        // class map returns false cleanly when the module is absent — it does
+        // not throw. This is the standard optional-dependency probe.
+        if (!class_exists(self::MYSQLMQ_FACTORY_FQCN)) {
+            return null;
+        }
+
+        // ObjectManager direct access is normally discouraged but is the
+        // canonical pattern for *exactly this case*: an optional cross-module
+        // dependency where the depending module must boot without it.
+        return ObjectManager::getInstance()->get(self::MYSQLMQ_FACTORY_FQCN);
     }
 }
