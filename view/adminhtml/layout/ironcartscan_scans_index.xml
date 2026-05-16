@@ -1,0 +1,26 @@
+<?xml version="1.0"?>
+<!--
+ / Copyright (c) Ironcart (https://ironcart.dev)
+ / Licensed under MIT.
+ /
+ / Layout for the admin "Security Scans" landing page.
+ /
+ / The <page layout="admin-1column"/> declaration is required so Magento
+ / pulls in the standard backend chrome (head, top nav, menu, footer); without
+ / it $resultPage->setActiveMenu() throws "Call to setActive() on false"
+ / because the "menu" block never gets built into the layout.
+ /
+ / The empty content block is a placeholder; the listing UI lands in a
+ / follow-up issue per Controller/Adminhtml/Scans/Index.php.
+-->
+<page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      layout="admin-1column"
+      xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
+    <body>
+        <referenceContainer name="content">
+            <block class="Magento\Backend\Block\Template"
+                   name="ironcart_scans_placeholder"
+                   template="Magento_Backend::widget/grid/container/empty.phtml"/>
+        </referenceContainer>
+    </body>
+</page>

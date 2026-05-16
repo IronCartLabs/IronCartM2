@@ -53,6 +53,13 @@ class Index extends Action implements HttpGetActionInterface
     {
         /** @var Page $resultPage */
         $resultPage = $this->resultPageFactory->create();
+        // Magento's framework only calls addDefaultHandle() during
+        // Page::renderResult(), AFTER execute() returns. setActiveMenu() below
+        // calls $layout->getBlock('menu') which forces the layout to build
+        // *now* — and without the 'default' handle the menu block from
+        // Magento_Backend/view/adminhtml/layout/default.xml never gets
+        // generated, so getBlock returns false and setActive() crashes.
+        $resultPage->addDefaultHandle();
         $resultPage->setActiveMenu('IronCart_Scan::scans');
         $resultPage->getConfig()->getTitle()->prepend(__('Security Scans'));
 
