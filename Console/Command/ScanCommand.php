@@ -9,7 +9,10 @@
  * into the canonical v0 JSON report — see
  * {@link https://github.com/IronCartLabs/IronCartM2/issues/2}.
  *
- * No outbound network calls are made by this command (v0 invariant).
+ * The command is read-only by default. The single network surface is the
+ * IC-080..IC-085 CSP posture pack (v2), which issues one HEAD request to
+ * the merchant's own storefront base URL per scan, gated by a loopback /
+ * RFC1918 / configured-base-URL allow-list.
  *
  * @copyright Copyright (c) Ironcart (https://ironcart.dev)
  * @license   MIT

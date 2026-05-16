@@ -61,7 +61,29 @@
                      class when no manifest is available, so it is NOT registered
                      separately here. -->
                 <item name="IC-070" xsi:type="object">IronCart\Scan\Check\FileIntegrity\CoreFileIntegrityCheck</item>
+                <!-- CSP posture check pack (#48). Issues ONE local-loopback HEAD
+                     probe via CspProbeRunner (shared instance, declared below).
+                     The probe is gated by LoopbackHostGuard and skipped entirely
+                     when the storefront base URL is unconfigured (example.com),
+                     which IC-085 reports as a LOW finding. -->
+                <item name="IC-080" xsi:type="object">IronCart\Scan\Check\Runtime\Csp\CspMissingCheck</item>
+                <item name="IC-081" xsi:type="object">IronCart\Scan\Check\Runtime\Csp\CspReportEndpointCheck</item>
+                <item name="IC-082" xsi:type="object">IronCart\Scan\Check\Runtime\Csp\CspScriptSrcUnsafeCheck</item>
+                <item name="IC-083" xsi:type="object">IronCart\Scan\Check\Runtime\Csp\CspFrameAncestorsCheck</item>
+                <item name="IC-084" xsi:type="object">IronCart\Scan\Check\Runtime\Csp\CspReportOnlyInProductionCheck</item>
+                <item name="IC-085" xsi:type="object">IronCart\Scan\Check\Runtime\Csp\CspBaseUrlConfiguredCheck</item>
             </argument>
         </arguments>
     </type>
+
+    <!--
+        CSP probe runner — shared so all six IC-08x checks consult the same
+        single HEAD probe. The CspProbeClient preference wires the cURL
+        implementation; integration tests inside the docker-compose Magento
+        sandbox can override this preference to a local fake without
+        touching the check classes themselves.
+    -->
+    <preference for="IronCart\Scan\Check\Runtime\Csp\CspProbeClient"
+                type="IronCart\Scan\Check\Runtime\Csp\CurlCspProbeClient"/>
+    <type name="IronCart\Scan\Check\Runtime\Csp\CspProbeRunner" shared="true"/>
 </config>

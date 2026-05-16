@@ -50,6 +50,12 @@ The full v0 check inventory, in stable ID order:
 | IC-052 | high     | CodeSmell   | Dynamic `include`/`require` (variable path) — LFI / RFI vector |
 | IC-053 | high     | CodeSmell   | Shell execution from PHP (`shell_exec`, `exec`, backticks, …) |
 | IC-054 | critical | CodeSmell   | `preg_replace` with `/e` modifier — RCE vector |
+| IC-080 | high     | Runtime/Csp | Storefront response has no `Content-Security-Policy` header |
+| IC-081 | medium   | Runtime/Csp | CSP has no `report-uri` / `report-to` directive |
+| IC-082 | high     | Runtime/Csp | `script-src` (or `default-src` fallback) allows `'unsafe-inline'` / `'unsafe-eval'` |
+| IC-083 | medium   | Runtime/Csp | `frame-ancestors` missing or set to `*` |
+| IC-084 | high     | Runtime/Csp | Storefront CSP is `report-only` while `MAGE_MODE=production` |
+| IC-085 | low      | Runtime/Csp | Storefront base URL appears unconfigured (default `example.com`) |
 | IC-090 | high     | Webhooks    | Webhook destination over plaintext HTTP |
 | IC-091 | high     | Webhooks    | Webhook signature secret missing |
 | IC-092 | medium   | Webhooks    | Webhook retry policy unsafe (too many / too short) |
@@ -58,6 +64,10 @@ The full v0 check inventory, in stable ID order:
 The v2 **CodeSmell** pack scans `<magento_root>/app/code/**/*.php` only. Composer-managed code under `vendor/` is covered by IC-001/IC-002; core code is covered by a separate file-integrity check.
 
 Remediation links follow the pattern `https://ironcart.dev/docs/checks/<ID>`.
+
+### Network access posture
+
+Every check is **read-only by default**. The single exception is the IC-080..IC-085 CSP posture pack, which issues **one HEAD request to the merchant's own storefront base URL** per scan. The probe is gated by `LoopbackHostGuard` — the destination host must be loopback (`localhost`, `127.0.0.1`, `*.localhost`, `::1`), an RFC1918 / RFC3927 / RFC4193 private address, or exactly the hostname Magento has configured as its base URL. Anything else is rejected before any socket is opened. The probe sends `User-Agent: IronCart-Scan/<module-version> (security-posture-check)`, a 5s total timeout, and zero redirects. No outbound calls leave the merchant's infrastructure.
 
 Later stages add an Admin UI, expanded check library (CVE cross-reference, file integrity), opt-in hosted reporting, continuous scanning, and a Marketplace listing. See the [v0 epic](https://github.com/IronCartLabs/IronCartM2/issues) for the full roadmap.
 
@@ -90,7 +100,7 @@ M2/PHP matrix, and known papercuts.
 
 ## Security
 
-This module is read-only and performs **no outbound network calls** in v0–v2. Opt-in hosted reporting arrives in v3. See [SECURITY.md](SECURITY.md) for the vulnerability disclosure policy.
+This module is read-only. Through v1 it makes zero network calls of any kind. v2 adds the IC-080..IC-085 CSP posture pack, which issues exactly one HEAD request per scan against the merchant's own storefront base URL (gated by a loopback / RFC1918 / configured-base-URL allow-list — see [Network access posture](#network-access-posture) above). Opt-in hosted reporting arrives in v3. See [SECURITY.md](SECURITY.md) for the vulnerability disclosure policy.
 
 ## License
 
