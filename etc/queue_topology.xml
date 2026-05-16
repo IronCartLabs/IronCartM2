@@ -1,0 +1,23 @@
+<?xml version="1.0"?>
+<!--
+ / Copyright (c) Ironcart (https://ironcart.dev)
+ / Licensed under MIT.
+ /
+ / Topology binds the `ironcart.scan.run` topic to a DB-backed queue
+ / `ironcart.scan.run.queue`. We use the DB queue exclusively for v1
+ / (parent decision IronCartLabs/IronCartWeb#899) so the module ships
+ / with zero infra dependency — Magento 2.4 ships the DB queue worker
+ / out of the box, AMQP would require a broker.
+ /
+ / The exchange name `ironcart-scan-exchange` is namespaced so it does
+ / not collide with the platform's default `magento` exchange.
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:framework-message-queue:etc/topology.xsd">
+    <exchange name="ironcart-scan-exchange" type="topic" connection="db">
+        <binding id="ironcartScanRunBinding"
+                 topic="ironcart.scan.run"
+                 destinationType="queue"
+                 destination="ironcart.scan.run.queue"/>
+    </exchange>
+</config>

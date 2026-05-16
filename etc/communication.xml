@@ -1,0 +1,28 @@
+<?xml version="1.0"?>
+<!--
+ / Copyright (c) Ironcart (https://ironcart.dev)
+ / Licensed under MIT.
+ /
+ / MessageQueue topic declaration for the v1 async scan pipeline.
+ /
+ / `ironcart.scan.run`  — published by Model\ScanRunPublisher when an
+ /                        admin (or future SaaS hook) requests a scan;
+ /                        consumed by Model\ScanRunConsumer which loads
+ /                        the row, drives the existing CheckRegistry, and
+ /                        writes findings + terminal status.
+ /
+ / The payload is a string (JSON-encoded ScanRunMessage). Magento's
+ / MessageQueue framework requires schema=type to be a class or scalar;
+ / we deliberately use a JSON-string payload rather than a typed object
+ / so the consumer can rehydrate via the existing JSON\Serializer service
+ / and so the consumer remains independent of any framework-specific
+ / message converter (which differs between DB and AMQP queues).
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:framework:Communication/etc/communication.xsd">
+    <topic name="ironcart.scan.run" request="string">
+        <handler name="ironcartScanRunHandler"
+                 type="IronCart\Scan\Model\ScanRunConsumer"
+                 method="process"/>
+    </topic>
+</config>
