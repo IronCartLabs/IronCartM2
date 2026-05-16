@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+<!--
+ / Copyright (c) Ironcart (https://ironcart.dev)
+ / Licensed under MIT.
+ /
+ / Layout handle for the admin "Security Scans" landing page rendered by
+ / IronCart\Scan\Controller\Adminhtml\Scans\Index. Hangs the scan-run
+ / listing UI Component (`ironcartscan_run_listing`) off the page body.
+-->
+<page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      layout="admin-1column"
+      xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
+    <body>
+        <referenceContainer name="content">
+            <uiComponent name="ironcartscan_run_listing"/>
+        </referenceContainer>
+    </body>
+</page>
