@@ -17,6 +17,11 @@
         <item name="js_config" xsi:type="array">
             <item name="provider" xsi:type="string">ironcartscan_run_listing.ironcartscan_run_listing_data_source</item>
         </item>
+        <item name="buttons" xsi:type="array">
+            <item name="run_scan_now" xsi:type="string">
+                IronCart\Scan\Ui\Component\Control\RunScanNowButton
+            </item>
+        </item>
     </argument>
 
     <settings>
