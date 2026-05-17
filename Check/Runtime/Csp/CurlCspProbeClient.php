@@ -11,6 +11,16 @@
  * safe local probe and a confused-deputy that can be coerced into
  * SSRF.
  *
+ * The SSRF guards (FOLLOWLOCATION=false, MAXREDIRS=0, cookie strip,
+ * RETURNTRANSFER pin) are owned by
+ * {@see \IronCart\Scan\Check\Http\HardenedCurlClientTrait}. This class
+ * keeps only what is legitimately different from the CVE proxy and
+ * upload clients: HEAD method, 5s tight timeout (the scan is inline),
+ * relaxed TLS verification (the {@see LoopbackHostGuard} already
+ * constrains the destination to loopback / RFC1918 / configured base
+ * URL so self-signed dev certs are expected), and a header-collecting
+ * callback in place of a body callback.
+ *
  * @copyright Copyright (c) Ironcart (https://ironcart.dev)
  * @license   MIT
  */
@@ -20,12 +30,15 @@ declare(strict_types=1);
 namespace IronCart\Scan\Check\Runtime\Csp;
 
 use CurlHandle;
+use IronCart\Scan\Check\Http\HardenedCurlClientTrait;
 
 /**
  * Production CSP probe client backed by ext-curl.
  */
 class CurlCspProbeClient implements CspProbeClient
 {
+    use HardenedCurlClientTrait;
+
     /**
      * Total request timeout (connect + read) in seconds. The check pack
      * is run inline inside `bin/magento ironcart:scan`, so we keep this
@@ -79,25 +92,19 @@ class CurlCspProbeClient implements CspProbeClient
             return $length;
         };
 
-        curl_setopt_array($ch, [
+        $this->applyHardenedOptions($ch, [
             CURLOPT_URL => $url,
             CURLOPT_NOBODY => true,                   // HEAD
             CURLOPT_CUSTOMREQUEST => 'HEAD',
-            CURLOPT_FOLLOWLOCATION => false,           // SSRF guard — never chase redirects
-            CURLOPT_MAXREDIRS => 0,
             CURLOPT_CONNECTTIMEOUT => self::TIMEOUT_SECONDS,
             CURLOPT_TIMEOUT => self::TIMEOUT_SECONDS,
             // Constrain the protocol set so a redirect-injected
             // `gopher://` / `file://` / `dict://` URL on a vulnerable
             // libcurl can't escape. Belt-and-braces alongside
-            // FOLLOWLOCATION=false.
+            // FOLLOWLOCATION=false (owned by the trait).
             CURLOPT_PROTOCOLS => CURLPROTO_HTTP | CURLPROTO_HTTPS,
             CURLOPT_REDIR_PROTOCOLS => CURLPROTO_HTTP | CURLPROTO_HTTPS,
-            CURLOPT_RETURNTRANSFER => true,
             CURLOPT_USERAGENT => $userAgent,
-            // Don't send cookies. The probe is anonymous and must not
-            // pick up any session state from the caller's environment.
-            CURLOPT_COOKIE => '',
             CURLOPT_HEADERFUNCTION => $collect,
             // Local-loopback self-signed certs are common in dev — we
             // accept them because LoopbackHostGuard has already

@@ -11,7 +11,7 @@
  *   - Host pin enforced in pure PHP before `curl_exec` runs — a misconfigured
  *     endpoint URL never reaches DNS resolution.
  *   - `FOLLOWLOCATION = false`, `MAXREDIRS = 0`. A 30x to a different host
- *     cannot defeat the host pin.
+ *     cannot defeat the host pin. (Owned by the trait.)
  *   - `PROTOCOLS = REDIR_PROTOCOLS = HTTPS only`. No HTTP, FTP, file, gopher.
  *   - Full TLS validation (`SSL_VERIFYPEER = true`, `SSL_VERIFYHOST = 2`).
  *     ironcart.dev is public; we do not relax verification.
@@ -24,6 +24,13 @@
  *   - One retry on 5xx / transport timeout, then fail. No retry on 4xx — those
  *     are configuration errors and retrying just spams.
  *
+ * The SSRF guards (FOLLOWLOCATION=false, MAXREDIRS=0, cookie strip,
+ * RETURNTRANSFER pin) and the exact-host allow-list comparison are owned
+ * by {@see \IronCart\Scan\Check\Http\HardenedCurlClientTrait}. This class
+ * keeps the bits that legitimately differ from the CVE proxy and CSP
+ * probe: HTTPS-only protocol pin, 10s/60s timeouts, bearer-token header,
+ * 256 KiB body cap, single retry, view_url / upgrade_url extraction.
+ *
  * @copyright Copyright (c) Ironcart (https://ironcart.dev)
  * @license   MIT
  */
@@ -33,6 +40,7 @@ declare(strict_types=1);
 namespace IronCart\Scan\Check\Upload;
 
 use CurlHandle;
+use IronCart\Scan\Check\Http\HardenedCurlClientTrait;
 use JsonException;
 
 /**
@@ -40,6 +48,8 @@ use JsonException;
  */
 class CurlUploadClient implements UploadClient
 {
+    use HardenedCurlClientTrait;
+
     /**
      * Connect timeout — fail fast if the endpoint is unreachable.
      */
@@ -79,7 +89,7 @@ class CurlUploadClient implements UploadClient
         string $userAgent,
         string $allowedHost
     ): UploadClientResult {
-        if (!$this->hostIsAllowed($url, $allowedHost)) {
+        if (!self::hostMatches($url, $allowedHost)) {
             // Hard reject — never reach DNS for a non-allowlisted host.
             return new UploadClientResult(null, null, UploadClientResult::CATEGORY_HOST_REJECTED);
         }
@@ -135,7 +145,7 @@ class CurlUploadClient implements UploadClient
             return strlen($chunk);
         };
 
-        curl_setopt_array($ch, [
+        $this->applyHardenedOptions($ch, [
             CURLOPT_URL => $url,
             CURLOPT_POST => true,
             CURLOPT_POSTFIELDS => $body,
@@ -145,23 +155,15 @@ class CurlUploadClient implements UploadClient
                 'Accept: application/json',
                 sprintf('Content-Length: %d', strlen($body)),
             ],
-            // SSRF guard — never chase redirects. A 30x to a different host
-            // would defeat the ironcart.dev host check above.
-            CURLOPT_FOLLOWLOCATION => false,
-            CURLOPT_MAXREDIRS => 0,
             CURLOPT_CONNECTTIMEOUT => self::CONNECT_TIMEOUT_SECONDS,
             CURLOPT_TIMEOUT => self::TIMEOUT_SECONDS,
             // HTTPS only on both initial and (would-be) redirect transfers.
-            // Belt-and-braces alongside FOLLOWLOCATION=false in case a
-            // future libcurl version honours redirects despite the flag.
+            // Belt-and-braces alongside FOLLOWLOCATION=false (owned by the
+            // trait) in case a future libcurl version honours redirects
+            // despite the flag.
             CURLOPT_PROTOCOLS => CURLPROTO_HTTPS,
             CURLOPT_REDIR_PROTOCOLS => CURLPROTO_HTTPS,
             CURLOPT_USERAGENT => $userAgent,
-            // Don't send cookies. The upload is anonymous (server-to-server)
-            // and must not pick up any session state from the caller's
-            // environment.
-            CURLOPT_COOKIE => '',
-            CURLOPT_RETURNTRANSFER => true,
             CURLOPT_WRITEFUNCTION => $writeCallback,
             // Public ironcart.dev — full TLS validation, no relaxation.
             CURLOPT_SSL_VERIFYPEER => true,
@@ -285,22 +287,5 @@ class CurlUploadClient implements UploadClient
             return null;
         }
         return $upgradeUrl;
-    }
-
-    /**
-     * Return true iff the URL's host equals the allowed host (case-
-     * insensitive). Anything else — including subdomains like
-     * `evil.ironcart.dev.attacker.com` — is rejected.
-     *
-     * `parse_url` returns the raw host without the port, exactly what we
-     * want for an exact-string allowlist comparison.
-     */
-    private function hostIsAllowed(string $url, string $allowedHost): bool
-    {
-        $host = parse_url(trim($url), PHP_URL_HOST);
-        if (!is_string($host) || $host === '') {
-            return false;
-        }
-        return strcasecmp($host, $allowedHost) === 0;
     }
 }
