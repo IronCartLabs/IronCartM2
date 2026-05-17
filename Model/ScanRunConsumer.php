@@ -142,14 +142,18 @@ class ScanRunConsumer
             findings: $findings
         );
 
+        $finishedAt = $this->nowUtc();
         $run->setStatus(ScanRun::STATUS_SUCCEEDED);
-        $run->setFinishedAt($this->nowUtc());
+        $run->setFinishedAt($finishedAt);
         $run->setSummaryJson($this->serializer->serialize([
             'totals' => $report['summary'],
             'finding_count' => count($findings),
             'magento' => $report['magento'],
             'schema_version' => $report['schema_version'],
         ]));
+        // Defense-in-depth (#76): fail loud if a future refactor lets a
+        // terminal status reach the save without finished_at being set.
+        ScanRunTerminalState::assertConsistent(ScanRun::STATUS_SUCCEEDED, $finishedAt);
         $this->scanRunResource->save($run);
     }
 
@@ -194,14 +198,19 @@ class ScanRunConsumer
         );
 
         try {
+            $finishedAt = $this->nowUtc();
             $run->setStatus(ScanRun::STATUS_FAILED);
-            $run->setFinishedAt($this->nowUtc());
+            $run->setFinishedAt($finishedAt);
             $run->setSummaryJson($this->serializer->serialize([
                 'error' => [
                     'class' => get_class($e),
                     'message' => $e->getMessage(),
                 ],
             ]));
+            // Defense-in-depth (#76): mirror the success path's invariant
+            // assertion so the failed transition can never silently emit
+            // a terminal row with an empty `finished` column.
+            ScanRunTerminalState::assertConsistent(ScanRun::STATUS_FAILED, $finishedAt);
             $this->scanRunResource->save($run);
         } catch (Throwable $persistError) {
             // Last-ditch — we already lost the original error context above.
