@@ -71,7 +71,10 @@ define([
      */
     function readVisibleRuns(callback) {
         withDataSource(function (dataSource) {
-            var data = dataSource && dataSource.data ? dataSource.data() || {} : {};
+            // `data` on Magento_Ui/js/grid/provider is a plain object
+            // ({ items, totalRecords }), not a Knockout observable — see
+            // vendor/magento/module-ui .../grid/provider.js setData().
+            var data = (dataSource && dataSource.data) || {};
             var rows = data.items || [];
             var snapshot = [];
 
