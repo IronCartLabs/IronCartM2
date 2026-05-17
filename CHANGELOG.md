@@ -31,6 +31,7 @@ ironcartlabs/magento-scan:^1.1` installs are forward-compatible.
 
 - No removed / renamed CLI commands, class names, config keys, or DI bindings. Upgrade is `composer update ironcartlabs/magento-scan` + `bin/magento setup:upgrade`.
 - The new cron is the first scheduled outbound surface in the module; it remains opt-in (off by default) per the v3+ design in the tracking epic. The merchant store accepts no inbound connections from ironcart.dev — the cron is a pull-from-store-and-push-outbound loop.
+- Merchant-facing setup guide: <https://ironcart.dev/docs/scanner/continuous-monitoring>.
 - Tracking epic: [IronCartLabs/IronCartWeb#884](https://github.com/IronCartLabs/IronCartWeb/issues/884) ("v4 — continuous monitoring").
 
 ### Install
