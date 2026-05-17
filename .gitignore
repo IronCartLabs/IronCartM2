@@ -1,4 +1,5 @@
 # Composer
+/.composer/
 /vendor/
 composer.phar
 
@@ -25,3 +26,8 @@ ironcart-scan*.json
 
 # Local Magento sandbox (markshust/docker-magento harness — see docs/sandbox.md)
 /.sandbox/
+
+# Claude Code local state — never track
+.claude/settings.local.json
+.claude/scheduled_tasks.lock
+.claude/worktrees/
