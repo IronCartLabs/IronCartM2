@@ -27,14 +27,12 @@ declare(strict_types=1);
 
 namespace IronCart\Scan\Test\Unit\Cron;
 
-use IronCart\Scan\Check\CheckRegistry;
 use IronCart\Scan\Check\Upload\UploadClientResult;
 use IronCart\Scan\Check\Upload\UploadConfig;
 use IronCart\Scan\Check\Upload\UploadPayloadBuilder;
 use IronCart\Scan\Check\Upload\UploadRunner;
 use IronCart\Scan\Check\PatchLevel\ComposerLockReader;
 use IronCart\Scan\Cron\UploadScan;
-use IronCart\Scan\Report\Severity;
 use IronCart\Scan\Test\Unit\Check\Upload\FakeUploadClient;
 use Magento\Framework\App\Config\ScopeConfigInterface;
 use Magento\Framework\App\ProductMetadataInterface;
@@ -334,97 +332,5 @@ class UploadScanTest extends TestCase
             }
         }
         return false;
-    }
-}
-
-/**
- * Recording stand-in for {@see CheckRegistry} that counts `runAll()`
- * invocations without loading any production check classes. Returns a
- * single benign finding so the upload pipeline has something to send.
- */
-final class RecordingCheckRegistry extends CheckRegistry
-{
-    public int $runs = 0;
-
-    public function __construct()
-    {
-        parent::__construct([]);
-    }
-
-    /**
-     * @return list<array{
-     *     id:string,
-     *     title:string,
-     *     severity:string,
-     *     evidence:mixed,
-     *     remediation_url:string
-     * }>
-     */
-    public function runAll(): array
-    {
-        $this->runs++;
-        return [[
-            'id' => 'IC-020',
-            'title' => 'mage mode',
-            'severity' => Severity::CRITICAL,
-            'evidence' => ['mage_mode' => 'developer'],
-            'remediation_url' => 'https://ironcart.dev/docs/checks/IC-020',
-        ]];
-    }
-}
-
-/**
- * In-memory {@see LoggerInterface} that records every call as a (level,
- * message, context) tuple so tests can assert on the cron's log output
- * without driving a real Monolog handler.
- */
-final class RecordingLogger implements LoggerInterface
-{
-    /** @var list<array{level:string,message:string,context:array<string,mixed>}> */
-    public array $lines = [];
-
-    public function emergency($message, array $context = []): void
-    {
-        $this->record('emergency', (string) $message, $context);
-    }
-    public function alert($message, array $context = []): void
-    {
-        $this->record('alert', (string) $message, $context);
-    }
-    public function critical($message, array $context = []): void
-    {
-        $this->record('critical', (string) $message, $context);
-    }
-    public function error($message, array $context = []): void
-    {
-        $this->record('error', (string) $message, $context);
-    }
-    public function warning($message, array $context = []): void
-    {
-        $this->record('warning', (string) $message, $context);
-    }
-    public function notice($message, array $context = []): void
-    {
-        $this->record('notice', (string) $message, $context);
-    }
-    public function info($message, array $context = []): void
-    {
-        $this->record('info', (string) $message, $context);
-    }
-    public function debug($message, array $context = []): void
-    {
-        $this->record('debug', (string) $message, $context);
-    }
-    public function log($level, $message, array $context = []): void
-    {
-        $this->record((string) $level, (string) $message, $context);
-    }
-
-    /**
-     * @param array<string,mixed> $context
-     */
-    private function record(string $level, string $message, array $context): void
-    {
-        $this->lines[] = ['level' => $level, 'message' => $message, 'context' => $context];
     }
 }
