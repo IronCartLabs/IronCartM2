@@ -146,6 +146,71 @@
                     </depends>
                 </field>
             </group>
+            <group id="cron"
+                   translate="label comment"
+                   sortOrder="30"
+                   showInDefault="1"
+                   showInWebsite="1"
+                   showInStore="0">
+                <label>Continuous Monitoring</label>
+                <comment><![CDATA[
+                    Optional: run <code>bin/magento ironcart:scan --upload</code> on a Magento cron
+                    schedule so ironcart.dev always has a fresh view of your store's security posture.
+                    Off by default.<br/>
+                    <br/>
+                    <strong>Outbound only.</strong> Your store does NOT accept inbound connections from
+                    ironcart.dev. You control when scans run by editing this schedule.<br/>
+                    <br/>
+                    Requires the <strong>Scan Upload</strong> group above to be enabled and a token
+                    pasted — the cron reuses the same token (no separate credential surface).<br/>
+                    <br/>
+                    Documentation:
+                    <a href="https://ironcart.dev/docs/scanner/continuous-monitoring" target="_blank">
+                    ironcart.dev/docs/scanner/continuous-monitoring</a>.
+                ]]></comment>
+
+                <field id="enabled"
+                       translate="label comment"
+                       type="select"
+                       sortOrder="10"
+                       showInDefault="1"
+                       showInWebsite="1"
+                       showInStore="0">
+                    <label>Enable scheduled scan + upload</label>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                    <comment><![CDATA[
+                        <strong>Outbound only. Your store does NOT accept inbound connections from
+                        ironcart.dev.</strong> You control when scans run by editing the schedule below.<br/>
+                        Off by default. Toggling this to Yes enables the
+                        <code>ironcart_scan_upload_cron</code> job, which runs
+                        <code>bin/magento ironcart:scan --upload</code> on the schedule below and
+                        logs the result to <code>var/log/ironcart_scan.log</code>.
+                    ]]></comment>
+                </field>
+
+                <field id="schedule"
+                       translate="label comment"
+                       type="text"
+                       sortOrder="20"
+                       showInDefault="1"
+                       showInWebsite="1"
+                       showInStore="0"
+                       canRestore="1">
+                    <label>Schedule (crontab expression)</label>
+                    <comment><![CDATA[
+                        Standard crontab string consumed by Magento's cron framework. Default:
+                        <code>0 3 * * *</code> (daily at 03:00 store-server time). Examples:<br/>
+                        <code>0 */6 * * *</code> — every 6 hours.<br/>
+                        <code>0 2 * * 1</code> — Mondays at 02:00.<br/>
+                        Magento re-reads this value at the start of each cron tick; no
+                        <code>cron:install</code> reboot is required after a change. The schedule
+                        only fires when <em>Enable scheduled scan + upload</em> above is set to Yes.
+                    ]]></comment>
+                    <depends>
+                        <field id="enabled">1</field>
+                    </depends>
+                </field>
+            </group>
         </section>
     </system>
 </config>

@@ -122,12 +122,49 @@
                 type="IronCart\Scan\Check\Upload\CurlUploadClient"/>
     <type name="IronCart\Scan\Check\Upload\UploadPayloadBuilder">
         <arguments>
-            <argument name="moduleVersion" xsi:type="string">0.3.0</argument>
+            <argument name="moduleVersion" xsi:type="string">1.2.0</argument>
         </arguments>
     </type>
     <type name="IronCart\Scan\Check\Upload\UploadRunner">
         <arguments>
-            <argument name="moduleVersion" xsi:type="string">0.3.0</argument>
+            <argument name="moduleVersion" xsi:type="string">1.2.0</argument>
+        </arguments>
+    </type>
+
+    <!--
+        v4 — continuous-monitoring cron (#64).
+
+        The cron handler drives the same scan + upload pipeline as
+        `bin/magento ironcart:scan` with the `upload` flag. Logging is routed through a
+        virtual `IronCartScanCronLogger` channel that writes to
+        `var/log/ironcart_scan.log` (separate from Magento's main
+        `var/log/cron.log` so operators can tail the upload outcome in
+        isolation), with the regular Magento logger as fallback so
+        critical errors still appear in the system-wide log too.
+
+        Default state is OFF — the job exits at the
+        `ironcart_scan/cron/enabled` gate before loading the check
+        registry, so a fresh `composer require` of this module never
+        silently starts outbound HTTP traffic.
+    -->
+    <virtualType name="IronCartScanCronLogHandler"
+                 type="Magento\Framework\Logger\Handler\Base">
+        <arguments>
+            <argument name="fileName" xsi:type="string">/var/log/ironcart_scan.log</argument>
+        </arguments>
+    </virtualType>
+    <virtualType name="IronCartScanCronLogger"
+                 type="Magento\Framework\Logger\Monolog">
+        <arguments>
+            <argument name="name" xsi:type="string">ironcart_scan_cron</argument>
+            <argument name="handlers" xsi:type="array">
+                <item name="system" xsi:type="object">IronCartScanCronLogHandler</item>
+            </argument>
+        </arguments>
+    </virtualType>
+    <type name="IronCart\Scan\Cron\UploadScan">
+        <arguments>
+            <argument name="logger" xsi:type="object">IronCartScanCronLogger</argument>
         </arguments>
     </type>
 </config>

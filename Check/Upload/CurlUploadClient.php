@@ -185,7 +185,19 @@ class CurlUploadClient implements UploadClient
             return new UploadClientResult($httpCode, $viewUrl, UploadClientResult::CATEGORY_OK);
         }
 
-        return new UploadClientResult($httpCode, null, $this->categoriseFailure($httpCode));
+        $category = $this->categoriseFailure($httpCode);
+
+        // 402 is the only failure category where the server's body field is
+        // contractually safe to surface verbatim — IronCartWeb's free-tier
+        // gate returns `{ "upgrade_url": "https://ironcart.dev/pricing?..." }`
+        // (see IronCartWeb#1004). For every other failure we deliberately
+        // discard the body to avoid leaking a stack trace from a misconfigured
+        // ingest instance.
+        $upgradeUrl = $category === UploadClientResult::CATEGORY_QUOTA_EXCEEDED
+            ? $this->extractUpgradeUrl($bodyBuf)
+            : null;
+
+        return new UploadClientResult($httpCode, null, $category, $upgradeUrl);
     }
 
     /**
@@ -213,6 +225,7 @@ class CurlUploadClient implements UploadClient
     {
         return match (true) {
             $httpCode === 401 || $httpCode === 403 => UploadClientResult::CATEGORY_AUTH,
+            $httpCode === 402                       => UploadClientResult::CATEGORY_QUOTA_EXCEEDED,
             $httpCode === 413                       => UploadClientResult::CATEGORY_PAYLOAD_TOO_LARGE,
             $httpCode === 400 || $httpCode === 422 => UploadClientResult::CATEGORY_BAD_REQUEST,
             $httpCode >= 500 && $httpCode < 600    => UploadClientResult::CATEGORY_SERVER,
@@ -238,6 +251,40 @@ class CurlUploadClient implements UploadClient
         }
         $viewUrl = $decoded['view_url'] ?? null;
         return is_string($viewUrl) && $viewUrl !== '' ? $viewUrl : null;
+    }
+
+    /**
+     * Pull only the `upgrade_url` key out of a 402 response body. Mirrors
+     * the {@see extractViewUrl()} discipline: one specific field, validated
+     * to be a non-empty `https://` URL, never echoed if any of that fails.
+     *
+     * The server contract is `{ "error": "quota_exceeded", "upgrade_url":
+     * "https://ironcart.dev/pricing?..." }`. We require https:// rather
+     * than a plain non-empty string so a misconfigured server response
+     * cannot trick the cron log into rendering a `javascript:` or `data:`
+     * URL that some downstream alerting tool might autolink.
+     */
+    private function extractUpgradeUrl(string $body): ?string
+    {
+        try {
+            $decoded = json_decode($body, true, 8, JSON_THROW_ON_ERROR);
+        } catch (JsonException) {
+            return null;
+        }
+        if (!is_array($decoded)) {
+            return null;
+        }
+        $upgradeUrl = $decoded['upgrade_url'] ?? null;
+        if (!is_string($upgradeUrl) || $upgradeUrl === '') {
+            return null;
+        }
+        // Only surface https:// URLs so a misconfigured server response
+        // cannot inject a javascript: / data: URL into the operator's
+        // terminal.
+        if (stripos($upgradeUrl, 'https://') !== 0) {
+            return null;
+        }
+        return $upgradeUrl;
     }
 
     /**

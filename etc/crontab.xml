@@ -1,0 +1,37 @@
+<?xml version="1.0"?>
+<!--
+ / Copyright (c) Ironcart (https://ironcart.dev)
+ / Licensed under MIT.
+ /
+ / v4 continuous-monitoring cron group, per IronCartLabs/IronCartM2#64.
+ /
+ / Magento's cron framework consults this file on every `bin/magento
+ / cron:install` / `cron:run` invocation. The single `ironcart_scan_upload_cron`
+ / job is bound to {@see \IronCart\Scan\Cron\UploadScan::execute()} and
+ / runs the same logic path as `bin/magento ironcart:scan` with the `upload` flag.
+ /
+ / The job is GATED by `ironcart_scan/cron/enabled` (default `0`): when off
+ / the handler returns immediately without entering the check registry, so
+ / a fresh `composer require` of this module never silently starts
+ / outbound HTTP traffic. The schedule expression here (`0 3 * * *`) is
+ / Magento's `default` fallback; the operator overrides it via the
+ / `<config_path>` mapping below, which lets `Stores → Configuration →
+ / Ironcart → Scan → Continuous Monitoring` rewrite the crontab without
+ / editing this file.
+ /
+ / The group name `ironcart_scan` shows up in the `cron_schedule` table
+ / and lets operators trigger out-of-band runs with
+ / `bin/magento cron:run` (with `group=ironcart_scan`). It is the same group
+ / the integration AC in #64 asserts against.
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Cron:etc/crontab.xsd">
+    <group id="ironcart_scan">
+        <job name="ironcart_scan_upload_cron"
+             instance="IronCart\Scan\Cron\UploadScan"
+             method="execute">
+            <schedule>0 3 * * *</schedule>
+            <config_path>ironcart_scan/cron/schedule</config_path>
+        </job>
+    </group>
+</config>

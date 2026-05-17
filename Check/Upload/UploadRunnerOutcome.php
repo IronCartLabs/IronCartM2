@@ -14,6 +14,11 @@
  *     correctable state. Cron picks this up.
  *   - `EXIT_TRANSPORT` (3) — server unreachable / TLS failure / timeout.
  *   - `EXIT_SERVER` (4) — server returned a non-2xx response.
+ *   - `EXIT_QUOTA_EXCEEDED` (5) — server returned 402: the merchant's free
+ *     tier on ironcart.dev has been exhausted. Surfaces a separate exit
+ *     code so dashboards / cron-monitoring tools can distinguish "upgrade
+ *     required" from generic 4xx misconfiguration. The runner's stderr
+ *     message includes the `upgrade_url` returned by the server.
  *
  * @copyright Copyright (c) Ironcart (https://ironcart.dev)
  * @license   MIT
@@ -32,18 +37,21 @@ final class UploadRunnerOutcome
     public const EXIT_MISCONFIGURED = 2;
     public const EXIT_TRANSPORT = 3;
     public const EXIT_SERVER = 4;
+    public const EXIT_QUOTA_EXCEEDED = 5;
 
     /**
-     * @param int          $exitCode  One of the EXIT_* constants.
-     * @param string       $stdout    Human-readable stdout message — printed verbatim.
-     * @param string       $stderr    Human-readable stderr message — printed verbatim.
-     * @param string|null  $viewUrl   `view_url` from a 2xx response, if any.
+     * @param int          $exitCode    One of the EXIT_* constants.
+     * @param string       $stdout      Human-readable stdout message — printed verbatim.
+     * @param string       $stderr      Human-readable stderr message — printed verbatim.
+     * @param string|null  $viewUrl     `view_url` from a 2xx response, if any.
+     * @param string|null  $upgradeUrl  `upgrade_url` from a 402 response, if any.
      */
     public function __construct(
         public readonly int $exitCode,
         public readonly string $stdout,
         public readonly string $stderr,
-        public readonly ?string $viewUrl = null
+        public readonly ?string $viewUrl = null,
+        public readonly ?string $upgradeUrl = null
     ) {
     }
 }

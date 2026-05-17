@@ -139,6 +139,21 @@ class UploadRunner
     }
 
     /**
+     * Render the free-tier "quota exceeded" message. Public so the cron
+     * job ({@see \IronCart\Scan\Cron\UploadScan}) can render the same
+     * canonical message into `var/log/ironcart_scan.log` without copy-
+     * pasting the wording.
+     */
+    public static function formatQuotaExceededMessage(?string $upgradeUrl): string
+    {
+        $base = 'Upload failed: upgrade required (free-tier limit reached on ironcart.dev).';
+        if ($upgradeUrl !== null && $upgradeUrl !== '') {
+            return $base . ' Upgrade at: ' . $upgradeUrl;
+        }
+        return $base . ' Upgrade at: https://ironcart.dev/pricing.';
+    }
+
+    /**
      * Walk the payload recursively and reject any nested key from the
      * `FORBIDDEN_PAYLOAD_KEYS` list. Returns true if the payload is
      * clean.
@@ -189,6 +204,13 @@ class UploadRunner
                 UploadRunnerOutcome::EXIT_MISCONFIGURED,
                 '',
                 'Upload rejected: invalid or expired token. Paste a fresh token from ironcart.dev.'
+            ),
+            UploadClientResult::CATEGORY_QUOTA_EXCEEDED => new UploadRunnerOutcome(
+                UploadRunnerOutcome::EXIT_QUOTA_EXCEEDED,
+                '',
+                self::formatQuotaExceededMessage($result->upgradeUrl),
+                null,
+                $result->upgradeUrl
             ),
             UploadClientResult::CATEGORY_PAYLOAD_TOO_LARGE => new UploadRunnerOutcome(
                 UploadRunnerOutcome::EXIT_MISCONFIGURED,

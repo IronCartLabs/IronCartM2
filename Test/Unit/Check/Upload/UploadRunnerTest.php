@@ -274,6 +274,54 @@ class UploadRunnerTest extends TestCase
         self::assertSame('my-very-real-token', $client->invocations[0]['token']);
     }
 
+    public function testQuotaExceededExitsWithDedicatedCodeAndIncludesUpgradeUrl(): void
+    {
+        // v4 / IronCartWeb#1004 — the free-tier gate returns HTTP 402 with
+        // `{ "error": "quota_exceeded", "upgrade_url": "..." }`. The
+        // upload runner must surface the upgrade_url verbatim on stderr
+        // and use the dedicated EXIT_QUOTA_EXCEEDED code so the cron
+        // shell ({@see \IronCart\Scan\Cron\UploadScan}) can distinguish
+        // it from generic 4xx misconfiguration.
+        $client = new FakeUploadClient();
+        $client->queuedResponses = [
+            new UploadClientResult(
+                402,
+                null,
+                UploadClientResult::CATEGORY_QUOTA_EXCEEDED,
+                'https://ironcart.dev/pricing?from=cron-402'
+            ),
+        ];
+        $runner = $this->makeRunner(enabled: true, token: 'tok', client: $client);
+
+        $outcome = $runner->run([]);
+
+        self::assertSame(UploadRunnerOutcome::EXIT_QUOTA_EXCEEDED, $outcome->exitCode);
+        self::assertStringContainsString('upgrade required', $outcome->stderr);
+        self::assertStringContainsString(
+            'https://ironcart.dev/pricing?from=cron-402',
+            $outcome->stderr
+        );
+        self::assertSame('https://ironcart.dev/pricing?from=cron-402', $outcome->upgradeUrl);
+    }
+
+    public function testQuotaExceededWithoutUpgradeUrlFallsBackToCanonicalPricingPage(): void
+    {
+        // Defense in depth — the server contract requires upgrade_url,
+        // but if a misconfigured / older free-tier gate omits it, the
+        // runner must still ship a usable URL to the operator instead of
+        // a bare "upgrade required" string.
+        $client = new FakeUploadClient();
+        $client->queuedResponses = [
+            new UploadClientResult(402, null, UploadClientResult::CATEGORY_QUOTA_EXCEEDED, null),
+        ];
+        $runner = $this->makeRunner(enabled: true, token: 'tok', client: $client);
+
+        $outcome = $runner->run([]);
+
+        self::assertSame(UploadRunnerOutcome::EXIT_QUOTA_EXCEEDED, $outcome->exitCode);
+        self::assertStringContainsString('https://ironcart.dev/pricing', $outcome->stderr);
+    }
+
     /**
      * Build a {@see UploadRunner} wired around fakes/mocks. Test
      * convenience — the production wiring lives in `etc/di.xml`.
