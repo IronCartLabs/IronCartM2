@@ -23,6 +23,7 @@
         }
     },
     "extra": {
+        "module-version": "1.1.0",
         "map": [
             ["*", "IronCart/Scan"]
         ]
