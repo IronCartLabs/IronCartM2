@@ -4,9 +4,19 @@
  * IronCart_Scan — admin grid renderer for the per-row severity totals.
  *
  * Consumes the `severity_totals` array that {@see \IronCart\Scan\Ui\DataProvider\ScanRunDataProvider}
- * synthesises from `summary_json`. Emits a compact comma-separated
- * pill list (`C:2 H:1 M:0 L:0 I:0`) so the run-listing grid renders a
- * useful summary without claiming a dedicated column per severity.
+ * synthesises from `summary_json` and delegates the actual markup
+ * generation to {@see \IronCart\Scan\Ui\Component\Listing\Column\Severity\SeverityIndicatorRow}.
+ *
+ * The renderer emits a horizontal 5-slot indicator row (critical / high
+ * / medium / low / info) so the grid cell occupies the height of a
+ * plain text column rather than stacking pills vertically. Empty
+ * severities still take a slot — the column width stays constant
+ * across rows and the eye can scan vertically for changes.
+ *
+ * The split into a Magento-free helper exists so the markup is unit-
+ * testable under the v0 CI's Test/Unit/Report cell, which strips
+ * magento/framework before composer install and therefore cannot load
+ * this Column subclass directly.
  *
  * @copyright Copyright (c) Ironcart (https://ironcart.dev)
  * @license   MIT
@@ -16,39 +26,13 @@ declare(strict_types=1);
 
 namespace IronCart\Scan\Ui\Component\Listing\Column;
 
-use IronCart\Scan\Report\Severity;
+use IronCart\Scan\Ui\Component\Listing\Column\Severity\SeverityIndicatorRow;
 use Magento\Framework\View\Element\UiComponent\ContextInterface;
 use Magento\Framework\View\Element\UiComponentFactory;
 use Magento\Ui\Component\Listing\Columns\Column;
 
 class SeverityTotals extends Column
 {
-    /**
-     * Severity → single-char abbreviation used in the pill label.
-     *
-     * @var array<string,string>
-     */
-    private const ABBREV = [
-        Severity::CRITICAL => 'C',
-        Severity::HIGH     => 'H',
-        Severity::MEDIUM   => 'M',
-        Severity::LOW      => 'L',
-        Severity::INFO     => 'I',
-    ];
-
-    /**
-     * Severity → CSS class for the abbreviation pill.
-     *
-     * @var array<string,string>
-     */
-    private const PILL_CLASS = [
-        Severity::CRITICAL => 'grid-severity-critical',
-        Severity::HIGH     => 'grid-severity-major',
-        Severity::MEDIUM   => 'grid-severity-minor',
-        Severity::LOW      => 'grid-severity-notice',
-        Severity::INFO     => 'grid-severity-notice',
-    ];
-
     /**
      * @param ContextInterface     $context
      * @param UiComponentFactory   $uiComponentFactory
@@ -78,34 +62,10 @@ class SeverityTotals extends Column
         $field = $this->getData('name');
         foreach ($dataSource['data']['items'] as &$item) {
             $totals = $item['severity_totals'] ?? [];
-            $item[$field] = is_array($totals) ? $this->renderPills($totals) : '';
+            $item[$field] = is_array($totals) ? SeverityIndicatorRow::render($totals) : '';
         }
         unset($item);
 
         return $dataSource;
-    }
-
-    /**
-     * Build the comma-separated pill markup. Severities with zero
-     * count still appear so the layout doesn't jiggle row-by-row.
-     *
-     * @param array<string,mixed> $totals
-     */
-    private function renderPills(array $totals): string
-    {
-        $parts = [];
-        foreach (Severity::ALL as $severity) {
-            $count = (int)($totals[$severity] ?? 0);
-            $abbrev = self::ABBREV[$severity] ?? strtoupper($severity[0] ?? '?');
-            $class = self::PILL_CLASS[$severity] ?? 'grid-severity-notice';
-            $parts[] = sprintf(
-                '<span class="%s" title="%s"><span>%s:%d</span></span>',
-                $class,
-                htmlspecialchars($severity, ENT_QUOTES, 'UTF-8'),
-                $abbrev,
-                $count
-            );
-        }
-        return implode(' ', $parts);
     }
 }
