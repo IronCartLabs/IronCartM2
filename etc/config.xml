@@ -41,7 +41,7 @@
                 cron framework runs `ironcart_scan_upload_cron` (declared
                 in `etc/crontab.xml`) on the schedule below; that handler
                 drives the same code path as
-                `bin/magento ironcart:scan --upload`.
+                `bin/magento ironcart:scan` with the `upload` flag.
 
                 The schedule string here is the system default consulted
                 by the {@see \IronCart\Scan\Cron\UploadScan} job. The
