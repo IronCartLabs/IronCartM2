@@ -34,6 +34,26 @@
                 <endpoint>https://ironcart.dev/api/scan/ingest</endpoint>
                 <allowed_host>ironcart.dev</allowed_host>
             </upload>
+            <!--
+                v4 — continuous-monitoring cron (#64). Default OFF so a
+                fresh `composer require` of this module never silently
+                starts outbound traffic. When `enabled = 1`, Magento's
+                cron framework runs `ironcart_scan_upload_cron` (declared
+                in `etc/crontab.xml`) on the schedule below; that handler
+                drives the same code path as
+                `bin/magento ironcart:scan --upload`.
+
+                The schedule string here is the system default consulted
+                by the {@see \IronCart\Scan\Cron\UploadScan} job. The
+                `<config_path>` mapping in `etc/crontab.xml` lets
+                operators override it via Stores → Configuration →
+                Ironcart → Scan → Continuous Monitoring without editing
+                XML. `0 3 * * *` = daily at 03:00 store-server local time.
+            -->
+            <cron>
+                <enabled>0</enabled>
+                <schedule>0 3 * * *</schedule>
+            </cron>
         </ironcart_scan>
     </default>
 </config>

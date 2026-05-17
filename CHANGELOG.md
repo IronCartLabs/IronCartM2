@@ -4,6 +4,43 @@ All notable changes to `ironcartlabs/magento-scan` will be documented in this fi
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2026-05-17
+
+Continuous-monitoring minor release. Adds the v4 cron-driven loop on top
+of the v3 opt-in `--upload` flow so merchants can keep ironcart.dev's
+view of their store posture fresh without remembering to run the CLI by
+hand. Strictly additive on top of `1.1.0` — no removed or renamed CLI /
+class / config surface, so existing `composer require
+ironcartlabs/magento-scan:^1.1` installs are forward-compatible.
+
+### Added
+
+- **Continuous-monitoring cron** ([#64](https://github.com/IronCartLabs/IronCartM2/issues/64)). New `Cron/UploadScan.php` handler, bound from `etc/crontab.xml` as job `ironcart_scan_upload_cron` under group `ironcart_scan`. Drives the same code path as `bin/magento ironcart:scan --upload`. Gated by `ironcart_scan/cron/enabled` (default `0` — hard "opt-in default OFF" invariant per #64), schedule controlled by `ironcart_scan/cron/schedule` (default `0 3 * * *` — daily at 03:00 store-server time). Token is the existing `ironcart_scan/upload/token` — no new credential surface. The merchant store controls when scans run; ironcart.dev never initiates a connection to the merchant store. Logging goes to a dedicated `var/log/ironcart_scan.log` channel separate from the system-wide cron log. Manual trigger: `bin/magento cron:run --group=ironcart_scan`.
+- **Admin config: `Stores → Configuration → Ironcart → Scan → Continuous Monitoring`** ([#64](https://github.com/IronCartLabs/IronCartM2/issues/64)). New `cron` group under the existing `ironcart_scan` section in `etc/adminhtml/system.xml` with fields:
+  - `Enable scheduled scan + upload` (Yes/No, default **No**) — `ironcart_scan/cron/enabled`.
+  - `Schedule (crontab expression)` (text, default `0 3 * * *`) — `ironcart_scan/cron/schedule`. Re-read on every cron tick via `<config_path>` in `etc/crontab.xml`.
+- **402 / free-tier exhausted handling** ([#64](https://github.com/IronCartLabs/IronCartM2/issues/64), depends on [IronCartWeb#1004](https://github.com/IronCartLabs/IronCartWeb/issues/1004)). New `UploadClientResult::CATEGORY_QUOTA_EXCEEDED` + `UploadRunnerOutcome::EXIT_QUOTA_EXCEEDED` (exit code `5`). When the ingest endpoint returns 402, the `CurlUploadClient` extracts the `upgrade_url` field from the JSON body (validated to be `https://`) and the runner / cron surface an "upgrade required" message including that URL. The cron schedule row goes `error` so the operator's standard cron-failure monitoring picks it up. The body is otherwise discarded — only the `view_url` field on a 2xx and the `upgrade_url` field on a 402 are ever rendered verbatim.
+
+### Changed
+
+- **`etc/module.xml` `setup_version`** bumped from `1.1.0` to `1.2.0`. Read at runtime to construct the `IronCart-Scan/<version>` User-Agent on outbound HTTP surfaces (IC-060 CVE proxy, IC-080..IC-085 CSP probe, `--upload`).
+- **`composer.json` `extra.module-version`** bumped from `1.1.0` to `1.2.0`. Kept in sync with `etc/module.xml`.
+- **`etc/di.xml`** wires the v4 cron handler with a virtual `IronCartScanCronLogger` channel pointed at `var/log/ironcart_scan.log`, so the upload outcome is tail-able independently of Magento's system-wide `var/log/cron.log`. The `UploadPayloadBuilder` / `UploadRunner` `moduleVersion` arguments are bumped to `1.2.0` to keep the User-Agent string aligned with the module version.
+
+### Notes
+
+- No removed / renamed CLI commands, class names, config keys, or DI bindings. Upgrade is `composer update ironcartlabs/magento-scan` + `bin/magento setup:upgrade`.
+- The new cron is the first scheduled outbound surface in the module; it remains opt-in (off by default) per the v3+ design in the tracking epic. The merchant store accepts no inbound connections from ironcart.dev — the cron is a pull-from-store-and-push-outbound loop.
+- Tracking epic: [IronCartLabs/IronCartWeb#884](https://github.com/IronCartLabs/IronCartWeb/issues/884) ("v4 — continuous monitoring").
+
+### Install
+
+```
+composer require ironcartlabs/magento-scan:^1.2
+bin/magento module:enable IronCart_Scan
+bin/magento setup:upgrade
+```
+
 ## [1.1.0] - 2026-05-17
 
 First stable minor release. Graduates the package out of `-alpha` by folding in the v2 check packs (IC-050..IC-093) and the v3 opt-in upload flag. Strictly additive on top of `1.0.0-alpha.1` — no removed or renamed CLI / class / config surface, so existing `composer require ironcartlabs/magento-scan:^1.0@alpha` installs are forward-compatible. Merchants should move to `composer require ironcartlabs/magento-scan:^1.1`.
@@ -67,5 +104,6 @@ bin/magento module:enable IronCart_Scan
 bin/magento setup:upgrade
 ```
 
+[1.2.0]: https://github.com/IronCartLabs/IronCartM2/releases/tag/v1.2.0
 [1.1.0]: https://github.com/IronCartLabs/IronCartM2/releases/tag/v1.1.0
 [1.0.0-alpha.1]: https://github.com/IronCartLabs/IronCartM2/releases/tag/v1.0.0-alpha.1
