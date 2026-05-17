@@ -216,4 +216,49 @@ class RunScanNowShapeTest extends TestCase
             'JS module must stop polling after 5 minutes (issue AC)'
         );
     }
+
+    /**
+     * Issue #77 — regression pin for the request-storm fix.
+     *
+     * Each guard is asserted by a single load-bearing token:
+     *
+     *   - `MAX_INFLIGHT` constant declared at module scope (global
+     *     concurrency ceiling — AC: hard cap on simultaneous GETs).
+     *   - `inflightIds` map (per-runId de-dup; ensures the same row
+     *     never has two parallel polls in flight).
+     *   - `tickInProgress` flag (overlap guard between an outstanding
+     *     readVisibleRuns callback and the next setInterval-fired tick).
+     *   - `postInFlight` flag (click guard: a second button press while
+     *     the enqueue POST is still in flight must drop, not stack a
+     *     parallel polling chain).
+     *
+     * Anyone deleting one of these tokens during a rewrite will trip
+     * the regression — the throttling semantics depend on all four.
+     */
+    public function testJsModuleEnforcesPollingThrottle(): void
+    {
+        $source = file_get_contents(self::JS_MODULE);
+        self::assertIsString($source);
+
+        self::assertMatchesRegularExpression(
+            '/var\s+MAX_INFLIGHT\s*=\s*\d+/',
+            $source,
+            'JS module must declare a global concurrency ceiling (MAX_INFLIGHT) — issue #77 AC'
+        );
+        self::assertMatchesRegularExpression(
+            '/inflightIds\s*\[/',
+            $source,
+            'JS module must de-dup polls by runId via an inflightIds map — issue #77 AC'
+        );
+        self::assertMatchesRegularExpression(
+            '/tickInProgress/',
+            $source,
+            'JS module must guard against overlapping ticks with tickInProgress — issue #77 AC'
+        );
+        self::assertMatchesRegularExpression(
+            '/postInFlight/',
+            $source,
+            'JS module must guard against stacked button-clicks with postInFlight — issue #77 AC'
+        );
+    }
 }
