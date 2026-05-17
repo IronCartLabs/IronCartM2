@@ -1,0 +1,200 @@
+name: Composer manifests
+
+# Regenerates etc/manifests/composer-sha1-community-<version>.json for every
+# Magento Open Source version in the CI integration matrix, then opens a PR
+# with the diff.
+#
+# Why a separate workflow:
+#   - `make composer-manifests` needs Composer + repo.magento.com auth.
+#   - Magento auth keys live in repo secrets (MAGENTO_PUBLIC_KEY /
+#     MAGENTO_PRIVATE_KEY); agent role subagents cannot reach them locally.
+#   - PR #56 (Closes #50) shipped the build script + Makefile target but
+#     deferred the actual manifest commit to a separate run. This workflow
+#     is that run, and re-runs monthly to pick up new Magento patch
+#     releases without operator action.
+#
+# Triggers:
+#   - workflow_dispatch — manual runs, optionally overriding the version
+#     list
+#   - schedule '0 6 1 * *' — first of every month at 06:00 UTC
+
+on:
+  workflow_dispatch:
+    inputs:
+      magento_versions:
+        description: >-
+          Space-separated Magento OS versions to build manifests for. Defaults
+          to the CI integration matrix union (currently 2.4.4-p11 2.4.5-p10
+          2.4.6-p8 2.4.7-p5).
+        required: false
+        type: string
+        default: '2.4.4-p11 2.4.5-p10 2.4.6-p8 2.4.7-p5'
+  schedule:
+    # 06:00 UTC on the 1st of every month. Cadence picks up Adobe's typical
+    # quarterly patch releases without operator action; off-cycle bumps can
+    # be triggered via workflow_dispatch.
+    - cron: '0 6 1 * *'
+
+# Default permissions are read-only; the build job below escalates only
+# what's needed to push a branch and open a PR.
+permissions:
+  contents: read
+
+# Avoid stacking concurrent regeneration runs (each takes ~30 min).
+concurrency:
+  group: composer-manifests
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build manifests and open PR
+    runs-on: ubuntu-latest
+    # Needs write access to push the branch and pull-requests:write to open
+    # the PR via peter-evans/create-pull-request.
+    permissions:
+      contents: write
+      pull-requests: write
+    timeout-minutes: 60
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Setup PHP 8.3
+        # PHP version matches the integration cell that runs the resulting
+        # manifests through ironcart:scan, so any composer-resolve quirk
+        # surfaces here too. (PHP 8.3 is what `magento/project-community-
+        # edition:2.4.7-p5` resolves cleanly against; older 2.4.x branches
+        # also resolve here because composer 2.x is forward-compatible to
+        # whatever the project requires.)
+        uses: shivammathur/setup-php@9e72090525849c5e82e596468b86eb55e9cc5401 # v2.32.0
+        with:
+          php-version: '8.3'
+          tools: composer:v2
+          extensions: bcmath, ctype, curl, dom, hash, iconv, intl, mbstring, openssl, simplexml, sodium, tokenizer, xmlwriter, zip
+          coverage: none
+
+      - name: Verify Magento Composer credentials are present
+        # Fail fast with a clear error if the secrets are missing rather
+        # than letting composer 401 with a noisy stack trace deep inside
+        # `make composer-manifests`.
+        env:
+          MAGENTO_PUBLIC_KEY: ${{ secrets.MAGENTO_PUBLIC_KEY }}
+          MAGENTO_PRIVATE_KEY: ${{ secrets.MAGENTO_PRIVATE_KEY }}
+        run: |
+          if [ -z "${MAGENTO_PUBLIC_KEY}" ] || [ -z "${MAGENTO_PRIVATE_KEY}" ]; then
+            echo "::error::MAGENTO_PUBLIC_KEY and/or MAGENTO_PRIVATE_KEY repo secrets are not configured."
+            echo "See https://github.com/IronCartLabs/IronCartM2/issues/18 for the wiring steps."
+            exit 1
+          fi
+
+      - name: Resolve versions to build
+        id: versions
+        # workflow_dispatch carries the user-supplied (or default) input;
+        # scheduled runs fall through to the same default list. Pinning to
+        # the CI integration matrix union — keep in sync with
+        # .github/workflows/ci.yml's `integration` + `integration-full-
+        # matrix` jobs.
+        env:
+          INPUT_VERSIONS: ${{ github.event.inputs.magento_versions }}
+        run: |
+          set -euo pipefail
+          if [ -n "${INPUT_VERSIONS}" ]; then
+            versions="${INPUT_VERSIONS}"
+          else
+            # Default for scheduled runs. Mirrors integration matrix union.
+            versions='2.4.4-p11 2.4.5-p10 2.4.6-p8 2.4.7-p5'
+          fi
+          echo "Manifest versions to build: ${versions}"
+          echo "versions=${versions}" >> "${GITHUB_OUTPUT}"
+
+      - name: Build manifests
+        # COMPOSER_AUTH is composer's standard env-var override for
+        # auth.json; embedding the secrets here means they never land on
+        # disk in a clear-text auth.json file (same pattern the
+        # `integration` job in ci.yml uses).
+        env:
+          MANIFEST_VERSIONS: ${{ steps.versions.outputs.versions }}
+          COMPOSER_AUTH: |
+            {
+              "http-basic": {
+                "repo.magento.com": {
+                  "username": "${{ secrets.MAGENTO_PUBLIC_KEY }}",
+                  "password": "${{ secrets.MAGENTO_PRIVATE_KEY }}"
+                }
+              }
+            }
+        run: |
+          set -euo pipefail
+          # `make composer-manifests` iterates MANIFEST_VERSIONS, running
+          # `php bin/build-composer-manifest.php --version=<tag>` for each.
+          # Each invocation:
+          #   1. `composer create-project --no-install` into a tmpdir
+          #   2. Reads composer.lock, harvests dist.shasum per package
+          #   3. Writes etc/manifests/composer-sha1-community-<tag>.json
+          # Network access required (composer resolves against
+          # repo.magento.com).
+          make composer-manifests MANIFEST_VERSIONS="${MANIFEST_VERSIONS}"
+
+      - name: Summarise generated manifests
+        # Surfaces per-version entry counts in the workflow log so a
+        # malformed run (e.g. composer resolve produced a stub) is
+        # spottable from the Actions UI. The PR description (built by the
+        # next step) gets a copy of the same numbers.
+        run: |
+          set -euo pipefail
+          echo "## Generated composer manifests" > /tmp/manifest-summary.md
+          echo "" >> /tmp/manifest-summary.md
+          echo "| File | Magento version | Entry count |" >> /tmp/manifest-summary.md
+          echo "|---|---|---|" >> /tmp/manifest-summary.md
+          for f in etc/manifests/composer-sha1-community-*.json; do
+            if [ ! -f "$f" ]; then
+              echo "::warning::No manifest files matched the glob — make composer-manifests may have failed silently."
+              continue
+            fi
+            version=$(python3 -c "import json;print(json.load(open('$f'))['version'])")
+            entries=$(python3 -c "import json;print(len(json.load(open('$f'))['entries']))")
+            echo "  $f → $version, $entries entries"
+            echo "| \`$f\` | $version | $entries |" >> /tmp/manifest-summary.md
+            # Sanity: vanilla 2.4.x community lock resolves to ~250
+            # packages. Anything dramatically below that is almost
+            # certainly a malformed lock — warn the operator so the PR
+            # gets a manual eyeballing.
+            if [ "$entries" -lt 100 ]; then
+              echo "::warning file=$f::Entry count $entries is suspiciously low (vanilla 2.4.x typically resolves to ~250); review before merging."
+            fi
+          done
+          echo "" >> /tmp/manifest-summary.md
+          echo "Build command: \`make composer-manifests MANIFEST_VERSIONS=\"${{ steps.versions.outputs.versions }}\"\`" >> /tmp/manifest-summary.md
+
+      - name: Open PR with regenerated manifests
+        # peter-evans/create-pull-request handles branch creation + push +
+        # PR open in one step. It also no-ops if the diff is empty, so
+        # scheduled runs that find nothing changed simply exit clean.
+        uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
+        with:
+          # The default GITHUB_TOKEN can open PRs but cannot trigger
+          # downstream workflow runs on the resulting branch — that's a
+          # documented GitHub security constraint. The agent:security bot
+          # PAT (GITHUB_AGENT_SECURITY_PAT) likewise lacks workflow scope
+          # by design. For now we accept the trade-off: the PR opens
+          # cleanly, but CI on the manifest branch must be kicked manually
+          # via `gh workflow run ci.yml` (or by closing+reopening the PR).
+          # If this becomes recurring friction, swap in a bot-PAT with
+          # `workflow` scope dedicated to this workflow only.
+          token: ${{ secrets.GITHUB_TOKEN }}
+          branch: chore/composer-manifests-regen
+          delete-branch: true
+          commit-message: |
+            chore: regenerate composer manifests
+
+            Generated by .github/workflows/composer-manifests.yml against
+            the CI integration matrix union.
+
+            Versions: ${{ steps.versions.outputs.versions }}
+          title: 'chore: regenerate composer manifests (${{ steps.versions.outputs.versions }})'
+          body-path: /tmp/manifest-summary.md
+          labels: |
+            agent:ops
+            priority:med
+          add-paths: |
+            etc/manifests/composer-sha1-community-*.json
