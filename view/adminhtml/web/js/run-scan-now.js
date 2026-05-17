@@ -190,11 +190,15 @@ define([
      * on_click. The button renderer hands us the pre-built URLs.
      */
     return function runScanNow(runUrl, statusUrl) {
-        // `mage/storage` automatically appends `form_key` from
-        // window.FORM_KEY for any POST against an admin URL, which is
-        // exactly the CSRF token Magento's HttpPostActionInterface
-        // expects. No manual form-key wiring required.
-        storage.post(runUrl, '{}', false)
+        // Magento's admin CSRF guard reads `form_key` from $_POST, so
+        // the POST body must be form-encoded and must include the key
+        // explicitly — `mage/storage` does not append it on its own.
+        storage.post(
+            runUrl,
+            'form_key=' + encodeURIComponent(window.FORM_KEY),
+            false,
+            'application/x-www-form-urlencoded'
+        )
             .done(function (response) {
                 if (!response || typeof response.runId !== 'number') {
                     alert({

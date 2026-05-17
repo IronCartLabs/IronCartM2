@@ -19,9 +19,9 @@ namespace IronCart\Scan\Controller\Adminhtml\Scans;
 use Magento\Backend\App\Action;
 use Magento\Backend\App\Action\Context;
 use Magento\Backend\Model\View\Result\Page;
-use Magento\Backend\Model\View\Result\PageFactory;
 use Magento\Framework\App\Action\HttpGetActionInterface;
 use Magento\Framework\Controller\ResultInterface;
+use Magento\Framework\View\Result\PageFactory;
 
 /**
  * Renders the admin "Security Scans" landing page.
