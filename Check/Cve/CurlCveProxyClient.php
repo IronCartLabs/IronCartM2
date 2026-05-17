@@ -14,6 +14,13 @@
  * a malicious admin config edit) never reaches DNS resolution. This is
  * the egress allowlist that the IC-060 issue body locks in.
  *
+ * The SSRF guards (FOLLOWLOCATION=false, MAXREDIRS=0, cookie strip,
+ * RETURNTRANSFER pin) are owned by
+ * {@see \IronCart\Scan\Check\Http\HardenedCurlClientTrait}. This class
+ * provides the per-call options that legitimately differ between the
+ * three hardened clients (POST body, JSON headers, TLS-verify on,
+ * 10s/30s timeouts, 5 MiB body cap).
+ *
  * @copyright Copyright (c) Ironcart (https://ironcart.dev)
  * @license   MIT
  */
@@ -23,6 +30,7 @@ declare(strict_types=1);
 namespace IronCart\Scan\Check\Cve;
 
 use CurlHandle;
+use IronCart\Scan\Check\Http\HardenedCurlClientTrait;
 use JsonException;
 
 /**
@@ -30,6 +38,8 @@ use JsonException;
  */
 class CurlCveProxyClient implements CveProxyClient
 {
+    use HardenedCurlClientTrait;
+
     /**
      * Connect timeout — fail fast if the proxy is unreachable.
      */
@@ -57,7 +67,7 @@ class CurlCveProxyClient implements CveProxyClient
      */
     public function post(string $url, array $payload, string $userAgent): ?array
     {
-        if (!$this->hostIsAllowed($url)) {
+        if (!self::hostMatches($url, self::ALLOWED_HOST)) {
             // Hard reject — never reach DNS for a non-ironcart.dev host.
             return null;
         }
@@ -94,7 +104,7 @@ class CurlCveProxyClient implements CveProxyClient
             return strlen($chunk);
         };
 
-        curl_setopt_array($ch, [
+        $this->applyHardenedOptions($ch, [
             CURLOPT_URL => $url,
             CURLOPT_POST => true,
             CURLOPT_POSTFIELDS => $body,
@@ -103,23 +113,15 @@ class CurlCveProxyClient implements CveProxyClient
                 'Accept: application/json',
                 sprintf('Content-Length: %d', strlen($body)),
             ],
-            // SSRF guard — never chase redirects. A 30x to a different host
-            // would defeat the ironcart.dev host check.
-            CURLOPT_FOLLOWLOCATION => false,
-            CURLOPT_MAXREDIRS => 0,
             CURLOPT_CONNECTTIMEOUT => self::CONNECT_TIMEOUT_SECONDS,
             CURLOPT_TIMEOUT => self::TIMEOUT_SECONDS,
             // Constrain the protocol set so a redirect-injected
             // `gopher://` / `file://` / `dict://` URL on a vulnerable
             // libcurl can't escape. Belt-and-braces alongside
-            // FOLLOWLOCATION=false.
+            // FOLLOWLOCATION=false (owned by the trait).
             CURLOPT_PROTOCOLS => CURLPROTO_HTTP | CURLPROTO_HTTPS,
             CURLOPT_REDIR_PROTOCOLS => CURLPROTO_HTTP | CURLPROTO_HTTPS,
             CURLOPT_USERAGENT => $userAgent,
-            // Don't send cookies. The proxy is anonymous and must not
-            // pick up any session state from the caller's environment.
-            CURLOPT_COOKIE => '',
-            CURLOPT_RETURNTRANSFER => true,
             CURLOPT_WRITEFUNCTION => $writeCallback,
             // Public ironcart.dev — full TLS validation, no relaxation.
             CURLOPT_SSL_VERIFYPEER => true,
@@ -146,22 +148,5 @@ class CurlCveProxyClient implements CveProxyClient
         }
 
         return is_array($decoded) ? $decoded : null;
-    }
-
-    /**
-     * Return true iff the URL's host equals `ironcart.dev` (case-
-     * insensitive). Anything else — including subdomains like
-     * `evil.ironcart.dev.attacker.com` — is rejected.
-     *
-     * `parse_url` returns the raw host without the port, exactly what we
-     * want for an exact-string allowlist comparison.
-     */
-    private function hostIsAllowed(string $url): bool
-    {
-        $host = parse_url(trim($url), PHP_URL_HOST);
-        if (!is_string($host) || $host === '') {
-            return false;
-        }
-        return strcasecmp($host, self::ALLOWED_HOST) === 0;
     }
 }
