@@ -137,11 +137,11 @@
 
         Module-side half of the Pro entitlement flow. Operator pastes an
         Ed25519-signed license blob into `ironcart_scan/license/blob`;
-        UploadPayloadBuilder forwards it inside the `--upload` payload
-        when (and only when) it verifies cleanly against the compiled-in
-        public key. The verifier is stateless and is wired shared so a
-        single `bin/magento ironcart:scan` invocation parses the blob
-        once.
+        UploadPayloadBuilder forwards it inside the upload payload
+        (bin/magento ironcart:scan with the upload flag) when (and only
+        when) it verifies cleanly against the compiled-in public key.
+        The verifier is stateless and is wired shared so a single
+        `bin/magento ironcart:scan` invocation parses the blob once.
 
         Module behaviour does NOT change with license state — all 43
         checks still run identically. Only the upload envelope picks up
