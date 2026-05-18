@@ -123,6 +123,7 @@
     <type name="IronCart\Scan\Check\Upload\UploadPayloadBuilder">
         <arguments>
             <argument name="moduleVersion" xsi:type="string">1.2.0</argument>
+            <argument name="licenseConfig" xsi:type="object">IronCart\Scan\Check\License\LicenseConfig</argument>
         </arguments>
     </type>
     <type name="IronCart\Scan\Check\Upload\UploadRunner">
@@ -130,6 +131,25 @@
             <argument name="moduleVersion" xsi:type="string">1.2.0</argument>
         </arguments>
     </type>
+
+    <!--
+        v5 — Pro-tier license verifier (#103).
+
+        Module-side half of the Pro entitlement flow. Operator pastes an
+        Ed25519-signed license blob into `ironcart_scan/license/blob`;
+        UploadPayloadBuilder forwards it inside the upload payload
+        (bin/magento ironcart:scan with the upload flag) when (and only
+        when) it verifies cleanly against the compiled-in public key.
+        The verifier is stateless and is wired shared so a single
+        `bin/magento ironcart:scan` invocation parses the blob once.
+
+        Module behaviour does NOT change with license state — all 43
+        checks still run identically. Only the upload envelope picks up
+        an extra `license_blob` field so the hosted backend can flag the
+        resulting scan run as `tier='pro'`.
+    -->
+    <type name="IronCart\Scan\Check\License\LicenseVerifier" shared="true"/>
+    <type name="IronCart\Scan\Check\License\LicenseConfig" shared="true"/>
 
     <!--
         v4 — continuous-monitoring cron (#64).

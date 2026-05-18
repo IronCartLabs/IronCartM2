@@ -10,6 +10,9 @@
  *   {
  *     "schema_version": "1",
  *     "source": "ironcart-magento-scan/<module_version>",
+ *     "license_blob": "...",  // OPTIONAL — present when a Pro license
+ *                              //            is configured and verifies
+ *                              //            (#103)
  *     "store": {
  *       "base_url": "...",
  *       "magento_version": "...",
@@ -31,6 +34,11 @@
  *   - `composer_packages.length > 1000` OR `findings.length > 500` →
  *     {@see PayloadTooLargeException}. The bounds mirror the server's
  *     413 cutoffs.
+ *   - `license_blob` is OMITTED when no license is configured OR when
+ *     the configured blob fails verification. Forwarding a corrupted /
+ *     expired blob to the server is never useful — the hosted backend
+ *     would just reject it — and would leak the malformed string into
+ *     server-side logs.
  *
  * @copyright Copyright (c) Ironcart (https://ironcart.dev)
  * @license   MIT
@@ -40,6 +48,7 @@ declare(strict_types=1);
 
 namespace IronCart\Scan\Check\Upload;
 
+use IronCart\Scan\Check\License\LicenseConfig;
 use IronCart\Scan\Check\PatchLevel\ComposerLockReader;
 use Magento\Framework\App\Config\ScopeConfigInterface;
 use Magento\Framework\App\ProductMetadataInterface;
@@ -77,7 +86,8 @@ class UploadPayloadBuilder
         private readonly ProductMetadataInterface $productMetadata,
         private readonly ComposerLockReader $composerLockReader,
         private readonly ScopeConfigInterface $scopeConfig,
-        private readonly string $moduleVersion
+        private readonly string $moduleVersion,
+        private readonly ?LicenseConfig $licenseConfig = null
     ) {
     }
 
@@ -110,7 +120,8 @@ class UploadPayloadBuilder
      *         title:string,
      *         evidence:mixed,
      *         remediation_url:string
-     *     }>
+     *     }>,
+     *     license_blob?:string
      * }
      */
     public function build(array $findings): array
@@ -132,7 +143,7 @@ class UploadPayloadBuilder
             ));
         }
 
-        return [
+        $payload = [
             'schema_version' => self::SCHEMA_VERSION,
             'source' => 'ironcart-magento-scan/' . $this->moduleVersion,
             'store' => [
@@ -144,6 +155,21 @@ class UploadPayloadBuilder
             ],
             'findings' => $this->reshapeFindings($findings),
         ];
+
+        // #103 — only forward a license blob when the merchant has one
+        // configured AND it verifies cleanly against the compiled-in
+        // public key. The module never makes a license-state decision
+        // on its own (all 43 checks always run regardless of license);
+        // we just hand the blob to the hosted backend so it can flag
+        // the resulting `scan_run.tier='pro'`.
+        if ($this->licenseConfig !== null) {
+            $blob = $this->licenseConfig->verifiedBlob();
+            if (is_string($blob) && $blob !== '') {
+                $payload['license_blob'] = $blob;
+            }
+        }
+
+        return $payload;
     }
 
     /**

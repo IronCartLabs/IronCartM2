@@ -211,6 +211,41 @@
                     </depends>
                 </field>
             </group>
+            <group id="license"
+                   translate="label comment"
+                   sortOrder="40"
+                   showInDefault="1"
+                   showInWebsite="1"
+                   showInStore="0">
+                <label>Pro License</label>
+                <comment><![CDATA[
+                    Optional: paste an Ironcart Pro license blob to flag uploads from this store as
+                    pro-tier. All 43 checks always run regardless of license state — this group only
+                    controls how ironcart.dev tags the uploaded scan run.<br/>
+                    <br/>
+                    The blob is verified offline against a compiled-in Ed25519 public key; no outbound
+                    network call leaves your store as part of this verification. Get a blob by
+                    subscribing at <a href="https://ironcart.dev/pro" target="_blank">ironcart.dev/pro</a>
+                    and pasting the value from your account dashboard.
+                ]]></comment>
+
+                <field id="blob"
+                       translate="label comment"
+                       type="textarea"
+                       sortOrder="10"
+                       showInDefault="1"
+                       showInWebsite="1"
+                       showInStore="0">
+                    <label>Pro license blob</label>
+                    <backend_model>Magento\Config\Model\Config\Backend\Encrypted</backend_model>
+                    <comment><![CDATA[
+                        Paste the full base64url-encoded blob from your ironcart.dev account.
+                        Stored encrypted via Magento's standard encryption backend. Leave blank to
+                        run as free-tier (default). Rotating: paste a new blob to replace the
+                        existing one; there is no separate revocation step.
+                    ]]></comment>
+                </field>
+            </group>
         </section>
     </system>
 </config>
