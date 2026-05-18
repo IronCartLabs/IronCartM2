@@ -1,0 +1,11 @@
+{
+  "schema_version": "1",
+  "package": "hyva-themes/magento2-hyva-checkout",
+  "version": "1.1.16",
+  "generated_at": "2026-05-18T00:00:00Z",
+  "source": "Hyvä Checkout 1.1.16 vendor bootstrap (sha256 of inline <script> blocks shipped under view/frontend/templates/checkout/index.phtml)",
+  "hashes": [
+    "PLACEHOLDER-VENDOR-BOOTSTRAP-HASH-A=",
+    "PLACEHOLDER-VENDOR-BOOTSTRAP-HASH-B="
+  ]
+}
