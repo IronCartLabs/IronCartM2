@@ -49,6 +49,13 @@ class ScanCommand extends Command
     public const OPTION_OUTPUT = 'output';
     public const OPTION_INCLUDE_USERNAMES = 'include-usernames';
     public const OPTION_UPLOAD = 'upload';
+    // v6 (#123) — multi-store agency overrides. Both options accept a
+    // value and are NEVER persisted to `core_config_data`; they only
+    // mutate the in-process {@see ScanSession} for the duration of the
+    // current run. Intended for one-shot CI / cron-driven runs where
+    // admin UI paste is impractical.
+    public const OPTION_LICENSE = 'license';
+    public const OPTION_UPLOAD_TOKEN = 'upload-token';
 
     public const FORMAT_JSON = 'json';
     public const FORMAT_TEXT = 'text';
@@ -118,6 +125,20 @@ class ScanCommand extends Command
                 null,
                 InputOption::VALUE_NONE,
                 (string) __('After the scan completes, upload the report to ironcart.dev for hosted viewing. Requires Stores → Configuration → Ironcart → Scan Upload → Enable, plus a token. Off by default. See docs/UPLOAD.md.')
+            )
+            ->addOption(
+                self::OPTION_LICENSE,
+                null,
+                InputOption::VALUE_REQUIRED,
+                (string) __('One-shot Pro license blob override for this run. Takes precedence over IRONCART_SCAN_LICENSE_BLOB and admin config. Never persisted. Useful for CI / cron-driven runs.'),
+                null
+            )
+            ->addOption(
+                self::OPTION_UPLOAD_TOKEN,
+                null,
+                InputOption::VALUE_REQUIRED,
+                (string) __('One-shot upload token override for this run. Takes precedence over IRONCART_SCAN_UPLOAD_TOKEN and admin config. Never persisted. Pair with --upload.'),
+                null
             );
     }
 
@@ -141,6 +162,19 @@ class ScanCommand extends Command
 
             $this->session->setIncludeUsernames(
                 (bool) $input->getOption(self::OPTION_INCLUDE_USERNAMES)
+            );
+
+            // v6 (#123) — push CLI overrides into the session BEFORE any
+            // check runs. The session is wired `shared="true"` so the
+            // LicenseConfig / UploadConfig instances injected into the
+            // payload builder and upload runner will see them.
+            $licenseOverride = $input->getOption(self::OPTION_LICENSE);
+            $this->session->setLicenseOverride(
+                is_string($licenseOverride) ? $licenseOverride : null
+            );
+            $uploadTokenOverride = $input->getOption(self::OPTION_UPLOAD_TOKEN);
+            $this->session->setUploadTokenOverride(
+                is_string($uploadTokenOverride) ? $uploadTokenOverride : null
             );
 
             $findings = $this->checkRegistry->runAll();

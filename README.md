@@ -129,6 +129,16 @@ The free tier allows 3 lifetime uploads. For continuous monitoring, multi-channe
 
 Full wire contract, payload shape, and operator-troubleshooting matrix: [docs/UPLOAD.md](docs/UPLOAD.md).
 
+### Multi-store / agency: env vars + CLI overrides
+
+Agencies running one Composer install per client can skip the admin UI paste flow. The license blob and upload token resolve in this order, highest precedence first:
+
+1. **CLI override** — `bin/magento ironcart:scan --upload --license=<blob> --upload-token=<token>`. One-shot; never persisted to `core_config_data`.
+2. **Env var** — `IRONCART_SCAN_LICENSE_BLOB`, `IRONCART_SCAN_UPLOAD_TOKEN`, `IRONCART_SCAN_UPLOAD_ENABLED`. Read at scan time; useful on Magento Cloud, Docker, Kubernetes, CI.
+3. **Admin config** — the existing **Stores > Configuration > Ironcart > Scan** paste flow. Per-website / per-store scope wins over default scope via Magento's standard scope resolution.
+
+Verification posture is identical at every layer — the same Ed25519 `LicenseVerifier` runs on the resolved value. See [docs/UPLOAD.md#multi-store-agency-configuration-env-vars--cli-overrides](docs/UPLOAD.md#multi-store-agency-configuration-env-vars--cli-overrides) for the full resolution table and examples.
+
 ## Continuous monitoring (optional)
 
 The module ships a Magento cron job that runs `bin/magento ironcart:scan --upload` on a schedule you control, so [ironcart.dev](https://ironcart.dev) always has a fresh view of your store's posture without you remembering to run the CLI by hand.

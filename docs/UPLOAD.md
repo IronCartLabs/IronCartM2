@@ -172,6 +172,87 @@ bin/magento config:set ironcart_scan/upload/endpoint     "https://ironcart.dev/a
 bin/magento config:set ironcart_scan/upload/allowed_host "ironcart.dev"
 ```
 
+## Multi-store agency configuration (env vars + CLI overrides)
+
+Agencies running one Composer install per client face friction with the
+admin UI paste flow: 30 stores means 30 logins and 30 manual token /
+license-blob paste operations. The `--upload` pipeline supports two
+alternate delivery paths for the same values; the original admin UI
+paste flow is unchanged and backward compatible.
+
+### Resolution order
+
+For each of the three multi-store-friendly settings, the module
+resolves the live value in this order, highest precedence first:
+
+| Setting | Layer 1 (CLI override) | Layer 2 (env var) | Layer 3 (admin config) |
+|---|---|---|---|
+| License blob | `--license=<blob>` | `IRONCART_SCAN_LICENSE_BLOB` | `ironcart_scan/license/blob` (encrypted) |
+| Upload token | `--upload-token=<token>` | `IRONCART_SCAN_UPLOAD_TOKEN` | `ironcart_scan/upload/token` (encrypted) |
+| Upload enabled flag | _(none — opt-in must come from env or admin)_ | `IRONCART_SCAN_UPLOAD_ENABLED` | `ironcart_scan/upload/enabled` |
+
+Within Layer 3, Magento's standard scope resolution applies — a value
+saved at the **per-website** scope wins over the **default** scope.
+Per-store scope wins over per-website. This is the existing admin-UI
+paste flow and is unchanged.
+
+Layers 1 and 2 are global to the running PHP process; they are not
+website- or store-scoped. An agency that needs per-store distinction
+between bundled and separate Composer installs should either:
+
+- Wrap each `bin/magento ironcart:scan --upload` invocation in a small
+  shell script that exports the appropriate `IRONCART_SCAN_*` values
+  for that store before invoking the CLI, **or**
+- Pass `--license=` / `--upload-token=` explicitly per invocation.
+
+Both Layer 1 and Layer 2 values are treated as plaintext — they are
+NOT routed through `Magento\Framework\Encryption\Encryptor`. Only
+Layer 3 admin-config values are encrypted at rest, because the admin
+backend stores them via the standard `Encrypted` backend model.
+
+### CLI override examples
+
+One-shot CI / cron-driven run (no admin paste, no env file):
+
+```bash
+bin/magento ironcart:scan --upload \
+  --license="$(cat /etc/ironcart/license.blob)" \
+  --upload-token="$(cat /etc/ironcart/upload.token)" \
+  --format=json
+```
+
+The CLI override is one-shot — it does not write to `core_config_data`,
+so the next admin-UI scan still uses whatever the admin or env layer
+provides.
+
+### Env-var examples
+
+For Magento Cloud / Docker / Kubernetes deploys where env injection is
+idiomatic and admin UI paste is impractical:
+
+```bash
+export IRONCART_SCAN_LICENSE_BLOB="<base64url-json>.<base64url-sig>"
+export IRONCART_SCAN_UPLOAD_TOKEN="ic_live_xxxxxxxxxxxxxxxx"
+export IRONCART_SCAN_UPLOAD_ENABLED=1
+
+bin/magento ironcart:scan --upload --format=json
+```
+
+Truthy values for `IRONCART_SCAN_UPLOAD_ENABLED` are (case-insensitive):
+`1`, `true`, `yes`, `on`. Falsy values are `0`, `false`, `no`, `off`.
+Any other value (or an exported-but-empty `=`) falls through to the
+admin flag at `ironcart_scan/upload/enabled`.
+
+### Verification posture is unchanged
+
+Whichever layer wins, the license blob is run through the same
+`LicenseVerifier` (Ed25519, compiled-in public key, 60-second clock
+skew). There is no "less-strict-because-it-came-from-CLI" mode. A
+malformed or expired CLI / env blob fails verification exactly like a
+malformed admin-config one — the upload payload simply omits the
+`license_blob` field and the operator sees the existing free-tier
+upgrade nag.
+
 ## Disabling
 
 Set `ironcart_scan/upload/enabled` to `No` in admin. The next
