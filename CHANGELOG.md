@@ -6,6 +6,41 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [1.4.0] - Unreleased
+
+The v6 module wave. Adds the Hyvä-specific check pack on top of the
+1.3.0 baseline. Strictly additive — no removed or renamed CLI / class /
+config surface. Non-Hyvä stores see byte-identical scan output to v1.3.0
+because every IC-9xx check short-circuits to zero findings on the
+detector-says-no path.
+
+### Added — Hyvä check pack
+
+- **`Check/Hyva/HyvaDetector`** ([#125](https://github.com/IronCartLabs/IronCartM2/issues/125)). Shared, DI-singleton detector composing `ModuleListInterface` (looks for the `Hyva_Theme` module) and the existing `ComposerLockReader` (looks for `hyva-themes/*` packages in `composer.lock`). Either signal flips the storefront into Hyvä mode for the IC-9xx pack; the detection record is memoised for the lifetime of the scan run so the three Hyvä-aware checks pay the lookup cost once.
+- **IC-910 — Tailwind / postcss config exposed under `pub/static`** ([#125](https://github.com/IronCartLabs/IronCartM2/issues/125)). Walks `<magento_root>/pub/static/frontend/<vendor>/<theme>/` two levels deep looking for `tailwind.config.js`, `tailwind.source.css`, and `postcss.config.js` (both at the theme root and inside the `tailwind/` subdir Hyvä's default theme uses). Severity MEDIUM; remediation at `https://ironcart.dev/docs/checks/IC-910`. Read-only filesystem walk, bounded so a wrecked deploy with hundreds of stale theme directories does not blow the scan timeout.
+- **IC-911 — Hyvä Checkout CSP whitelist hash drift** ([#125](https://github.com/IronCartLabs/IronCartM2/issues/125)). Parses the merchant's `app/etc/csp_whitelist.xml` for every `sha256` hash under `<policy id="script-src">` and compares against the bundled `etc/manifests/hyva-checkout/<version>.json` for the installed `hyva-themes/magento2-hyva-checkout` version. Hashes whitelisted but not in the manifest surface as MEDIUM findings. When the installed checkout version is newer than every bundled manifest, IC-911 emits a single LOW informational finding pointing at the manifest-refresh path (`bin/refresh-osv-snapshot.php` cadence). No network call — the manifest ships in-repo. Manifest seed at `etc/manifests/hyva-checkout/1.1.16.json` (placeholder hashes; first real Hyvä Checkout release the manifest covers will replace them).
+- **IC-912 — Hyvä module version drift** ([#125](https://github.com/IronCartLabs/IronCartM2/issues/125)). Cross-references every installed `hyva-themes/*` composer package against the bundled `etc/manifests/hyva-modules/min-versions.json` floor manifest. Packages below the floor emit one finding each; severity is HIGH when the floor row is tagged `"security": true` (set because of a published advisory) and MEDIUM otherwise. Packages with no manifest row are silently skipped — IC-002 / IC-060 already provide CVE-driven coverage for the long tail. No network call; refresh path is the same `bin/refresh-osv-snapshot.php` flow as IC-002.
+
+### Changed
+
+- **`etc/di.xml`** appends three new entries to the `CheckRegistry` `checks` argument (`IC-910`, `IC-911`, `IC-912`) and declares `HyvaDetector` as `shared="true"`. Existing entries are unchanged — the v6 pack is strictly additive.
+
+### Notes
+
+- Strictly additive — Free OSS check pack stays open-source. The paywall axis (delivery + enrichment via the Recon subscription) is unchanged; IC-910..IC-912 ship under the MIT module like every other check.
+- No outbound network calls. Both manifests (Hyvä Checkout CSP hash + Hyvä module min-version) ship in-repo and are refreshed on the OSV-snapshot cadence.
+- Compat matrix unchanged: Magento 2.4.4–2.4.7 × PHP 8.1–8.3 stays green.
+- Remediation guide stubs (`docs/checks/IC-910`, `docs/checks/IC-911`, `docs/checks/IC-912`) land in IronCartWeb as a follow-up `agent:content` ticket once the check IDs are locked.
+- Tracking epic: [IronCartLabs/IronCartWeb#884](https://github.com/IronCartLabs/IronCartWeb/issues/884) ("v6 — Hyvä/PWA Studio specific checks").
+
+### Install
+
+```
+composer require ironcartlabs/magento-scan:^1.4
+bin/magento module:enable IronCart_Scan
+bin/magento setup:upgrade
+```
+
 ## [1.3.0] - 2026-05-18
 
 The v5 module wave. Folds Pro entitlement plumbing, Adobe EQP-readiness
