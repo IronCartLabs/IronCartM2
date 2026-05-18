@@ -6,20 +6,39 @@
  * Implements Magento's `ButtonProviderInterface` so the button is
  * declared declaratively in `ironcartscan_run_listing.xml` (matches
  * the existing {@see ShowAllSeveritiesButton} pattern on the findings
- * listing). The `on_click` hands off to the RequireJS module
- * `IronCart_Scan/js/run-scan-now`, which:
+ * listing).
  *
- *   1. POSTs to `ironcartscan/scans/run` with the admin form key.
- *   2. Reads `{ runId, status }` back and starts the polling loop.
- *   3. Reloads the grid data source via uiRegistry so the new row
- *      appears immediately and subsequent polls update its status.
+ * ## Declarative `data-mage-init` wiring (issue #85 / EQP CSP)
  *
- * Why a require() call inline rather than a phtml-mounted script: the
- * listing layout (`ironcartscan_scans_index.xml`) only attaches the UI
- * Component — there is no block where a phtml could mount JS, and the
- * UI Component buttons block does not accept a `<script>` child. The
- * cleanest available hook is to compile the require() into `on_click`
- * and let the requirejs-config.js mapping resolve the module path.
+ * Earlier revisions of this class emitted a literal
+ * `require([...], function (run) { run(<json>, <json>); });` string as
+ * the button's `on_click` attribute. Magento's `Container` template
+ * renders `on_click` straight into an inline `onclick="..."` handler,
+ * which is a strict-CSP violation and is flagged by the Adobe
+ * Marketplace EQP CSP review (audit items 29 + 30 in
+ * `docs/marketplace-eqp-audit.md`).
+ *
+ * The replacement is the standard Magento declarative pattern: emit a
+ * `data-mage-init` attribute carrying a JSON object whose keys are
+ * RequireJS module ids and whose values are config payloads. The
+ * client-side `mage/apply/main.js` bootstrap (already on every admin
+ * page) walks the DOM on `DOMContentLoaded`, resolves each module
+ * named in `data-mage-init`, and invokes the module with the config
+ * object and the DOM element. The shim at
+ * `view/adminhtml/web/js/run-scan-now-init.js` is a five-line
+ * adapter that pulls `runUrl` / `statusUrl` out of the config object
+ * and binds a regular `click` listener on the button that calls into
+ * the existing `view/adminhtml/web/js/run-scan-now.js` module — its
+ * exported `runScanNow(runUrl, statusUrl)` signature, and therefore
+ * the #77 throttling regression suite, remain unchanged.
+ *
+ * Magento's UI Component button renderer
+ * (`vendor/magento/module-ui/view/base/web/templates/grid/toolbar.html`
+ * et al.) recognises a `data_attribute` key on the button-provider
+ * array and renders each entry as a `data-<name>="<value>"` attribute
+ * on the rendered button. The value is HTML-escaped at render time;
+ * we encode the inner JSON ourselves so the entity-decoded string
+ * `mage/apply` sees back is valid JSON. No inline JS is rendered.
  *
  * @copyright Copyright (c) Ironcart (https://ironcart.dev)
  * @license   MIT
@@ -44,6 +63,16 @@ class RunScanNowButton implements ButtonProviderInterface
      */
     private const STATUS_URL_PATH = 'ironcartscan/scans/status';
 
+    /**
+     * RequireJS module id the `mage/apply` bootstrap will resolve from
+     * the `data-mage-init` payload. Mapped to the shim file via
+     * `view/adminhtml/requirejs-config.js` — not strictly necessary
+     * because Magento's RequireJS path resolver already understands
+     * `<Vendor>_<Module>/js/<file>`, but the explicit constant keeps
+     * the module-id surface in one place if the file ever moves.
+     */
+    private const INIT_MODULE_ID = 'IronCart_Scan/js/run-scan-now-init';
+
     public function __construct(
         private readonly UrlInterface $urlBuilder
     ) {
@@ -52,31 +81,38 @@ class RunScanNowButton implements ButtonProviderInterface
     /**
      * {@inheritDoc}
      *
-     * @return array{label:string,on_click:string,class:string,sort_order:int}
+     * @return array{label:string,class:string,sort_order:int,data_attribute:array<string,string>}
      */
     public function getButtonData(): array
     {
-        // Pre-compute both URLs server-side so the JS module receives
+        // Pre-compute both URLs server-side so the JS shim receives
         // them as plain strings — no URL building in the browser.
         $runUrl = $this->urlBuilder->getUrl(self::RUN_URL_PATH);
         $statusUrl = $this->urlBuilder->getUrl(self::STATUS_URL_PATH);
 
-        // Magento's button renderer wraps `on_click` in a click handler.
-        // We dispatch into a dedicated RequireJS module so the actual
-        // POST + polling logic lives in
-        // view/adminhtml/web/js/run-scan-now.js — mapped to
-        // `IronCart_Scan/js/run-scan-now` via requirejs-config.js.
-        $onClick = sprintf(
-            "require(['IronCart_Scan/js/run-scan-now'], function (run) { run(%s, %s); });",
-            json_encode($runUrl, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT),
-            json_encode($statusUrl, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT)
-        );
+        // `data-mage-init` is a JSON object keyed by RequireJS module id.
+        // The HTML-attribute round-trip (PHP encode → toolbar template
+        // `escapeHtml()` → browser parse → `mage/apply` JSON.parse) is
+        // safe with default `json_encode()` flags: the template escapes
+        // the attribute value, and `mage/apply` decodes the entity-
+        // encoded form back to the original JSON. The JSON_HEX_* flags
+        // from the prior implementation were defence-in-depth against
+        // the inline-JS context — that context is gone in this revision,
+        // so we drop them and rely on the template's escapeHtml().
+        $payload = [
+            self::INIT_MODULE_ID => [
+                'runUrl'    => $runUrl,
+                'statusUrl' => $statusUrl,
+            ],
+        ];
 
         return [
-            'label'      => (string)__('Run scan now'),
-            'on_click'   => $onClick,
-            'class'      => 'primary',
-            'sort_order' => 10,
+            'label'          => (string)__('Run scan now'),
+            'class'          => 'primary',
+            'sort_order'     => 10,
+            'data_attribute' => [
+                'mage-init' => (string)json_encode($payload),
+            ],
         ];
     }
 }

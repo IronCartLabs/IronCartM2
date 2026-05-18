@@ -4,6 +4,26 @@ All notable changes to `ironcartlabs/magento-scan` will be documented in this fi
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+Adobe Marketplace EQP CSP-readiness pass. No behaviour change for
+merchants — the admin "Run scan now" button continues to enqueue +
+poll exactly as before; the wiring just stops violating strict CSP.
+
+### Changed
+
+- **`Ui/Component/Control/RunScanNowButton`** ([#85](https://github.com/IronCartLabs/IronCartM2/issues/85)). Refactored from an `on_click` inline-JS handler (`require([...], function (run) { run(<json>, <json>); });`) to a declarative `data-mage-init` attribute. The button provider now emits a `data_attribute` array carrying a JSON payload keyed at `IronCart_Scan/js/run-scan-now-init`; Magento's `mage/apply` bootstrap resolves the module on DOM ready and binds a regular `click` listener. The underlying `view/adminhtml/web/js/run-scan-now.js` module and its `runScanNow(runUrl, statusUrl)` public surface are unchanged, so the #77 polling-throttle regression suite (`MAX_INFLIGHT`, `inflightIds`, `tickInProgress`, `postInFlight`) keeps passing without modification.
+
+### Added
+
+- **`view/adminhtml/web/js/run-scan-now-init.js`** ([#85](https://github.com/IronCartLabs/IronCartM2/issues/85)). Thin shim that adapts the `data-mage-init` config object to the existing `IronCart_Scan/js/run-scan-now` module. Pulls `runUrl` / `statusUrl` out of the config, wires an `addEventListener('click', ...)` on the button element, and delegates. No new module surface, no inline JS, no URL building in the browser.
+- **`etc/csp_whitelist.xml`** ([#85](https://github.com/IronCartLabs/IronCartM2/issues/85), [EQP audit item 30](docs/marketplace-eqp-audit.md)). Declares the module's outbound `connect-src` host (`ironcart.dev`) so admins running `system/csp/mode_admin = restrict_mode` (enforced CSP) don't lose IC-060 / `--upload` / v4 cron functionality. No `script-src` entries are needed — after this refactor the module emits zero inline JS.
+
+### Notes
+
+- The module-version constants (`etc/module.xml` `setup_version`, `composer.json` `extra.module-version`) are unchanged at `1.2.0`. This refactor will ship in `1.2.1` per semver (patch — no behaviour change, no API change). The version bump and `[1.2.1]` heading land in the release PR, not here.
+- Verifies against EQP audit items 29 (inline JS on admin button) and 30 (`etc/csp_whitelist.xml` absent) in [`docs/marketplace-eqp-audit.md`](docs/marketplace-eqp-audit.md). The audit doc is a snapshot — it gets re-walked at the next release-readiness pass, not edited here.
+
 ## [1.3.0] - 2026-05-18
 
 v5 announce-before-remove minor release. Adds the deprecation taxonomy and
@@ -148,6 +168,7 @@ bin/magento module:enable IronCart_Scan
 bin/magento setup:upgrade
 ```
 
+[Unreleased]: https://github.com/IronCartLabs/IronCartM2/compare/v1.3.0...HEAD
 [1.3.0]: https://github.com/IronCartLabs/IronCartM2/releases/tag/v1.3.0
 [1.2.0]: https://github.com/IronCartLabs/IronCartM2/releases/tag/v1.2.0
 [1.1.0]: https://github.com/IronCartLabs/IronCartM2/releases/tag/v1.1.0

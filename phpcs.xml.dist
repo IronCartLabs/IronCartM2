@@ -1,0 +1,95 @@
+<?xml version="1.0"?>
+<!--
+    Magento Coding Standard ruleset for ironcartlabs/magento-scan.
+
+    Purpose: lets Adobe Marketplace EQP reviewers (and contributors) run
+
+        phpcs --standard=phpcs.xml.dist .
+
+    locally and get the same result the CI lint job produces in
+    `.github/workflows/ci.yml`. Tracks issue #84.
+
+    Three concerns are encoded here:
+
+      1. Selecting the Magento Coding Standard's `Magento2` ruleset (the
+         consolidated standard that replaces the M1-era `MEQP1` ruleset for
+         Magento 2 — see https://github.com/magento/magento-coding-standard).
+
+      2. Mirroring the CI job's `--exclude` list with justifications. Each
+         excluded sniff has a documented reason — keep this in sync with the
+         comment block in `.github/workflows/ci.yml`.
+
+      3. Suppressing the `Magento2.PHP.AvoidObjectManager` rule for the two
+         documented graceful-degradation seams (#84). These are intentional
+         `ObjectManager::getInstance()` call sites that gate access to an
+         optional cross-module dependency; constructor-DI of the optional
+         type would make `setup:di:compile` abort on hosts where the module
+         is absent. The pattern is the canonical Adobe-recommended one for
+         optional deps (`Magento\AdvancedSearch\Model\Client\ClientResolver`
+         is the reference example). The PHP files also carry an inline
+         `// phpcs:ignore` + `@SuppressWarnings(PHPMD.StaticAccess)` so the
+         suppression survives a phpcs run that does not load this dist
+         file. The exclude-pattern entries below give MEQP reviewers a
+         single-file scope for the suppression.
+-->
+<ruleset name="IronCart_Scan">
+    <description>IronCart_Scan — Magento Coding Standard ruleset (mirrors CI).</description>
+
+    <!-- The CI lint job passes these as `--extensions=php,phtml`. -->
+    <arg name="extensions" value="php,phtml"/>
+
+    <!-- The CI lint job passes these as `--ignore=`. Build-time CLI scripts
+         in `bin/` legitimately use `exit` and `passthru()` which the
+         Magento2 standard forbids in module code; the sandbox helpers under
+         `tests/_sandbox` drive php-S / bin/magento via `exec()`; the
+         `_m2-workspace` directory is a local clone target. -->
+    <exclude-pattern>vendor/</exclude-pattern>
+    <exclude-pattern>_m2-workspace/</exclude-pattern>
+    <exclude-pattern>tests/_sandbox/</exclude-pattern>
+    <exclude-pattern>bin/</exclude-pattern>
+
+    <!-- The consolidated Magento 2 coding standard. -->
+    <rule ref="Magento2">
+        <!-- Report\Severity legitimately uses `final` + private constructor
+             as a pre-PHP-8.1 enum; design discussed in #2. -->
+        <exclude name="Magento2.PHP.FinalImplementation"/>
+        <exclude name="Magento2.Classes.FinalImplementation"/>
+
+        <!-- Filesystem-probing security checks (`Check/Filesystem/*`)
+             intentionally silence errors when reading perm bits / owner of
+             unreadable paths; they use @posix_getpwuid / @fileperms /
+             @fileowner because the Magento Filesystem API doesn't expose
+             those primitives. -->
+        <exclude name="Generic.PHP.NoSilencedErrors"/>
+        <exclude name="Magento2.Functions.DiscouragedFunction"/>
+
+        <!-- The registration shim `include`s a path-resolved file by
+             design — that's how Magento ComponentRegistrar contracts work. -->
+        <exclude name="Magento2.Security.IncludeFile"/>
+    </rule>
+
+    <!--
+        Per-file suppression for the two documented `ObjectManager::getInstance()`
+        graceful-degradation seams (#84). Adobe's MEQP scanner — and any reviewer
+        running `phpcs --standard=Magento2 .` manually — should see these two
+        files exempt from `Magento2.PHP.AvoidObjectManager` (and the related
+        Templates.ObjectManager rule, included defensively in case the rule's
+        scope ever broadens beyond `.phtml`).
+
+        The PHP files themselves carry per-line `// phpcs:ignore` directives so
+        the suppression also works without this dist file loaded.
+
+        DO NOT add new files to this list — any new occurrence of
+        `ObjectManager::getInstance()` should either be removed via constructor
+        DI or, if it is a genuine optional-dependency seam, justified in its own
+        issue + comment block first.
+    -->
+    <rule ref="Magento2.PHP.AvoidObjectManager">
+        <exclude-pattern>Check/Webhooks/WebhookSubscriptionReader\.php</exclude-pattern>
+        <exclude-pattern>Check/Operational/MessageQueueBacklogCheck\.php</exclude-pattern>
+    </rule>
+    <rule ref="Magento2.Templates.ObjectManager">
+        <exclude-pattern>Check/Webhooks/WebhookSubscriptionReader\.php</exclude-pattern>
+        <exclude-pattern>Check/Operational/MessageQueueBacklogCheck\.php</exclude-pattern>
+    </rule>
+</ruleset>

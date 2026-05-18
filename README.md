@@ -195,6 +195,81 @@ cron-monitoring tooling picks it up:
 Full documentation:
 [ironcart.dev/docs/scanner/continuous-monitoring](https://ironcart.dev/docs/scanner/continuous-monitoring).
 
+## Running scans asynchronously
+
+The admin **Run Scan Now** button (Stores → Ironcart → Scans → Run Scan
+Now) and the v4 continuous-monitoring cron both enqueue scans via
+Magento's DB message queue rather than running them inline. The queued
+row is created up-front so the admin grid shows it immediately, then a
+**queue consumer** picks it up and runs the actual checks.
+
+The consumer is named `ironcartScanRunConsumer` (declared in
+`etc/queue_consumer.xml`). Magento ships two supported ways to keep
+queue consumers draining — pick the one that fits your hosting:
+
+### Option A: foreground / supervisor worker
+
+```bash
+bin/magento queue:consumers:start ironcartScanRunConsumer
+```
+
+This runs the consumer as a long-lived process that picks up messages
+as soon as they're published. In production, wrap it in a supervisor
+(systemd unit, supervisord, pm2, etc.) so it restarts on failure.
+Example systemd unit:
+
+```ini
+[Service]
+ExecStart=/var/www/magento/bin/magento queue:consumers:start ironcartScanRunConsumer
+Restart=always
+User=www-data
+WorkingDirectory=/var/www/magento
+```
+
+### Option B: cron-driven (no extra processes)
+
+Magento's core `consumers_runner` cron job will start every declared
+consumer on every cron tick (default every minute), run it for a
+bounded number of messages, then exit. Enable it by ensuring the
+`cron_consumers_runner` configuration in `app/etc/env.php` is either
+absent or has `consumers_only` unset / containing
+`ironcartScanRunConsumer`:
+
+```php
+// app/etc/env.php
+'cron_consumers_runner' => [
+    'cron_run' => true,
+    'max_messages' => 1000,
+    // Leave 'consumers' unset to run all declared consumers, or include
+    // 'ironcartScanRunConsumer' explicitly if you keep an allowlist.
+    'consumers' => [
+        'ironcartScanRunConsumer',
+        // … other consumers you want to run
+    ],
+],
+```
+
+Confirm Magento's cron itself is running (`bin/magento cron:install` if
+not), then a fresh **Run Scan Now** click should flip from `QUEUED` to
+`SUCCEEDED` within one cron tick.
+
+### Detection: the stuck-QUEUED admin notice
+
+On installs where neither option above is in place — i.e. the consumer
+is never being driven — every **Run Scan Now** click leaves a row
+permanently at status `QUEUED` with an empty `Finished` column and
+all-zero severity totals. To stop that bug from being silent, the
+module fires an admin notice (severity MAJOR, visible in the admin
+notice bell) whenever it sees any `ironcart_scan_run` row whose status
+is `queued` and whose `started_at` is older than 60 seconds. The
+threshold is operator-tunable via
+`ironcart_scan/runtime/consumer_alert_threshold_seconds` (lower it to
+fire faster on a sluggish consumer; raise it if you have a chronically
+slow cron tick).
+
+The notice clears automatically the next time the queued rows drain to
+a terminal status.
+
 ## Compatibility
 
 - Magento 2.4.4, 2.4.5, 2.4.6, 2.4.7
