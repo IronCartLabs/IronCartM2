@@ -6,35 +6,64 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
-Adobe Marketplace EQP-readiness pass plus a v5 strategy reversal. No
-behaviour change for merchants — the admin "Run scan now" button
-continues to enqueue + poll exactly as before; the wiring just stops
-violating strict CSP, and the marketplace submission scanner stops
-failing on missing `i18n/en_US.csv` source-locale rows.
+## [1.3.0] - 2026-05-18
 
-### Reverted
+The v5 module wave. Folds Pro entitlement plumbing, Adobe EQP-readiness
+coverage, the deprecation-taxonomy revert (IC-060 + IC-070..073 stay in
+Free OSS forever), a batch of admin-UI fixes, and the no-pivot copy
+scrub into one tag. Strictly additive on top of `1.2.0` from the
+merchant install perspective — no removed or renamed CLI / class /
+config surface; upgrades are `composer update ironcartlabs/magento-scan
+&& bin/magento setup:upgrade`.
 
-- **Deprecation taxonomy for IC-060 + IC-070..073** ([#102](https://github.com/IronCartLabs/IronCartM2/issues/102), reverts [#90](https://github.com/IronCartLabs/IronCartM2/pull/90)). **IC-060, IC-070, IC-071, IC-072, IC-073 are NOT moving to a paid tier — disregard the v1.4.0 deprecation notice.** All 43 checks remain in free OSS. Pro (Recon subscription) gates delivery and enrichment, not check exclusivity. The deprecation registry (`Check/DeprecationRegistry.php`), admin-grid badge (`Ui/Component/Listing/Column/DeprecationBadge.php`), `--include-deprecated` CLI flag, stderr `[DEPRECATED]` notices, and the `schema_version` `v0`→`v1` bump are all removed. The per-finding `deprecated_in` / `removal_in` / `replacement` / `migration_url` fields are gone; non-deprecated findings remain byte-identical to v0 either way. Strategy reversal context: [IronCartWeb#1071 amendment](https://github.com/IronCartLabs/IronCartWeb/issues/1071#issuecomment-4474471830).
+### Added — Pro entitlement plumbing
+
+- **`ironcart_scan/license/blob` admin config + Ed25519 verifier** ([#111](https://github.com/IronCartLabs/IronCartM2/pull/111), closes [#103](https://github.com/IronCartLabs/IronCartM2/issues/103)). New admin field under **Stores → Configuration → Ironcart → Scan** accepts an opaque license blob; the runtime verifier validates the Ed25519 signature against the bundled `ironcart.dev` public key and exposes the parsed entitlement (tier, expiry, store fingerprint) to the rest of the module. Free OSS continues to run identically when no blob is present — the check pack is unchanged regardless of tier.
+- **Module-upgrade Pro callout after free-tier upload** ([#112](https://github.com/IronCartLabs/IronCartM2/pull/112), closes [#104](https://github.com/IronCartLabs/IronCartM2/issues/104)). After a successful free-tier upload, the CLI / admin surface renders a one-line callout pointing operators at the Recon subscription on `ironcart.dev/pricing`. Suppressed once a valid Pro entitlement is present.
+
+### Added — Adobe EQP coverage
+
+- **EQP gap audit for marketplace-mirror submission** ([#89](https://github.com/IronCartLabs/IronCartM2/pull/89), closes [#81](https://github.com/IronCartLabs/IronCartM2/issues/81)). New `docs/marketplace-eqp-audit.md` enumerates every Adobe EQP rule the module trips (or doesn't), with the per-item fix or documented seam. Re-walked on every release-readiness pass.
+- **MEQP suppression of documented `ObjectManager::getInstance()` seams** ([#94](https://github.com/IronCartLabs/IronCartM2/pull/94), closes [#84](https://github.com/IronCartLabs/IronCartM2/issues/84)). Two intentional seams (factory-style ACL gate, schema-version probe) are now annotated with `@SuppressWarnings(PHPMD)` and matching MEQP suppression markers, so marketplace submission no longer flags them.
+- **`i18n/en_US.csv` source locale** ([#95](https://github.com/IronCartLabs/IronCartM2/pull/95), closes [#86](https://github.com/IronCartLabs/IronCartM2/issues/86)). Source-locale translation file covering every `__()` call site and every `translate="…"` XML attribute in the module. Adobe Marketplace EQP's `MEQP2.Translation.MissingI18n` rule is a hard submission blocker without this. `bin/check-i18n.php` validator + new `i18n` CI job pin the invariant.
+- **`RunScanNowButton` inline-JS refactor + `etc/csp_whitelist.xml`** ([#96](https://github.com/IronCartLabs/IronCartM2/pull/96), closes [#85](https://github.com/IronCartLabs/IronCartM2/issues/85)). The admin "Run scan now" button moves from an `on_click` inline-JS handler to a declarative `data-mage-init` attribute resolved by Magento's `mage/apply` bootstrap. New `etc/csp_whitelist.xml` declares the module's outbound `connect-src` host (`ironcart.dev`) so admins running `system/csp/mode_admin = restrict_mode` keep IC-060 / `--upload` / cron functionality. Zero inline JS emitted by the module.
+- **i18n stubs for `de_DE`, `fr_FR`, `es_ES`, `nl_NL`** ([#113](https://github.com/IronCartLabs/IronCartM2/pull/113), closes [#108](https://github.com/IronCartLabs/IronCartM2/issues/108)). Machine-translated locale stubs across the four target languages; `MAGE_DEFAULT_LOCALE=de_DE` (etc.) flips CLI help text + admin grid copy to the active locale. JSON report stays locale-independent for downstream consumers.
+
+### Reverted — Deprecation taxonomy (un-deprecate IC-060, IC-070..073)
+
+- **Un-deprecate IC-060 + IC-070..073** ([#110](https://github.com/IronCartLabs/IronCartM2/pull/110), closes [#102](https://github.com/IronCartLabs/IronCartM2/issues/102), reverts [#90](https://github.com/IronCartLabs/IronCartM2/pull/90)). **IC-060, IC-070, IC-071, IC-072, IC-073 are NOT moving to a paid tier — disregard the v1.4.0 deprecation notice from PR #90.** All 43 checks remain in Free OSS. Pro (Recon subscription) gates delivery and enrichment, never check exclusivity. The deprecation registry (`Check/DeprecationRegistry.php`), admin-grid badge, `--include-deprecated` CLI flag, stderr `[DEPRECATED]` notices, and the `schema_version` `v0`→`v1` bump are all removed. The per-finding `deprecated_in` / `removal_in` / `replacement` / `migration_url` fields are gone; non-deprecated findings remain byte-identical to the v0 schema. Strategy context: [IronCartWeb#1071 amendment](https://github.com/IronCartLabs/IronCartWeb/issues/1071).
+- **Remove marketplace-mirror fork artifacts** ([#109](https://github.com/IronCartLabs/IronCartM2/pull/109), closes [#101](https://github.com/IronCartLabs/IronCartM2/issues/101), reverts [#88](https://github.com/IronCartLabs/IronCartM2/pull/88)). Single-package strategy per the v5 amendment: one canonical `ironcartlabs/magento-scan` on Packagist, no sibling package. Drops `package-marketplace/`, `bin/build-marketplace.php`, the `build-marketplace` / `check-marketplace-version` / `clean-marketplace` Makefile targets, and the marketplace branch of `.github/workflows/release-marketplace.yml`. The workflow itself is retained — it now publishes only the OSS Packagist parity tarball on tag (and remains the natural home for a future canonical-source Marketplace tarball if Adobe Marketplace is ever pursued). Underlying technical driver: Packagist's one-package-per-VCS-URL rule.
+
+### Fixed — Admin UI
+
+- **Severity totals: restore per-severity identity in empty circles** ([#98](https://github.com/IronCartLabs/IronCartM2/pull/98), closes [#93](https://github.com/IronCartLabs/IronCartM2/issues/93)). Empty severity circles in the run-detail header no longer collapse to a single all-grey indicator — each severity keeps its own neutral color so operators can scan the row at a glance.
+- **Scan detail: "Show all severities" toggle lifts the critical-only filter** ([#99](https://github.com/IronCartLabs/IronCartM2/pull/99), closes [#97](https://github.com/IronCartLabs/IronCartM2/issues/97)). _Superseded later in this release by #116 — see below._ Initial fix made the toggle actually clear the default-critical filter on the findings grid. The toggle is then removed entirely in #116 in favour of standard column filtering.
+- **Run Scan Now: scans no longer stuck QUEUED when no queue consumer is running** ([#100](https://github.com/IronCartLabs/IronCartM2/pull/100), closes [#92](https://github.com/IronCartLabs/IronCartM2/issues/92)). The admin notice (severity MAJOR) now fires whenever an `ironcart_scan_run` row stays `queued` past the operator-tunable `ironcart_scan/runtime/consumer_alert_threshold_seconds` threshold (default 60s). Notice clears automatically when the queue drains. Detection-only — operators still need to wire up `bin/magento queue:consumers:start ironcartScanRunConsumer` or `cron_consumers_runner`; the README ["Running scans asynchronously"](README.md#running-scans-asynchronously) section documents both paths.
+- **Scan detail grid: populate Detail column at persist time** ([#115](https://github.com/IronCartLabs/IronCartM2/pull/115), closes [#107](https://github.com/IronCartLabs/IronCartM2/issues/107)). `ScanRunConsumer::persistFinding()` now writes a flattened evidence + remediation-URL string into the `detail` column instead of `null`, so the run-detail grid renders something useful per row. `Report\FindingDetailFormatter` is a pure pipeline (no Magento types, unit-CI slice). Returns `null` when both evidence and remediation URL are empty so historical NULL rows keep rendering empty (no migration).
+- **Scan detail grid: replace severity toggle with standard column filtering** ([#116](https://github.com/IronCartLabs/IronCartM2/pull/116), closes [#106](https://github.com/IronCartLabs/IronCartM2/issues/106)). Drops the bespoke "Show all severities" / "Show critical only" header button and lets admins narrow findings via the standard Magento severity column filter (`<filter>select</filter>` with `SeverityOptions`). Supports multi-select naturally (critical+high together). Deletes `ShowAllSeveritiesButton.php`, `ShowAllFlag.php`, the `SHOW_ALL_PARAM` plumbing in `ScanFindingDataProvider`, and the BackendSession dependency on `Controller\Adminhtml\Scans\View`. Default behaviour: fresh navigation shows every finding for the run.
+
+### Changed — No-pivot copy scrub
+
+- **README + composer.json description / keywords** ([#114](https://github.com/IronCartLabs/IronCartM2/pull/114), closes [IronCartWeb#1093](https://github.com/IronCartLabs/IronCartWeb/issues/1093) child). Rewrite README + `composer.json` so the module reads as a steady-state product, not an evolving roadmap. Strip all `v0 scaffolding` / `v2 pack` / `v3 adds` / `v4 adds` / "Later stages" framing. README "Security" section reframed as a description of the current outbound surface (not a chronology). Upload section aligned with the canonical story (3 free lifetime uploads + Recon subscription for monitoring). `composer.json` description replaced with a single steady-state sentence; topical keywords array added for Packagist discovery.
 
 ### Changed
 
-- **`Ui/Component/Control/RunScanNowButton`** ([#85](https://github.com/IronCartLabs/IronCartM2/issues/85)). Refactored from an `on_click` inline-JS handler (`require([...], function (run) { run(<json>, <json>); });`) to a declarative `data-mage-init` attribute. The button provider now emits a `data_attribute` array carrying a JSON payload keyed at `IronCart_Scan/js/run-scan-now-init`; Magento's `mage/apply` bootstrap resolves the module on DOM ready and binds a regular `click` listener. The underlying `view/adminhtml/web/js/run-scan-now.js` module and its `runScanNow(runUrl, statusUrl)` public surface are unchanged, so the #77 polling-throttle regression suite (`MAX_INFLIGHT`, `inflightIds`, `tickInProgress`, `postInFlight`) keeps passing without modification.
-
-### Added
-
-- **`view/adminhtml/web/js/run-scan-now-init.js`** ([#85](https://github.com/IronCartLabs/IronCartM2/issues/85)). Thin shim that adapts the `data-mage-init` config object to the existing `IronCart_Scan/js/run-scan-now` module. Pulls `runUrl` / `statusUrl` out of the config, wires an `addEventListener('click', ...)` on the button element, and delegates. No new module surface, no inline JS, no URL building in the browser.
-- **`etc/csp_whitelist.xml`** ([#85](https://github.com/IronCartLabs/IronCartM2/issues/85), [EQP audit item 30](docs/marketplace-eqp-audit.md)). Declares the module's outbound `connect-src` host (`ironcart.dev`) so admins running `system/csp/mode_admin = restrict_mode` (enforced CSP) don't lose IC-060 / `--upload` / v4 cron functionality. No `script-src` entries are needed — after this refactor the module emits zero inline JS.
-- **`i18n/en_US.csv`** ([#86](https://github.com/IronCartLabs/IronCartM2/issues/86)). Source-locale translation file covering every `__()` call site and every `translate="…"` XML attribute in the module (44 phrases). Adobe Marketplace EQP's `MEQP2.Translation.MissingI18n` rule is a hard submission blocker without this; the file repeats each phrase as its own translation because en_US is the source locale. Format and authoring rules: [`docs/i18n.md`](./docs/i18n.md).
-- **`bin/check-i18n.php`** ([#86](https://github.com/IronCartLabs/IronCartM2/issues/86)). Build-time validator that re-scans the tree for translatable phrases and fails if any are missing from `i18n/en_US.csv`. Wired into CI as a new `i18n` job in `.github/workflows/ci.yml` so future PRs adding a `__()` or `translate=` literal without a CSV row fail at PR time, not at marketplace submission.
-
-### Removed
-
-- Reverted PR #88 marketplace-mirror skeleton; single-module strategy per IronCartWeb#1071 amendment 2026-05-18 ([#101](https://github.com/IronCartLabs/IronCartM2/issues/101)). Drops `package-marketplace/` (composer.json + README), `bin/build-marketplace.php`, the `build-marketplace` / `check-marketplace-version` / `clean-marketplace` Makefile targets, and the marketplace branch of `.github/workflows/release-marketplace.yml`. The workflow itself is retained — it now publishes only the OSS Packagist parity tarball on tag, and is the natural home for a future canonical-source Marketplace tarball if Adobe Marketplace is ever pursued. Packagist's one-package-per-VCS-URL rule means a second package can't ship from this repo anyway.
+- **`etc/module.xml` `setup_version`** bumped from `1.2.0` to `1.3.0`. Read at runtime to construct the `IronCart-Scan/<version>` User-Agent on outbound HTTP surfaces.
+- **`composer.json` `extra.module-version`** bumped from `1.2.0` to `1.3.0`. Kept in sync with `etc/module.xml`.
 
 ### Notes
 
-- The module-version constants (`etc/module.xml` `setup_version`, `composer.json` `extra.module-version`) are unchanged at `1.2.0`. The EQP-readiness changes plus the #90 revert ship in the next patch (`1.2.1` per semver — no behaviour change, no API change). The version bump and `[1.2.1]` heading land in the release PR, not here.
-- Verifies against EQP audit items 29 (inline JS on admin button), 30 (`etc/csp_whitelist.xml` absent), and the `MEQP2.Translation.MissingI18n` blocker in [`docs/marketplace-eqp-audit.md`](docs/marketplace-eqp-audit.md). The audit doc is a snapshot — it gets re-walked at the next release-readiness pass, not edited here.
+- No removed or renamed CLI commands, class names, config keys, or DI bindings _from the v1.2.0 baseline_. The deprecation taxonomy (`Check/DeprecationRegistry.php`, `--include-deprecated` flag, `schema_version` `v1`) shipped to `main` between v1.2.0 and v1.3.0 in PR #90 and was reverted in PR #110 before this tag — so installs upgrading from v1.2.0 → v1.3.0 see no exposure to the deprecation surface at all.
+- Pro entitlement is a strictly additive surface in this release: the verifier reads `ironcart_scan/license/blob`, exposes the parsed entitlement, and powers the Pro callout in #112. Recon subscription delivery + enrichment surfaces (notification fan-out, fused external scan, team management) ship from the `ironcart.dev` SaaS side — the OSS module remains read-only and free.
+- Tracking epic: [IronCartLabs/IronCartWeb#884](https://github.com/IronCartLabs/IronCartWeb/issues/884) (v5 module wave).
+
+### Install
+
+```
+composer require ironcartlabs/magento-scan:^1.3
+bin/magento module:enable IronCart_Scan
+bin/magento setup:upgrade
+```
 
 ## [1.2.0] - 2026-05-17
 
@@ -137,7 +166,8 @@ bin/magento module:enable IronCart_Scan
 bin/magento setup:upgrade
 ```
 
-[Unreleased]: https://github.com/IronCartLabs/IronCartM2/compare/v1.2.0...HEAD
+[Unreleased]: https://github.com/IronCartLabs/IronCartM2/compare/v1.3.0...HEAD
+[1.3.0]: https://github.com/IronCartLabs/IronCartM2/releases/tag/v1.3.0
 [1.2.0]: https://github.com/IronCartLabs/IronCartM2/releases/tag/v1.2.0
 [1.1.0]: https://github.com/IronCartLabs/IronCartM2/releases/tag/v1.1.0
 [1.0.0-alpha.1]: https://github.com/IronCartLabs/IronCartM2/releases/tag/v1.0.0-alpha.1
