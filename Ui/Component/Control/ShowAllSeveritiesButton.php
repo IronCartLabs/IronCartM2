@@ -13,8 +13,11 @@
  *
  * The button is a plain anchor (not a JS-driven form post) so the
  * toggle does not require a Knockout template. The route param flips
- * per-request only — no persistence — which matches the AC ("removes
- * the severity filter for the current session").
+ * per-page-render only — no persistence — which matches the AC
+ * ("removes the severity filter for the current session"). The
+ * detail-view controller mirrors the URL param into the admin
+ * session bucket so the grid's data-provider XHR can read it (see
+ * issue #97).
  *
  * @copyright Copyright (c) Ironcart (https://ironcart.dev)
  * @license   MIT
@@ -25,6 +28,7 @@ declare(strict_types=1);
 namespace IronCart\Scan\Ui\Component\Control;
 
 use IronCart\Scan\Ui\DataProvider\ScanFindingDataProvider;
+use IronCart\Scan\Ui\DataProvider\ShowAllFlag;
 use Magento\Framework\App\RequestInterface;
 use Magento\Framework\UrlInterface;
 use Magento\Framework\View\Element\UiComponent\Control\ButtonProviderInterface;
@@ -76,15 +80,17 @@ class ShowAllSeveritiesButton implements ButtonProviderInterface
     }
 
     /**
-     * Whether the current request has the showAll flag set. Kept in
-     * sync with {@see ScanFindingDataProvider::isShowAllRequested}.
+     * Whether the current page request URL is asking for the
+     * lifted-filter view. The button is rendered as part of the page
+     * response — same request scope as the detail-view controller —
+     * so the URL `?showAll` param is the authoritative source here.
+     * Delegates to {@see ShowAllFlag::isTruthy} so the truthy-rule
+     * stays in lockstep with the data provider's session reader.
      */
     private function isShowAllActive(): bool
     {
-        $param = $this->request->getParam(ScanFindingDataProvider::SHOW_ALL_PARAM);
-        if ($param === null || $param === '' || $param === '0' || $param === false) {
-            return false;
-        }
-        return true;
+        return ShowAllFlag::isTruthy(
+            $this->request->getParam(ScanFindingDataProvider::SHOW_ALL_PARAM)
+        );
     }
 }
