@@ -33,6 +33,14 @@ class ScanSession
 {
     private bool $includeUsernames = false;
 
+    /**
+     * Default of `true` is the v1.x announce-before-remove posture
+     * (issue #83): deprecated checks still run, the operator only sees a
+     * stderr notice telling them v2.0.0 will remove them. The flip to
+     * `false` lands in a separate v2.0.0 ticket — not this PR.
+     */
+    private bool $includeDeprecated = true;
+
     public function setIncludeUsernames(bool $value): void
     {
         $this->includeUsernames = $value;
@@ -41,5 +49,15 @@ class ScanSession
     public function includeUsernames(): bool
     {
         return $this->includeUsernames;
+    }
+
+    public function setIncludeDeprecated(bool $value): void
+    {
+        $this->includeDeprecated = $value;
+    }
+
+    public function includeDeprecated(): bool
+    {
+        return $this->includeDeprecated;
     }
 }

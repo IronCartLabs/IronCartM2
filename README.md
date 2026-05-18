@@ -50,12 +50,12 @@ The full v0 check inventory, in stable ID order:
 | IC-052 | high     | CodeSmell   | Dynamic `include`/`require` (variable path) — LFI / RFI vector |
 | IC-053 | high     | CodeSmell   | Shell execution from PHP (`shell_exec`, `exec`, backticks, …) |
 | IC-054 | critical | CodeSmell   | `preg_replace` with `/e` modifier — RCE vector |
-| IC-060 | varies   | Cve         | Composer package CVE cross-reference via `ironcart.dev/api/cve` proxy (opt-in, default OFF; severity from advisory CVSS v3 score) |
-| IC-061 | low      | Cve         | OSV cross-reference unavailable (IC-060 transport / parse failure fallback) |
-| [IC-070](https://ironcart.dev/docs/checks/IC-070) | high     | FileIntegrity | Core file SHA-256 differs from bundled reference manifest |
-| [IC-071](https://ironcart.dev/docs/checks/IC-071) | low      | FileIntegrity | Core file integrity manifest not available for this Magento version |
-| [IC-072](https://ironcart.dev/docs/checks/IC-072) | high     | FileIntegrity | `composer.lock` package `dist.shasum` differs from reference manifest |
-| [IC-073](https://ironcart.dev/docs/checks/IC-073) | low      | FileIntegrity | Composer integrity manifest not available for this Magento version |
+| IC-060 | varies   | Cve         | Composer package CVE cross-reference via `ironcart.dev/api/cve` proxy (opt-in, default OFF; severity from advisory CVSS v3 score) — **deprecated v1.3.0+, removed v2.0.0** |
+| IC-061 | low      | Cve         | OSV cross-reference unavailable (IC-060 transport / parse failure fallback) — **deprecated v1.3.0+, removed v2.0.0** |
+| [IC-070](https://ironcart.dev/docs/checks/IC-070) | high     | FileIntegrity | Core file SHA-256 differs from bundled reference manifest — **deprecated v1.3.0+, removed v2.0.0** |
+| [IC-071](https://ironcart.dev/docs/checks/IC-071) | low      | FileIntegrity | Core file integrity manifest not available for this Magento version — **deprecated v1.3.0+, removed v2.0.0** |
+| [IC-072](https://ironcart.dev/docs/checks/IC-072) | high     | FileIntegrity | `composer.lock` package `dist.shasum` differs from reference manifest — **deprecated v1.3.0+, removed v2.0.0** |
+| [IC-073](https://ironcart.dev/docs/checks/IC-073) | low      | FileIntegrity | Composer integrity manifest not available for this Magento version — **deprecated v1.3.0+, removed v2.0.0** |
 | IC-080 | high     | Runtime/Csp | Storefront response has no `Content-Security-Policy` header |
 | IC-081 | medium   | Runtime/Csp | CSP has no `report-uri` / `report-to` directive |
 | IC-082 | high     | Runtime/Csp | `script-src` (or `default-src` fallback) allows `'unsafe-inline'` / `'unsafe-eval'` |
@@ -70,6 +70,27 @@ The full v0 check inventory, in stable ID order:
 The v2 **CodeSmell** pack scans `<magento_root>/app/code/**/*.php` only. Composer-managed code under `vendor/` is covered by IC-001/IC-002; core code is covered by a separate file-integrity check.
 
 Remediation links follow the pattern `https://ironcart.dev/docs/checks/<ID>`.
+
+### Deprecated checks (v5 announce-before-remove)
+
+Starting in **v1.3.0** the IC-060 (OSV cross-reference) and IC-070..073 (file-integrity family) checks are deprecated in the OSS package and will be removed in **v2.0.0**, at which point they move to the `ironcartlabs/magento-scan-pro` package.
+
+While the OSS package is on v1.x:
+
+- The deprecated checks **still run by default** — there is no behaviour change. Existing reports keep the same findings.
+- Each ran deprecated check prints a one-line `[DEPRECATED]` notice to **stderr** (not stdout), so wrapping shell scripts that pipe the JSON report into `jq` are unaffected.
+- The JSON report adds optional `deprecated_in`, `removal_in`, `replacement`, and `migration_url` fields on each affected finding, plus a `summary.deprecated` count. Existing parsers that ignore unknown keys keep working — the report `schema_version` is bumped from `v0` to `v1` to advertise the addition.
+- The admin scan-run grid shows a `[deprecated]` chip on the `check_id` column for affected rows, linking to the migration doc.
+
+Opt out per run with:
+
+```bash
+bin/magento ironcart:scan --include-deprecated=false
+```
+
+This skips the deprecated checks entirely (they never instantiate their dependencies) and suppresses the stderr notice. The flag defaults to `true` in v1.x; the default flips to `false` in v2.0.0 when the deprecated checks move to the pro package.
+
+Full migration guide: [ironcart.dev/docs/scanner/migration-v5](https://ironcart.dev/docs/scanner/migration-v5/).
 
 ### Network access posture
 
@@ -173,6 +194,81 @@ cron-monitoring tooling picks it up:
 
 Full documentation:
 [ironcart.dev/docs/scanner/continuous-monitoring](https://ironcart.dev/docs/scanner/continuous-monitoring).
+
+## Running scans asynchronously
+
+The admin **Run Scan Now** button (Stores → Ironcart → Scans → Run Scan
+Now) and the v4 continuous-monitoring cron both enqueue scans via
+Magento's DB message queue rather than running them inline. The queued
+row is created up-front so the admin grid shows it immediately, then a
+**queue consumer** picks it up and runs the actual checks.
+
+The consumer is named `ironcartScanRunConsumer` (declared in
+`etc/queue_consumer.xml`). Magento ships two supported ways to keep
+queue consumers draining — pick the one that fits your hosting:
+
+### Option A: foreground / supervisor worker
+
+```bash
+bin/magento queue:consumers:start ironcartScanRunConsumer
+```
+
+This runs the consumer as a long-lived process that picks up messages
+as soon as they're published. In production, wrap it in a supervisor
+(systemd unit, supervisord, pm2, etc.) so it restarts on failure.
+Example systemd unit:
+
+```ini
+[Service]
+ExecStart=/var/www/magento/bin/magento queue:consumers:start ironcartScanRunConsumer
+Restart=always
+User=www-data
+WorkingDirectory=/var/www/magento
+```
+
+### Option B: cron-driven (no extra processes)
+
+Magento's core `consumers_runner` cron job will start every declared
+consumer on every cron tick (default every minute), run it for a
+bounded number of messages, then exit. Enable it by ensuring the
+`cron_consumers_runner` configuration in `app/etc/env.php` is either
+absent or has `consumers_only` unset / containing
+`ironcartScanRunConsumer`:
+
+```php
+// app/etc/env.php
+'cron_consumers_runner' => [
+    'cron_run' => true,
+    'max_messages' => 1000,
+    // Leave 'consumers' unset to run all declared consumers, or include
+    // 'ironcartScanRunConsumer' explicitly if you keep an allowlist.
+    'consumers' => [
+        'ironcartScanRunConsumer',
+        // … other consumers you want to run
+    ],
+],
+```
+
+Confirm Magento's cron itself is running (`bin/magento cron:install` if
+not), then a fresh **Run Scan Now** click should flip from `QUEUED` to
+`SUCCEEDED` within one cron tick.
+
+### Detection: the stuck-QUEUED admin notice
+
+On installs where neither option above is in place — i.e. the consumer
+is never being driven — every **Run Scan Now** click leaves a row
+permanently at status `QUEUED` with an empty `Finished` column and
+all-zero severity totals. To stop that bug from being silent, the
+module fires an admin notice (severity MAJOR, visible in the admin
+notice bell) whenever it sees any `ironcart_scan_run` row whose status
+is `queued` and whose `started_at` is older than 60 seconds. The
+threshold is operator-tunable via
+`ironcart_scan/runtime/consumer_alert_threshold_seconds` (lower it to
+fire faster on a sluggish consumer; raise it if you have a chronically
+slow cron tick).
+
+The notice clears automatically the next time the queued rows drain to
+a terminal status.
 
 ## Compatibility
 

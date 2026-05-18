@@ -31,3 +31,8 @@ ironcart-scan*.json
 .claude/settings.local.json
 .claude/scheduled_tasks.lock
 .claude/worktrees/
+
+# Marketplace build artifacts — produced by `make build-marketplace`.
+# The staged source tree, the composer-validate scratch space, and the
+# released tarball all land here; none of it belongs in git.
+/package-marketplace/build/

@@ -204,6 +204,42 @@ class AdminUiShapeTest extends TestCase
         }
     }
 
+    public function testFindingListingCheckIdColumnIsDecoratedWithDeprecationBadge(): void
+    {
+        // Issue #83 — admin grid must render a [deprecated] chip on rows
+        // whose check id is in the v5 deprecation set. The decoration is
+        // applied at the column class layer (not via a per-row template
+        // helper) so the badge survives even when admin operators
+        // customise their column visibility via the bookmark UI.
+        $xml = simplexml_load_file(self::FINDING_LISTING);
+        self::assertInstanceOf(SimpleXMLElement::class, $xml);
+
+        $checkIdColumn = null;
+        foreach ($xml->columns->column as $col) {
+            if ((string)$col['name'] === 'check_id') {
+                $checkIdColumn = $col;
+                break;
+            }
+        }
+        self::assertNotNull($checkIdColumn, 'finding-listing must declare a check_id column');
+        // String literal (not ::class) — DeprecationBadge extends a
+        // Magento UI Column type that's not on the unit-CI classpath
+        // (see "Generate vendor autoloader" step in .github/workflows/ci.yml).
+        // Class-existence is exercised by the integration-cell phpcs/phpstan.
+        self::assertSame(
+            'IronCart\Scan\Ui\Component\Listing\Column\DeprecationBadge',
+            (string)$checkIdColumn['class'],
+            'check_id column must be rendered through DeprecationBadge so deprecated rows get the chip'
+        );
+        // bodyTmpl=html — otherwise Magento HTML-escapes the chip markup
+        // and operators see literal <span> tags in the grid.
+        self::assertSame(
+            'ui/grid/cells/html',
+            (string)($checkIdColumn->settings->bodyTmpl ?? ''),
+            'check_id column must opt into the html bodyTmpl so the chip renders'
+        );
+    }
+
     public function testLayoutHandlesAttachUiComponents(): void
     {
         $pairs = [
