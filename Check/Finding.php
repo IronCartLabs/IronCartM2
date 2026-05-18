@@ -26,14 +26,6 @@ final class Finding
     /**
      * Build a finding array.
      *
-     * The deprecation fields (`deprecated_in`, `removal_in`, `replacement`,
-     * `migration_url`) are NEVER attached directly by callers — they are
-     * decorated centrally by {@see \IronCart\Scan\Report\ReportBuilder}
-     * via the {@see \IronCart\Scan\Check\DeprecationRegistry} lookup so a
-     * future re-keying of the registry can't drift across N call sites.
-     * Individual check classes should keep returning the v0 shape; the
-     * report layer enriches it.
-     *
      * @param string $id              Stable identifier — typically the check id, optionally suffixed
      * @param string $title           Short human-readable headline
      * @param string $severity        One of {@see Severity::ALL}

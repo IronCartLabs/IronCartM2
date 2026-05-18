@@ -6,7 +6,6 @@ namespace IronCart\Scan\Test\Unit\Check;
 
 use IronCart\Scan\Check\CheckInterface;
 use IronCart\Scan\Check\CheckRegistry;
-use IronCart\Scan\Check\DeprecationRegistry;
 use IronCart\Scan\Report\Severity;
 use PHPUnit\Framework\TestCase;
 
@@ -39,75 +38,6 @@ class CheckRegistryTest extends TestCase
     public function testEmptyRegistryReturnsEmptyArray(): void
     {
         self::assertSame([], (new CheckRegistry())->runAll());
-    }
-
-    public function testDeprecatedChecksRunByDefault(): void
-    {
-        // v1.x default — issue #83 announce-before-remove: deprecated
-        // checks still execute, the operator only sees a stderr notice.
-        $deprecated = $this->stubCheck([$this->finding('IC-060', Severity::HIGH, 'cve')]);
-        $live = $this->stubCheck([$this->finding('IC-001', Severity::HIGH, 'patch')]);
-
-        $registry = new CheckRegistry(
-            ['IC-060' => $deprecated, 'IC-001' => $live],
-            new DeprecationRegistry()
-        );
-
-        $findings = $registry->runAll();
-
-        self::assertCount(2, $findings);
-        self::assertSame(['IC-060'], $registry->lastRunDeprecatedKeys());
-    }
-
-    public function testIncludeDeprecatedFalseSkipsDeprecatedChecks(): void
-    {
-        // Operator opted out — the deprecated check is never instantiated,
-        // its run() is never called, and its findings never reach the
-        // report. The non-deprecated check is unaffected.
-        $deprecated = new class implements CheckInterface {
-            public int $runCalls = 0;
-
-            public function run(): array
-            {
-                $this->runCalls++;
-                return [];
-            }
-        };
-        $live = $this->stubCheck([$this->finding('IC-001', Severity::HIGH, 'patch')]);
-
-        $registry = new CheckRegistry(
-            ['IC-060' => $deprecated, 'IC-001' => $live],
-            new DeprecationRegistry()
-        );
-
-        $findings = $registry->runAll(includeDeprecated: false);
-
-        self::assertCount(1, $findings);
-        self::assertSame('IC-001', $findings[0]['id']);
-        self::assertSame(
-            0,
-            $deprecated->runCalls,
-            'IC-060 check must NOT run when --include-deprecated=false'
-        );
-        self::assertSame(
-            [],
-            $registry->lastRunDeprecatedKeys(),
-            'Skipped deprecated checks must not appear in the ran-list (otherwise '
-            . 'ScanCommand would emit a stderr notice for a check that did not run)'
-        );
-    }
-
-    public function testWithoutDeprecationRegistryFlagHasNoEffect(): void
-    {
-        // Backward-compatibility: legacy fixtures that don't wire the
-        // DeprecationRegistry must keep their v0 behaviour. The
-        // includeDeprecated flag becomes a no-op.
-        $a = $this->stubCheck([$this->finding('IC-060', Severity::HIGH, 'a1')]);
-        $registry = new CheckRegistry(['IC-060' => $a]);
-
-        $findings = $registry->runAll(includeDeprecated: false);
-
-        self::assertCount(1, $findings, 'No registry wired -> no filtering -> v0 behaviour preserved');
     }
 
     /**
