@@ -54,6 +54,22 @@
                 <enabled>0</enabled>
                 <schedule>0 3 * * *</schedule>
             </cron>
+            <!--
+                Issue #92 — Run-Scan-Now stuck-QUEUED operator notice.
+                `consumer_alert_threshold_seconds` is the age (in seconds)
+                an ironcart_scan_run row's started_at must exceed while
+                status=queued before the admin notice (wired via
+                etc/adminhtml/di.xml) fires. 60s is the default; lower it
+                if you want the warning to surface faster on a sluggish
+                consumer; raise it if you have a chronically slow cron
+                tick. Mirrored in
+                IronCart\Scan\Model\Notification\ConsumerStalledPredicate::DEFAULT_THRESHOLD_SECONDS
+                so the unit test can pin the boundary without consulting
+                the framework config layer.
+            -->
+            <runtime>
+                <consumer_alert_threshold_seconds>60</consumer_alert_threshold_seconds>
+            </runtime>
         </ironcart_scan>
     </default>
 </config>
