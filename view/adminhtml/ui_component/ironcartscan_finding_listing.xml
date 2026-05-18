@@ -63,9 +63,8 @@
     </listingToolbar>
 
     <columns name="ironcartscan_finding_listing_columns">
-        <column name="check_id" class="IronCart\Scan\Ui\Component\Listing\Column\DeprecationBadge" sortOrder="10">
+        <column name="check_id" sortOrder="10">
             <settings>
-                <bodyTmpl>ui/grid/cells/html</bodyTmpl>
                 <filter>text</filter>
                 <label translate="true">Check</label>
             </settings>

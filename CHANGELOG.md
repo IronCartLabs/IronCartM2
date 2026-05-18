@@ -6,11 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
-Adobe Marketplace EQP-readiness pass. No behaviour change for
-merchants — the admin "Run scan now" button continues to enqueue +
-poll exactly as before; the wiring just stops violating strict CSP,
-and the marketplace submission scanner stops failing on missing
-`i18n/en_US.csv` source-locale rows.
+Adobe Marketplace EQP-readiness pass plus a v5 strategy reversal. No
+behaviour change for merchants — the admin "Run scan now" button
+continues to enqueue + poll exactly as before; the wiring just stops
+violating strict CSP, and the marketplace submission scanner stops
+failing on missing `i18n/en_US.csv` source-locale rows.
+
+### Reverted
+
+- **Deprecation taxonomy for IC-060 + IC-070..073** ([#102](https://github.com/IronCartLabs/IronCartM2/issues/102), reverts [#90](https://github.com/IronCartLabs/IronCartM2/pull/90)). **IC-060, IC-070, IC-071, IC-072, IC-073 are NOT moving to a paid tier — disregard the v1.4.0 deprecation notice.** All 43 checks remain in free OSS. Pro (Recon subscription) gates delivery and enrichment, not check exclusivity. The deprecation registry (`Check/DeprecationRegistry.php`), admin-grid badge (`Ui/Component/Listing/Column/DeprecationBadge.php`), `--include-deprecated` CLI flag, stderr `[DEPRECATED]` notices, and the `schema_version` `v0`→`v1` bump are all removed. The per-finding `deprecated_in` / `removal_in` / `replacement` / `migration_url` fields are gone; non-deprecated findings remain byte-identical to v0 either way. Strategy reversal context: [IronCartWeb#1071 amendment](https://github.com/IronCartLabs/IronCartWeb/issues/1071#issuecomment-4474471830).
 
 ### Changed
 
@@ -25,51 +29,8 @@ and the marketplace submission scanner stops failing on missing
 
 ### Notes
 
-- The module-version constants (`etc/module.xml` `setup_version`, `composer.json` `extra.module-version`) are at `1.3.0` (bumped in the [1.3.0] release that ships the deprecation taxonomy). These EQP-readiness changes ship in the next patch (`1.3.1` per semver — no behaviour change, no API change). The version bump and `[1.3.1]` heading land in the release PR, not here.
+- The module-version constants (`etc/module.xml` `setup_version`, `composer.json` `extra.module-version`) are unchanged at `1.2.0`. The EQP-readiness changes plus the #90 revert ship in the next patch (`1.2.1` per semver — no behaviour change, no API change). The version bump and `[1.2.1]` heading land in the release PR, not here.
 - Verifies against EQP audit items 29 (inline JS on admin button), 30 (`etc/csp_whitelist.xml` absent), and the `MEQP2.Translation.MissingI18n` blocker in [`docs/marketplace-eqp-audit.md`](docs/marketplace-eqp-audit.md). The audit doc is a snapshot — it gets re-walked at the next release-readiness pass, not edited here.
-
-## [1.3.0] - 2026-05-18
-
-v5 announce-before-remove minor release. Adds the deprecation taxonomy and
-`--include-deprecated` CLI flag for the IC-060 (OSV cross-reference) and
-IC-070..073 (file-integrity family) checks that will move to
-`ironcartlabs/magento-scan-pro` in **v2.0.0**. Strictly additive: the
-deprecated checks still run by default, and the JSON report adds optional
-fields without removing or renaming any existing keys.
-
-### Added
-
-- **Deprecation taxonomy registry** ([#83](https://github.com/IronCartLabs/IronCartM2/issues/83)). New `Check/DeprecationRegistry.php` is the single source of truth for the v5 deprecation set (IC-060, IC-061, IC-070, IC-071, IC-072, IC-073) and their migration metadata (`deprecated_in`, `removal_in`, `replacement`, `migration_url`). Wired into `CheckRegistry` (filter), `ReportBuilder` (per-finding decoration), `ScanCommand` (stderr notice), and `Model/ScanRunConsumer` (admin-grid persistence) so the same contract reaches every operator surface.
-- **`--include-deprecated` CLI flag** ([#83](https://github.com/IronCartLabs/IronCartM2/issues/83)). New flag on `bin/magento ironcart:scan` controlling whether the deprecated check classes run. **Defaults to `true` in v1.x** (no breaking change). Pass `--include-deprecated=false` to skip them entirely (their classes never instantiate their domain dependencies). The flip to default-false lands in a separate v2.0.0 ticket.
-- **Stderr deprecation notice.** Each ran deprecated check emits a one-line `[DEPRECATED]` notice to STDERR (not stdout) naming the replacement package and pointing at the public migration doc. Operators piping `--format=json` into `jq` are unaffected.
-- **Report `schema_version` bumped from `v0` to `v1`.** The bump is **purely additive**:
-  - Each finding whose `id` is in the deprecation registry gains optional `deprecated_in`, `removal_in`, `replacement`, and `migration_url` keys. Non-deprecated findings are byte-identical to v0.
-  - The top-level `summary` map gains a single new key `deprecated` carrying the count of decorated findings.
-  - Parsers in the hosted backend that ignore unknown keys keep working unchanged.
-- **Admin grid `[deprecated]` badge.** New `Ui/Component/Listing/Column/DeprecationBadge.php` decorates the `check_id` column on the run-detail grid with a `[deprecated]` chip + tooltip linking the migration doc, for any row whose check id is in the deprecation registry.
-- **README "Deprecated checks (v5 announce-before-remove)" section** plus per-row `**deprecated v1.3.0+, removed v2.0.0**` annotations on the IC-060/IC-070..073 rows of the check inventory table.
-
-### Changed
-
-- **`Report/ReportBuilder.php` `SCHEMA_VERSION`** bumped from `'v0'` to `'v1'`. Documents the additive deprecation fields. The CI assertion in `.github/workflows/ci.yml` is updated to match.
-- **`etc/module.xml` `setup_version`** bumped from `1.2.0` to `1.3.0`.
-- **`composer.json` `extra.module-version`** bumped from `1.2.0` to `1.3.0`.
-- **`view/adminhtml/ui_component/ironcartscan_finding_listing.xml`** — the `check_id` column is now rendered through `DeprecationBadge` with `bodyTmpl=ui/grid/cells/html`. Untouched check ids continue to render unchanged.
-- **`Model/ScanRunConsumer.php`** persists the v1 deprecation envelope into the `ironcart_scan_finding.evidence_json` column under a `deprecation` key so the admin UI surfaces the chip without a schema column.
-
-### Notes
-
-- No removed / renamed CLI commands, class names, config keys, or DI bindings. Upgrade is `composer update ironcartlabs/magento-scan` + `bin/magento setup:upgrade`.
-- The deprecated check classes themselves (IC-060 / IC-070 / IC-072) are unchanged — their behaviour and findings are byte-identical to 1.2.0. Only the surrounding emission pipeline gained metadata.
-- Migration guide: <https://ironcart.dev/docs/scanner/migration-v5> — page may be a stub at the time the deprecation lands; the URL is reserved and won't 404. Filed as a separate `agent:content` follow-up.
-
-### Install
-
-```
-composer require ironcartlabs/magento-scan:^1.3
-bin/magento module:enable IronCart_Scan
-bin/magento setup:upgrade
-```
 
 ## [1.2.0] - 2026-05-17
 
@@ -172,8 +133,7 @@ bin/magento module:enable IronCart_Scan
 bin/magento setup:upgrade
 ```
 
-[Unreleased]: https://github.com/IronCartLabs/IronCartM2/compare/v1.3.0...HEAD
-[1.3.0]: https://github.com/IronCartLabs/IronCartM2/releases/tag/v1.3.0
+[Unreleased]: https://github.com/IronCartLabs/IronCartM2/compare/v1.2.0...HEAD
 [1.2.0]: https://github.com/IronCartLabs/IronCartM2/releases/tag/v1.2.0
 [1.1.0]: https://github.com/IronCartLabs/IronCartM2/releases/tag/v1.1.0
 [1.0.0-alpha.1]: https://github.com/IronCartLabs/IronCartM2/releases/tag/v1.0.0-alpha.1

@@ -32,7 +32,7 @@ class ReportRendererTest extends TestCase
         $this->assertSame('', $output->fetch(), 'JSON renderer must not write to the console.');
         $decoded = json_decode($rendered, true);
         $this->assertIsArray($decoded);
-        $this->assertSame('v1', $decoded['schema_version']);
+        $this->assertSame('v0', $decoded['schema_version']);
         $this->assertSame([], $decoded['findings']);
     }
 
