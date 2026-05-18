@@ -14,6 +14,30 @@ permissions:
   contents: read
 
 jobs:
+  i18n:
+    name: i18n CSV completeness (en_US)
+    # Adobe Marketplace EQP's MEQP2.Translation.MissingI18n rule is a
+    # hard submission blocker: every `__()` and `translate=` source
+    # phrase must have a row in i18n/en_US.csv. This job runs the same
+    # check the marketplace scanner does, so a missing phrase fails CI
+    # on the PR rather than at submission time.
+    #
+    # No Magento source needed — the checker only reads files inside
+    # the module tree, so the job is cheap and runs on every PR.
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@9e72090525849c5e82e596468b86eb55e9cc5401 # v2.32.0
+        with:
+          php-version: '8.2'
+          coverage: none
+
+      - name: Check i18n/en_US.csv covers every __() and translate= source
+        run: php bin/check-i18n.php
+
   lint:
     name: Lint (phpcs Magento2 + phpstan L6)
     runs-on: ubuntu-latest
