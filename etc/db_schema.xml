@@ -48,6 +48,8 @@
                 comment="When the run reached a terminal status (succeeded/failed). Null while queued/running."/>
         <column xsi:type="text" name="summary_json" nullable="true"
                 comment="Totals by severity for the v1 grid (JSON-encoded). Mirrors Report\ReportBuilder summary."/>
+        <column xsi:type="int" name="finding_count" unsigned="true" nullable="true"
+                comment="Total number of findings emitted by the run (sum across severities). Null while queued/running and for failed runs; populated once the consumer reaches a terminal succeeded state. Mirrors summary_json.finding_count but kept as a scalar so the admin grid can pushdown a numeric-range filter (issue #118)."/>
         <column xsi:type="timestamp" name="created_at" on_update="false" nullable="false" default="CURRENT_TIMESTAMP"
                 comment="Row creation timestamp."/>
         <column xsi:type="timestamp" name="updated_at" on_update="true" nullable="false" default="CURRENT_TIMESTAMP"

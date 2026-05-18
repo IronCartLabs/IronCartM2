@@ -99,7 +99,7 @@ class AdminUiShapeTest extends TestCase
         self::assertNotNull($columnsBlock, 'run-listing must declare a columns block');
 
         $names = $this->columnNames($columnsBlock);
-        foreach (['entity_id', 'status', 'triggered_by', 'started_at', 'finished_at', 'severity_totals'] as $col) {
+        foreach (['entity_id', 'status', 'triggered_by', 'started_at', 'finished_at', 'severity_totals', 'finding_count'] as $col) {
             self::assertContains($col, $names, "run-listing must include column `{$col}`");
         }
 
@@ -109,6 +109,99 @@ class AdminUiShapeTest extends TestCase
             $actionNames[] = (string)$action['name'];
         }
         self::assertContains('actions', $actionNames, 'run-listing must include per-row actions column');
+    }
+
+    /**
+     * @return array<string,array{string,string,string}>
+     */
+    public static function runListingFilterableColumnsProvider(): array
+    {
+        // Issue #118 AC: run-listing exposes column filters on at
+        // least: scan timestamp (date range), status (select),
+        // summary counts (numeric range). Each tuple is
+        // [columnName, expectedFilterType, expectedDataType].
+        return [
+            'status select filter'         => ['status',        'select',    'select'],
+            'started_at date range filter' => ['started_at',    'dateRange', 'date'],
+            'finished_at date range filter' => ['finished_at',  'dateRange', 'date'],
+            'finding_count numeric range'  => ['finding_count', 'textRange', 'text'],
+        ];
+    }
+
+    /**
+     * @dataProvider runListingFilterableColumnsProvider
+     */
+    public function testRunListingDeclaresFilterOnColumn(string $columnName, string $filter, string $dataType): void
+    {
+        $xml = simplexml_load_file(self::RUN_LISTING);
+        self::assertInstanceOf(SimpleXMLElement::class, $xml);
+
+        $column = null;
+        foreach ($xml->columns->column as $col) {
+            if ((string)$col['name'] === $columnName) {
+                $column = $col;
+                break;
+            }
+        }
+        self::assertNotNull($column, "run-listing must declare column `{$columnName}`");
+
+        self::assertSame(
+            $filter,
+            trim((string)$column->settings->filter),
+            "run-listing column `{$columnName}` must declare <filter>{$filter}</filter> (issue #118 AC)"
+        );
+        self::assertSame(
+            $dataType,
+            trim((string)$column->settings->dataType),
+            "run-listing column `{$columnName}` must declare <dataType>{$dataType}</dataType>"
+        );
+    }
+
+    /**
+     * @return array<string,array{string,string,string}>
+     */
+    public static function findingListingFilterableColumnsProvider(): array
+    {
+        // Issue #118 AC: finding-listing exposes column filters on at
+        // least: severity (select), check id (text), title (text),
+        // plus the existing dateRange on created_at. severity is
+        // pinned separately by
+        // testFindingListingSeverityColumnDeclaresStandardSelectFilter
+        // because it has additional <options> wiring to assert.
+        return [
+            'check_id text filter'      => ['check_id',   'text',      'text'],
+            'title text filter'         => ['title',      'text',      'text'],
+            'created_at date range'     => ['created_at', 'dateRange', 'date'],
+        ];
+    }
+
+    /**
+     * @dataProvider findingListingFilterableColumnsProvider
+     */
+    public function testFindingListingDeclaresFilterOnColumn(string $columnName, string $filter, string $dataType): void
+    {
+        $xml = simplexml_load_file(self::FINDING_LISTING);
+        self::assertInstanceOf(SimpleXMLElement::class, $xml);
+
+        $column = null;
+        foreach ($xml->columns->column as $col) {
+            if ((string)$col['name'] === $columnName) {
+                $column = $col;
+                break;
+            }
+        }
+        self::assertNotNull($column, "finding-listing must declare column `{$columnName}`");
+
+        self::assertSame(
+            $filter,
+            trim((string)$column->settings->filter),
+            "finding-listing column `{$columnName}` must declare <filter>{$filter}</filter> (issue #118 AC)"
+        );
+        self::assertSame(
+            $dataType,
+            trim((string)$column->settings->dataType),
+            "finding-listing column `{$columnName}` must declare <dataType>{$dataType}</dataType>"
+        );
     }
 
     public function testFindingListingBindsToScanFindingDataProvider(): void

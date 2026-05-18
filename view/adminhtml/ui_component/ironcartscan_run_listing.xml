@@ -122,6 +122,23 @@
             </settings>
         </column>
 
+        <!--
+         / Issue #118 — scalar `finding_count` exposed with a numeric
+         / `textRange` filter so admins can narrow runs by total finding
+         / volume (e.g. "show me runs that emitted ≥ 50 findings").
+         / Filter pushes down to a WHERE clause on the indexed column,
+         / not in-memory after fetch — see Setup/Patch/Data/
+         / BackfillFindingCounts.php for the historical-row backfill
+         / and Model/ScanRunConsumer::runScan() for the write path.
+        -->
+        <column name="finding_count" sortOrder="70">
+            <settings>
+                <filter>textRange</filter>
+                <dataType>text</dataType>
+                <label translate="true">Findings</label>
+            </settings>
+        </column>
+
         <actionsColumn name="actions" class="IronCart\Scan\Ui\Component\Listing\Column\ViewAction" sortOrder="100">
             <settings>
                 <indexField>entity_id</indexField>

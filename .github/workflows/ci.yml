@@ -129,6 +129,7 @@ jobs:
               - Report/ReportBuilder.php
               - Report/Severity.php
               - Report/FindingDetailFormatter.php
+              - Report/FindingCountExtractor.php
             excludePaths:
               - vendor
               - _m2-workspace
