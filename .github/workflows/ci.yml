@@ -109,6 +109,8 @@ jobs:
           # doesn't reference framework classes:
           #   - Report/ReportBuilder.php (array shape builder)
           #   - Report/Severity.php (constants-only)
+          #   - Report/FindingDetailFormatter.php (admin-grid detail
+          #     formatter, pure pipeline — no Magento types)
           #
           # Excluded paths reference classes that aren't on the autoload
           # classpath without `composer install` against repo.magento.com
@@ -126,6 +128,7 @@ jobs:
             paths:
               - Report/ReportBuilder.php
               - Report/Severity.php
+              - Report/FindingDetailFormatter.php
             excludePaths:
               - vendor
               - _m2-workspace

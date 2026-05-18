@@ -41,6 +41,7 @@ use IronCart\Scan\Check\CheckRegistry;
 use IronCart\Scan\Model\Message\ScanRunMessage;
 use IronCart\Scan\Model\ResourceModel\ScanFinding as ScanFindingResource;
 use IronCart\Scan\Model\ResourceModel\ScanRun as ScanRunResource;
+use IronCart\Scan\Report\FindingDetailFormatter;
 use IronCart\Scan\Report\ReportBuilder;
 use Magento\Framework\App\ProductMetadataInterface;
 use Magento\Framework\Serialize\Serializer\Json;
@@ -58,7 +59,8 @@ class ScanRunConsumer
         private readonly ReportBuilder $reportBuilder,
         private readonly ProductMetadataInterface $productMetadata,
         private readonly Json $serializer,
-        private readonly LoggerInterface $logger
+        private readonly LoggerInterface $logger,
+        private readonly FindingDetailFormatter $detailFormatter
     ) {
     }
 
@@ -175,13 +177,22 @@ class ScanRunConsumer
         $row->setCheckId((string)$finding['id']);
         $row->setSeverity((string)$finding['severity']);
         $row->setTitle((string)$finding['title']);
-        $row->setDetail(null);
 
         $evidence = $finding['evidence'] ?? null;
+        $remediationUrl = (string)($finding['remediation_url'] ?? '');
+
+        // Compute the admin-grid `detail` string from evidence +
+        // remediation URL. Per #107 AC: returns null when both are
+        // empty so historical NULL rows continue to render empty
+        // (no migration, no synthesised empty strings). Truncation is
+        // owned by ScanFindingDataProvider::truncate() — do not pre-
+        // truncate here.
+        $row->setDetail($this->detailFormatter->format($evidence, $remediationUrl));
+
         $row->setEvidenceJson(
             $evidence === null ? null : $this->serializer->serialize([
                 'evidence' => $evidence,
-                'remediation_url' => $finding['remediation_url'] ?? '',
+                'remediation_url' => $remediationUrl,
             ])
         );
         $this->scanFindingResource->save($row);
