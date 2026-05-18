@@ -25,6 +25,7 @@ declare(strict_types=1);
 namespace IronCart\Scan\Console\Command;
 
 use IronCart\Scan\Check\CheckRegistry;
+use IronCart\Scan\Check\License\UpgradeNagEmitter;
 use IronCart\Scan\Check\ScanSession;
 use IronCart\Scan\Check\Upload\UploadRunner;
 use IronCart\Scan\Check\Upload\UploadRunnerOutcome;
@@ -69,6 +70,7 @@ class ScanCommand extends Command
         private readonly CheckRegistry $checkRegistry,
         private readonly ScanSession $session,
         private readonly UploadRunner $uploadRunner,
+        private readonly ?UpgradeNagEmitter $upgradeNagEmitter = null,
         ?string $name = null
     ) {
         parent::__construct($name);
@@ -185,12 +187,26 @@ class ScanCommand extends Command
             $errorOutput->writeln('<error>' . $outcome->stderr . '</error>');
         }
 
-        return match ($outcome->exitCode) {
-            UploadRunnerOutcome::EXIT_OK => self::EXIT_OK,
-            // EXIT_MISCONFIGURED / EXIT_TRANSPORT / EXIT_SERVER all map to
-            // CLI failure — cron picks them up the same way.
-            default => $outcome->exitCode,
-        };
+        if ($outcome->exitCode === UploadRunnerOutcome::EXIT_OK) {
+            // #104 — free-tier Pro upgrade nag. Only the success path
+            // gets the nag; the 402 (`EXIT_QUOTA_EXCEEDED`) free-cap-
+            // reached path already prints its own upgrade message via
+            // the runner's stderr and would otherwise double-nag the
+            // operator. Suppressed entirely when a license blob is
+            // configured (regardless of whether it verifies — see
+            // {@see UpgradeNagEmitter} class docblock).
+            $nag = $this->upgradeNagEmitter?->cliMessage();
+            if ($nag !== null) {
+                $output->writeln($nag);
+            }
+
+            return self::EXIT_OK;
+        }
+
+        // EXIT_MISCONFIGURED / EXIT_TRANSPORT / EXIT_SERVER /
+        // EXIT_QUOTA_EXCEEDED all map to CLI failure — cron picks them
+        // up the same way.
+        return $outcome->exitCode;
     }
 
     /**

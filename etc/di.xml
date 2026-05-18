@@ -152,6 +152,28 @@
     <type name="IronCart\Scan\Check\License\LicenseConfig" shared="true"/>
 
     <!--
+        v5 — free-tier upload Pro-upgrade nag (#104).
+
+        Wires the optional `UpgradeNagEmitter` argument on the CLI
+        ScanCommand and the cron UploadScan. Both arguments default to
+        `null` in their respective constructors so existing test wiring
+        (and any hypothetical third-party DI override) keeps working;
+        the explicit injection here is what enables the nag in
+        production.
+
+        The emitter only ever fires when `ironcart_scan/license/blob`
+        is empty and the wrapping upload succeeded (HTTP 2xx). On the
+        CLI it appends a single stdout line; on cron it pushes an
+        adminhtml notification via `NotifierInterface`.
+    -->
+    <type name="IronCart\Scan\Check\License\UpgradeNagEmitter" shared="true"/>
+    <type name="IronCart\Scan\Console\Command\ScanCommand">
+        <arguments>
+            <argument name="upgradeNagEmitter" xsi:type="object">IronCart\Scan\Check\License\UpgradeNagEmitter</argument>
+        </arguments>
+    </type>
+
+    <!--
         v4 — continuous-monitoring cron (#64).
 
         The cron handler drives the same scan + upload pipeline as
@@ -185,6 +207,7 @@
     <type name="IronCart\Scan\Cron\UploadScan">
         <arguments>
             <argument name="logger" xsi:type="object">IronCartScanCronLogger</argument>
+            <argument name="upgradeNagEmitter" xsi:type="object">IronCart\Scan\Check\License\UpgradeNagEmitter</argument>
         </arguments>
     </type>
 </config>
