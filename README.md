@@ -255,6 +255,17 @@ a terminal status.
 - PHP 8.1, 8.2, 8.3
 - Adobe Commerce and Magento Open Source
 
+## Translations
+
+Bundled locales:
+
+- `en_US` — source
+- `de_DE`, `fr_FR`, `es_ES`, `nl_NL` — **machine-translated stubs**
+
+Set `MAGE_DEFAULT_LOCALE=de_DE` (or change **Stores → Configuration → General → Locale Options**) and the CLI help text plus the admin findings grid render in the active locale. The JSON report (`bin/magento ironcart:scan --format=json`) is locale-independent — finding `title` / `severity` are stable English so downstream consumers can grep them.
+
+Native-speaker refinements are welcome — see [CONTRIBUTING.md](CONTRIBUTING.md#translations).
+
 ## Local development
 
 Run `make sandbox` for a one-command Magento 2 install with this module

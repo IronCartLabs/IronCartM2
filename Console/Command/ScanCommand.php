@@ -78,37 +78,46 @@ class ScanCommand extends Command
 
     protected function configure(): void
     {
+        // Symfony Console's setDescription / addOption description fields
+        // accept plain strings, not Magento Phrase objects — Phrase has no
+        // `__toString()` exposure that round-trips cleanly through the
+        // console help renderer. We therefore cast the Magento `__()`
+        // Phrase to a string at the call site so the translated text lands
+        // on the right surface (CLI help) without breaking the framework
+        // contract. The CSV row is the bare source string.
         $this->setName(self::COMMAND_NAME)
-            ->setDescription('Run the Ironcart read-only Magento security scan.')
+            ->setDescription((string) __('Run the Ironcart read-only Magento security scan.'))
             ->addOption(
                 self::OPTION_FORMAT,
                 'f',
                 InputOption::VALUE_REQUIRED,
-                'Output format: json|text',
+                (string) __('Output format: json|text'),
                 self::FORMAT_JSON
             )
             ->addOption(
                 self::OPTION_OUTPUT,
                 'o',
                 InputOption::VALUE_REQUIRED,
-                'Write report to this file path instead of stdout',
+                (string) __('Write report to this file path instead of stdout'),
                 null
             )
             ->addOption(
                 self::OPTION_INCLUDE_USERNAMES,
                 null,
                 InputOption::VALUE_NONE,
-                'Include admin usernames in finding evidence. '
-                . 'Off by default — usernames are PII under the IronCartM2 v0 policy '
-                . 'and must be explicitly opted into per-run.'
+                // Single-string literal (no `.` concatenation): the i18n
+                // phrase collectors — both `bin/magento i18n:collect-phrases`
+                // and our build-time `bin/check-i18n.php` — pull only the
+                // first `T_CONSTANT_ENCAPSED_STRING` token after `__(`, so a
+                // `'foo' . 'bar'` expression would extract just `'foo'` and
+                // silently lose the rest of the phrase.
+                (string) __('Include admin usernames in finding evidence. Off by default — usernames are PII under the IronCartM2 v0 policy and must be explicitly opted into per-run.')
             )
             ->addOption(
                 self::OPTION_UPLOAD,
                 null,
                 InputOption::VALUE_NONE,
-                'After the scan completes, upload the report to ironcart.dev for hosted viewing. '
-                . 'Requires Stores → Configuration → Ironcart → Scan Upload → Enable, plus a token. '
-                . 'Off by default. See docs/UPLOAD.md.'
+                (string) __('After the scan completes, upload the report to ironcart.dev for hosted viewing. Requires Stores → Configuration → Ironcart → Scan Upload → Enable, plus a token. Off by default. See docs/UPLOAD.md.')
             );
     }
 
@@ -117,9 +126,14 @@ class ScanCommand extends Command
         try {
             $format = (string) $input->getOption(self::OPTION_FORMAT);
             if (!in_array($format, [self::FORMAT_JSON, self::FORMAT_TEXT], true)) {
+                // Wrap the entire sprintf template (not its result) so
+                // translators reorder %1 freely; the placeholder is the
+                // user-supplied --format value, kept verbatim. The
+                // surrounding <error> tag is a Symfony Console formatter
+                // directive, not user-visible content.
                 $output->writeln(sprintf(
-                    '<error>Unsupported --format value "%s". Use "json" or "text".</error>',
-                    $format
+                    '<error>%s</error>',
+                    (string) __('Unsupported --format value "%1". Use "json" or "text".', $format)
                 ));
 
                 return self::EXIT_FAILURE;
@@ -142,7 +156,10 @@ class ScanCommand extends Command
             $outputPath = $input->getOption(self::OPTION_OUTPUT);
             if (is_string($outputPath) && $outputPath !== '') {
                 $this->writeToFile($outputPath, $rendered);
-                $output->writeln(sprintf('<info>Report written to %s</info>', $outputPath));
+                $output->writeln(sprintf(
+                    '<info>%s</info>',
+                    (string) __('Report written to %1', $outputPath)
+                ));
             } elseif ($format === self::FORMAT_JSON) {
                 // Text format already streamed directly to the console.
                 $output->writeln($rendered);
@@ -158,7 +175,15 @@ class ScanCommand extends Command
 
             return self::EXIT_OK;
         } catch (Throwable $e) {
-            $output->writeln('<error>Ironcart scan failed: ' . $e->getMessage() . '</error>');
+            // The exception message is kept verbatim — those originate
+            // from PHP / Magento internals and stay English so
+            // operators can grep them across log aggregators. Only the
+            // wrapping label is translated.
+            $output->writeln(sprintf(
+                '<error>%s %s</error>',
+                (string) __('Ironcart scan failed:'),
+                $e->getMessage()
+            ));
 
             return self::EXIT_FAILURE;
         }
