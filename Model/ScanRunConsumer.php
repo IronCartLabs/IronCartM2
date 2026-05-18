@@ -131,16 +131,21 @@ class ScanRunConsumer
 
         $findings = $this->checkRegistry->runAll();
 
-        $runId = (int)$run->getId();
-        foreach ($findings as $finding) {
-            $this->persistFinding($runId, $finding);
-        }
-
         $report = $this->reportBuilder->build(
             magentoVersion: $this->productMetadata->getVersion(),
             magentoEdition: $this->productMetadata->getEdition(),
             findings: $findings
         );
+
+        // Persist the decorated findings (the v1 ReportBuilder enriches
+        // deprecated check ids with `deprecated_in` / `removal_in` /
+        // `replacement` / `migration_url`) so the admin scan-run grid
+        // can render the [deprecated] badge from a single per-finding
+        // source of truth — issue #83.
+        $runId = (int)$run->getId();
+        foreach ($report['findings'] as $finding) {
+            $this->persistFinding($runId, $finding);
+        }
 
         $finishedAt = $this->nowUtc();
         $run->setStatus(ScanRun::STATUS_SUCCEEDED);
@@ -160,13 +165,17 @@ class ScanRunConsumer
     /**
      * Persist a single finding row.
      *
-     * @param array{
-     *     id:string,
-     *     title:string,
-     *     severity:string,
-     *     evidence:mixed,
-     *     remediation_url:string
-     * } $finding
+     * The optional v1 deprecation fields (issue #83) — `deprecated_in`,
+     * `removal_in`, `replacement`, `migration_url` — are folded into the
+     * `evidence_json` payload under a `deprecation` envelope so the admin
+     * scan-run UI can surface the `[deprecated]` badge without a schema
+     * column. The presence/absence of the envelope is the single source
+     * of truth for "this row is deprecated" in admin renderings.
+     *
+     * @param array<string,mixed> $finding canonical finding shape (id, title,
+     *     severity, evidence, remediation_url) optionally with the v1
+     *     deprecation keys when the id is registered in
+     *     {@see \IronCart\Scan\Check\DeprecationRegistry}.
      */
     private function persistFinding(int $runId, array $finding): void
     {
@@ -178,12 +187,25 @@ class ScanRunConsumer
         $row->setDetail(null);
 
         $evidence = $finding['evidence'] ?? null;
-        $row->setEvidenceJson(
-            $evidence === null ? null : $this->serializer->serialize([
+        $hasDeprecation = isset($finding['deprecated_in']);
+
+        if ($evidence === null && !$hasDeprecation) {
+            $row->setEvidenceJson(null);
+        } else {
+            $payload = [
                 'evidence' => $evidence,
                 'remediation_url' => $finding['remediation_url'] ?? '',
-            ])
-        );
+            ];
+            if ($hasDeprecation) {
+                $payload['deprecation'] = [
+                    'deprecated_in' => (string)$finding['deprecated_in'],
+                    'removal_in' => (string)($finding['removal_in'] ?? ''),
+                    'replacement' => (string)($finding['replacement'] ?? ''),
+                    'migration_url' => (string)($finding['migration_url'] ?? ''),
+                ];
+            }
+            $row->setEvidenceJson($this->serializer->serialize($payload));
+        }
         $this->scanFindingResource->save($row);
     }
 

@@ -6,7 +6,7 @@
  * Implements `bin/magento ironcart:scan`, the entry point for the read-only
  * Magento security scanner. v0 wires the {@see CheckRegistry} so every
  * registered {@see \IronCart\Scan\Check\CheckInterface} contributes findings
- * into the canonical v0 JSON report — see
+ * into the canonical JSON report — see
  * {@link https://github.com/IronCartLabs/IronCartM2/issues/2}.
  *
  * The command is read-only by default. v2 added the IC-080..IC-085 CSP
@@ -15,6 +15,13 @@
  * configured-base-URL allow-list. v3 adds the optional, opt-in `--upload`
  * flag which POSTs the scan output to `ironcart.dev/api/scan/ingest` — see
  * {@link https://github.com/IronCartLabs/IronCartM2/issues/57}.
+ *
+ * **v5 announce-before-remove (issue #83).** Adds the `--include-deprecated`
+ * flag governing the IC-060 / IC-070..073 checks that will move to
+ * `ironcartlabs/magento-scan-pro` in v2.0.0. Default is `true` in v1.x:
+ * the checks still run and the command writes one stderr deprecation
+ * notice per ran deprecated check. The flip to default-false lands in a
+ * separate v2.0.0 ticket. See {@see DeprecationRegistry}.
  *
  * @copyright Copyright (c) Ironcart (https://ironcart.dev)
  * @license   MIT
@@ -25,6 +32,7 @@ declare(strict_types=1);
 namespace IronCart\Scan\Console\Command;
 
 use IronCart\Scan\Check\CheckRegistry;
+use IronCart\Scan\Check\DeprecationRegistry;
 use IronCart\Scan\Check\ScanSession;
 use IronCart\Scan\Check\Upload\UploadRunner;
 use IronCart\Scan\Check\Upload\UploadRunnerOutcome;
@@ -48,6 +56,7 @@ class ScanCommand extends Command
     public const OPTION_OUTPUT = 'output';
     public const OPTION_INCLUDE_USERNAMES = 'include-usernames';
     public const OPTION_UPLOAD = 'upload';
+    public const OPTION_INCLUDE_DEPRECATED = 'include-deprecated';
 
     public const FORMAT_JSON = 'json';
     public const FORMAT_TEXT = 'text';
@@ -69,6 +78,7 @@ class ScanCommand extends Command
         private readonly CheckRegistry $checkRegistry,
         private readonly ScanSession $session,
         private readonly UploadRunner $uploadRunner,
+        private readonly ?DeprecationRegistry $deprecations = null,
         ?string $name = null
     ) {
         parent::__construct($name);
@@ -105,8 +115,18 @@ class ScanCommand extends Command
                 null,
                 InputOption::VALUE_NONE,
                 'After the scan completes, upload the report to ironcart.dev for hosted viewing. '
-                . 'Requires Stores → Configuration → Ironcart → Scan Upload → Enable, plus a token. '
+                . 'Requires Stores > Configuration > Ironcart > Scan Upload > Enable, plus a token. '
                 . 'Off by default. See docs/UPLOAD.md.'
+            )
+            ->addOption(
+                self::OPTION_INCLUDE_DEPRECATED,
+                null,
+                InputOption::VALUE_REQUIRED,
+                'Run deprecated checks (IC-060, IC-070..073). Default: true in v1.x. '
+                . 'Pass "false" to skip them and silence the per-check deprecation notice. '
+                . 'The default flips to false in v2.0.0, when the deprecated checks move to '
+                . 'ironcartlabs/magento-scan-pro. See https://ironcart.dev/docs/scanner/migration-v5/.',
+                'true'
             );
     }
 
@@ -127,7 +147,15 @@ class ScanCommand extends Command
                 (bool) $input->getOption(self::OPTION_INCLUDE_USERNAMES)
             );
 
-            $findings = $this->checkRegistry->runAll();
+            $includeDeprecated = $this->parseBooleanOption(
+                $input->getOption(self::OPTION_INCLUDE_DEPRECATED),
+                true
+            );
+            $this->session->setIncludeDeprecated($includeDeprecated);
+
+            $findings = $this->checkRegistry->runAll($includeDeprecated);
+
+            $this->emitDeprecationNotices($output);
 
             $report = $this->reportBuilder->build(
                 magentoVersion: $this->productMetadata->getVersion(),
@@ -160,6 +188,60 @@ class ScanCommand extends Command
 
             return self::EXIT_FAILURE;
         }
+    }
+
+    /**
+     * Emit one stderr notice per deprecated check that actually ran during
+     * {@see CheckRegistry::runAll()}. Quiet when no deprecated check ran
+     * (e.g. operator passed `--include-deprecated=false`, or the
+     * deprecation registry is not wired).
+     *
+     * stderr is the right channel — operators piping the JSON report into
+     * jq must not see the notice in stdout, and Magento cron captures both
+     * channels into its log so the warning still lands in `var/log/`.
+     */
+    private function emitDeprecationNotices(OutputInterface $output): void
+    {
+        if ($this->deprecations === null) {
+            return;
+        }
+        $ran = $this->checkRegistry->lastRunDeprecatedKeys();
+        if ($ran === []) {
+            return;
+        }
+        $errorOutput = method_exists($output, 'getErrorOutput')
+            ? $output->getErrorOutput()
+            : $output;
+        foreach ($ran as $registryKey) {
+            $errorOutput->writeln('<comment>' . $this->deprecations->notice($registryKey) . '</comment>');
+        }
+    }
+
+    /**
+     * Parse a `true|false|1|0|yes|no` string-shaped CLI option.
+     *
+     * Symfony's `VALUE_REQUIRED` returns a string regardless of input;
+     * we normalise it ourselves so `--include-deprecated=false` and
+     * `--include-deprecated=0` both work as expected.
+     *
+     * Unrecognised values fall back to `$default` rather than throwing
+     * — a bad value should not fail the scan, just preserve current
+     * behaviour. v1.x default is `true` so a typo errs on the side of
+     * running the deprecated checks (and emitting the notice).
+     */
+    private function parseBooleanOption(mixed $raw, bool $default): bool
+    {
+        if (is_bool($raw)) {
+            return $raw;
+        }
+        if (!is_string($raw)) {
+            return $default;
+        }
+        return match (strtolower(trim($raw))) {
+            'true', '1', 'yes', 'on' => true,
+            'false', '0', 'no', 'off' => false,
+            default => $default,
+        };
     }
 
     /**

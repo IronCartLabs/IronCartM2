@@ -425,7 +425,7 @@ jobs:
           with open('scan.json') as f:
               data = json.load(f)
           assert isinstance(data, dict), 'top-level must be object'
-          assert data.get('schema_version') == 'v0', f'schema_version: {data.get("schema_version")}'
+          assert data.get('schema_version') == 'v1', f'schema_version: {data.get("schema_version")}'
           assert 'findings' in data and isinstance(data['findings'], list)
           assert 'summary' in data and isinstance(data['summary'], dict)
           # IC-072 — composer-lock integrity. A clean sandbox install must
@@ -646,7 +646,7 @@ jobs:
           with open('scan.json') as f:
               data = json.load(f)
           assert isinstance(data, dict), 'top-level must be object'
-          assert data.get('schema_version') == 'v0', f'schema_version: {data.get("schema_version")}'
+          assert data.get('schema_version') == 'v1', f'schema_version: {data.get("schema_version")}'
           assert 'findings' in data and isinstance(data['findings'], list)
           assert 'summary' in data and isinstance(data['summary'], dict)
           # IC-072 — composer-lock integrity. A clean sandbox install must
