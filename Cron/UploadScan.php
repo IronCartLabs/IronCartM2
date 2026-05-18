@@ -40,6 +40,7 @@ declare(strict_types=1);
 namespace IronCart\Scan\Cron;
 
 use IronCart\Scan\Check\CheckRegistry;
+use IronCart\Scan\Check\License\UpgradeNagEmitter;
 use IronCart\Scan\Check\Upload\UploadRunner;
 use IronCart\Scan\Check\Upload\UploadRunnerOutcome;
 use Magento\Framework\App\Config\ScopeConfigInterface;
@@ -85,7 +86,8 @@ class UploadScan
         private readonly ScopeConfigInterface $scopeConfig,
         private readonly CheckRegistry $checkRegistry,
         private readonly UploadRunner $uploadRunner,
-        private readonly LoggerInterface $logger
+        private readonly LoggerInterface $logger,
+        private readonly ?UpgradeNagEmitter $upgradeNagEmitter = null
     ) {
     }
 
@@ -158,6 +160,15 @@ class UploadScan
                         'IronCart_Scan: cron upload succeeded (no view_url returned).'
                     );
                 }
+                // #104 — surface the free-tier Pro upgrade nag in the
+                // adminhtml notification dropdown after a successful
+                // unlicensed upload. Cron is the canonical admin-
+                // triggered upload path (the "Run scan now" button
+                // only enqueues into the DB queue and never uploads),
+                // so this is where the AC's "Magento admin notice"
+                // requirement is satisfied. Suppressed entirely when
+                // a license blob is configured.
+                $this->upgradeNagEmitter?->pushAdminNotice();
                 return;
 
             case UploadRunnerOutcome::EXIT_QUOTA_EXCEEDED:
