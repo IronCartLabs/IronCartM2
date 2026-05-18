@@ -6,11 +6,14 @@
  / Admin grid for `ironcart_scan_finding` rows scoped to a single
  / scan run via the `id` route param.
  /
- / Severity filter defaults to `severity IN (critical)` — applied at
- / the data-provider layer (see ScanFindingDataProvider), NOT here as
- / a `<filter>` default, so admin users cannot accidentally persist a
- / different default via the bookmark UI. The "Show all severities"
- / header button toggles a per-request `?showAll=1` route param.
+ / Severity filtering uses the standard Magento column-filter UI on
+ / the `severity` column (`<filter>select</filter>` with
+ / `SeverityOptions`). No default severity filter is applied — the
+ / grid renders all findings for the run on first load, and admins
+ / narrow the view via the column-filter chip (or bookmark a
+ / preferred view). The previous bespoke "Show all severities"
+ / header button was removed in issue #106 because column filtering
+ / is the idiomatic Magento UX and supports multi-select naturally.
  /
  / Columns: check_id, severity (badge), title, detail (truncated),
  / created_at.
@@ -21,11 +24,6 @@
     <argument name="data" xsi:type="array">
         <item name="js_config" xsi:type="array">
             <item name="provider" xsi:type="string">ironcartscan_finding_listing.ironcartscan_finding_listing_data_source</item>
-        </item>
-        <item name="buttons" xsi:type="array">
-            <item name="show_all_severities" xsi:type="string">
-                IronCart\Scan\Ui\Component\Control\ShowAllSeveritiesButton
-            </item>
         </item>
     </argument>
 

@@ -42,8 +42,6 @@
 "Sends package name + version only. No domain, admin user, IP, or store identifier. The destination host is pinned to ironcart.dev.","Sendet nur Paketname + Version. Keine Domain, kein Admin-Benutzer, keine IP und keine Shop-Kennung. Der Ziel-Host ist auf ironcart.dev festgelegt."
 "Severity","Schweregrad"
 "Severity Totals","Schweregrad-Summen"
-"Show all severities","Alle Schweregrade anzeigen"
-"Show critical only","Nur kritisch anzeigen"
 "Standard crontab string consumed by Magento's cron framework. Default: <code>0 3 * * *</code> (daily at 03:00 store-server time). Examples:<br/> <code>0 */6 * * *</code> — every 6 hours.<br/> <code>0 2 * * 1</code> — Mondays at 02:00.<br/> Magento re-reads this value at the start of each cron tick; no <code>cron:install</code> reboot is required after a change. The schedule only fires when <em>Enable scheduled scan + upload</em> above is set to Yes.","Standard-Crontab-Zeichenfolge, die vom Cron-Framework von Magento verarbeitet wird. Standard: <code>0 3 * * *</code> (täglich um 03:00 Shop-Server-Zeit). Beispiele:<br/> <code>0 */6 * * *</code> — alle 6 Stunden.<br/> <code>0 2 * * 1</code> — montags um 02:00.<br/> Magento liest diesen Wert zu Beginn jedes Cron-Ticks neu ein; nach einer Änderung ist kein <code>cron:install</code>-Neustart erforderlich. Der Zeitplan wird nur ausgelöst, wenn <em>Geplanten Scan + Upload aktivieren</em> oben auf Ja gesetzt ist."
 "Started","Gestartet"
 "Status","Status"

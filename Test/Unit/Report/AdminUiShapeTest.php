@@ -31,7 +31,7 @@ namespace IronCart\Scan\Test\Unit\Report;
 
 use IronCart\Scan\Model\ResourceModel\ScanFinding\Collection as ScanFindingCollection;
 use IronCart\Scan\Model\ResourceModel\ScanRun\Collection as ScanRunCollection;
-use IronCart\Scan\Ui\Component\Control\ShowAllSeveritiesButton;
+use IronCart\Scan\Ui\Component\Listing\Column\Options\SeverityOptions;
 use IronCart\Scan\Ui\DataProvider\ScanFindingDataProvider;
 use IronCart\Scan\Ui\DataProvider\ScanRunDataProvider;
 use Magento\Framework\View\Element\UiComponent\DataProvider\CollectionFactory as UiCollectionFactory;
@@ -124,35 +124,64 @@ class AdminUiShapeTest extends TestCase
         );
     }
 
-    public function testFindingListingDeclaresShowAllSeveritiesButton(): void
+    public function testFindingListingSeverityColumnDeclaresStandardSelectFilter(): void
     {
+        // AC (issue #106): the bespoke "Show all severities" header
+        // button is gone — admins narrow the grid via the standard
+        // Magento column-filter UI on the severity column. The
+        // column must therefore still declare `<filter>select</filter>`
+        // backed by `SeverityOptions`. Anyone stripping the filter
+        // type or switching to a different options source would break
+        // the only severity-narrowing affordance the v1 grid has.
         $xml = simplexml_load_file(self::FINDING_LISTING);
         self::assertInstanceOf(SimpleXMLElement::class, $xml);
 
-        $buttons = [];
+        $severity = null;
+        foreach ($xml->columns->column as $col) {
+            if ((string)$col['name'] === 'severity') {
+                $severity = $col;
+                break;
+            }
+        }
+        self::assertNotNull($severity, 'finding-listing must declare a severity column');
+
+        self::assertSame(
+            'select',
+            trim((string)$severity->settings->filter),
+            'severity column must declare <filter>select</filter> so the standard dropdown filter renders'
+        );
+
+        $options = $severity->settings->options ?? null;
+        self::assertNotNull($options, 'severity column must declare an <options> source');
+        self::assertSame(
+            SeverityOptions::class,
+            (string)$options['class'],
+            'severity dropdown must be backed by SeverityOptions'
+        );
+    }
+
+    public function testFindingListingDeclaresNoBespokeHeaderButtons(): void
+    {
+        // Regression guard for issue #106: no `<item name="buttons">`
+        // block on the finding-listing argument. The replacement UX
+        // is the standard column filter — anything reintroducing a
+        // header button here is almost certainly a revert.
+        $xml = simplexml_load_file(self::FINDING_LISTING);
+        self::assertInstanceOf(SimpleXMLElement::class, $xml);
+
         foreach ($xml->argument as $arg) {
             if ((string)$arg['name'] !== 'data') {
                 continue;
             }
             foreach ($arg->item as $item) {
-                if ((string)$item['name'] !== 'buttons') {
-                    continue;
-                }
-                foreach ($item->item as $btn) {
-                    $buttons[(string)$btn['name']] = trim((string)$btn);
-                }
+                self::assertNotSame(
+                    'buttons',
+                    (string)$item['name'],
+                    'finding-listing must not declare a header-buttons block (issue #106)'
+                );
             }
         }
-
-        self::assertArrayHasKey(
-            'show_all_severities',
-            $buttons,
-            'finding-listing must declare a show_all_severities button'
-        );
-        self::assertSame(
-            ShowAllSeveritiesButton::class,
-            $buttons['show_all_severities']
-        );
+        $this->addToAssertionCount(1);
     }
 
     public function testFindingListingDoesNotBakeSeverityFilterDefaultIntoXml(): void
