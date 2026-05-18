@@ -85,6 +85,9 @@ jobs:
           # doesn't reference framework classes:
           #   - Report/ReportBuilder.php (array shape builder)
           #   - Report/Severity.php (constants-only)
+          #   - Check/DeprecationRegistry.php (issue #83, pure-PHP map +
+          #     helpers; imported by ReportBuilder so phpstan needs it on
+          #     the classpath to resolve the constructor type-hint)
           #
           # Excluded paths reference classes that aren't on the autoload
           # classpath without `composer install` against repo.magento.com
@@ -102,6 +105,7 @@ jobs:
             paths:
               - Report/ReportBuilder.php
               - Report/Severity.php
+              - Check/DeprecationRegistry.php
             excludePaths:
               - vendor
               - _m2-workspace
@@ -425,7 +429,7 @@ jobs:
           with open('scan.json') as f:
               data = json.load(f)
           assert isinstance(data, dict), 'top-level must be object'
-          assert data.get('schema_version') == 'v0', f'schema_version: {data.get("schema_version")}'
+          assert data.get('schema_version') == 'v1', f'schema_version: {data.get("schema_version")}'
           assert 'findings' in data and isinstance(data['findings'], list)
           assert 'summary' in data and isinstance(data['summary'], dict)
           # IC-072 — composer-lock integrity. A clean sandbox install must
@@ -646,7 +650,7 @@ jobs:
           with open('scan.json') as f:
               data = json.load(f)
           assert isinstance(data, dict), 'top-level must be object'
-          assert data.get('schema_version') == 'v0', f'schema_version: {data.get("schema_version")}'
+          assert data.get('schema_version') == 'v1', f'schema_version: {data.get("schema_version")}'
           assert 'findings' in data and isinstance(data['findings'], list)
           assert 'summary' in data and isinstance(data['summary'], dict)
           # IC-072 — composer-lock integrity. A clean sandbox install must
