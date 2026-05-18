@@ -1,0 +1,174 @@
+name: Release — dual artifact (OSS + Marketplace)
+
+# Dual-release pipeline. Fires on any tag matching `v*.*.*` and produces:
+#
+#   1. The OSS Packagist artifact (`composer archive` against the root
+#      composer.json). Packagist itself still pulls the canonical OSS
+#      release directly from the git tag — this archive is uploaded to
+#      the GitHub Release for parity and so any packaging regression
+#      surfaces here, not after Packagist has already mirrored a bad
+#      tarball.
+#
+#   2. The Adobe Commerce Marketplace artifact, built by
+#      `make build-marketplace` (which wraps `php bin/build-marketplace.php`).
+#      The script enforces version-skew protection: etc/module.xml
+#      `setup_version`, root composer.json `extra.module-version`, and
+#      `package-marketplace/composer.json` `extra.module-version` must
+#      all agree with the tag being released, or the build fails.
+#
+# Both artifacts are attached to the GitHub Release for download. Adobe
+# Marketplace submission itself is a manual upload via the partner
+# dashboard — wiring that into CI is out of scope for v5 Q1 and lands
+# in a separate ticket once the EQP audit clears.
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  # Allow manual dry-runs from the Actions UI for testing the dual build
+  # without cutting a real release. `release` step skips the upload when
+  # this trigger fires (see `if:` guard below).
+  workflow_dispatch:
+    inputs:
+      dry_run_version:
+        description: >-
+          Version string to validate against (e.g. `1.2.0`). Used to
+          exercise the version-skew check + tarball build without
+          cutting a real release. Leave blank to use the current
+          etc/module.xml setup_version verbatim.
+        required: false
+        type: string
+        default: ''
+
+# Default to read-only. Only the `release` step elevates to
+# `contents: write` to upload assets.
+permissions:
+  contents: read
+
+concurrency:
+  group: release-marketplace-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build dual artifacts
+    runs-on: ubuntu-latest
+    permissions:
+      # `contents: write` is needed by softprops/action-gh-release to
+      # attach the tarballs to the Release. The build steps themselves
+      # only need read access.
+      contents: write
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Setup PHP 8.3
+        # PHP 8.3 because it is the highest supported runtime in the
+        # module's CI matrix (matches the `integration` cell in
+        # .github/workflows/ci.yml). Composer 2 + the build script
+        # itself only use stdlib (simplexml, json), so any PHP in the
+        # 8.1-8.3 band would also work.
+        uses: shivammathur/setup-php@9e72090525849c5e82e596468b86eb55e9cc5401 # v2.32.0
+        with:
+          php-version: '8.3'
+          tools: composer:v2
+          extensions: dom, json, mbstring, simplexml, xml
+          coverage: none
+
+      - name: Derive release version
+        id: version
+        # Tag pushes produce GITHUB_REF=refs/tags/vX.Y.Z. Strip the
+        # leading `refs/tags/` and the `v` so the rest of the workflow
+        # has a clean semver to work with. workflow_dispatch falls
+        # back to the input, then to the canonical setup_version.
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event_name }}" = "push" ]; then
+            tag="${GITHUB_REF#refs/tags/}"
+          elif [ -n "${{ github.event.inputs.dry_run_version }}" ]; then
+            tag="v${{ github.event.inputs.dry_run_version }}"
+          else
+            tag="v$(php -r '
+              $xml = simplexml_load_file("etc/module.xml");
+              echo (string)$xml->module["setup_version"];
+            ')"
+          fi
+          version="${tag#v}"
+          echo "tag=${tag}" >> "${GITHUB_OUTPUT}"
+          echo "version=${version}" >> "${GITHUB_OUTPUT}"
+          echo "Releasing tag=${tag} version=${version}"
+
+      - name: Validate root composer.json
+        # `--strict` catches missing keys, malformed semver constraints,
+        # and license-string typos. `--no-check-publish` because the
+        # OSS package's homepage / authors / description fields are
+        # already adequate for Packagist; strict-publish complains
+        # about a missing `version` field, which is intentionally
+        # absent (Packagist derives it from the git tag).
+        run: composer validate --strict --no-check-publish
+
+      - name: Validate marketplace composer.json
+        # Same flags as the OSS validate — the marketplace package's
+        # version is also derived from the git tag via the build
+        # script, so a `version` key in the JSON would be a smell.
+        run: composer validate --strict --no-check-publish --working-dir=package-marketplace
+
+      - name: Pre-flight version-skew check (build script)
+        # Fast fail if the OSS bump landed but the marketplace
+        # composer.json was not bumped in lockstep. The full build
+        # below would catch this too, but this step makes the failure
+        # message land at the top of the workflow log instead of
+        # buried in the staging output.
+        env:
+          IRONCART_RELEASE_TAG: ${{ steps.version.outputs.tag }}
+        run: php bin/build-marketplace.php --check-only
+
+      - name: Build OSS Packagist artifact
+        # `composer archive` honors the root composer.json's
+        # `archive.exclude` rules (and falls back to .gitattributes
+        # `export-ignore` when not set). The resulting tarball is
+        # what Packagist would serve if asked for this tag — uploading
+        # it to the Release lets downstream tooling diff against the
+        # Packagist mirror later.
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          set -euo pipefail
+          mkdir -p build/oss
+          composer archive --format=tar.gz --dir=build/oss --file="ironcartlabs-magento-scan-${VERSION}"
+          ls -la build/oss/
+
+      - name: Build Marketplace artifact
+        # Re-runs the version-skew check, then stages OSS module
+        # source into package-marketplace/build/staging/, swaps in
+        # the marketplace composer.json, and tars the result.
+        env:
+          IRONCART_RELEASE_TAG: ${{ steps.version.outputs.tag }}
+        run: make build-marketplace
+
+      - name: Show release artifacts
+        # Surface the artifact list in the workflow log for the
+        # release reviewer's audit trail.
+        run: |
+          set -euo pipefail
+          echo "=== OSS artifact(s) ==="
+          ls -la build/oss/
+          echo ""
+          echo "=== Marketplace artifact(s) ==="
+          ls -la package-marketplace/build/
+
+      - name: Attach artifacts to GitHub Release
+        # Skipped on workflow_dispatch (dry-runs) — no Release object
+        # to attach to. Only fires for real tag pushes.
+        if: github.event_name == 'push'
+        uses: softprops/action-gh-release@b4309332981a82ec1c5618f44dd2e27cc8bfbfda # v3.0.0
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          # `fail_on_unmatched_files: true` makes the workflow loud if
+          # the glob misses (e.g. the build script silently produced a
+          # different filename) instead of attaching nothing.
+          fail_on_unmatched_files: true
+          files: |
+            build/oss/ironcartlabs-magento-scan-${{ steps.version.outputs.version }}.tar.gz
+            package-marketplace/build/ironcartlabs-magento-scan-marketplace-${{ steps.version.outputs.version }}.tar.gz
