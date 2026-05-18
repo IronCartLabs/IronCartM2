@@ -109,9 +109,6 @@ jobs:
           # doesn't reference framework classes:
           #   - Report/ReportBuilder.php (array shape builder)
           #   - Report/Severity.php (constants-only)
-          #   - Check/DeprecationRegistry.php (issue #83, pure-PHP map +
-          #     helpers; imported by ReportBuilder so phpstan needs it on
-          #     the classpath to resolve the constructor type-hint)
           #
           # Excluded paths reference classes that aren't on the autoload
           # classpath without `composer install` against repo.magento.com
@@ -129,7 +126,6 @@ jobs:
             paths:
               - Report/ReportBuilder.php
               - Report/Severity.php
-              - Check/DeprecationRegistry.php
             excludePaths:
               - vendor
               - _m2-workspace
