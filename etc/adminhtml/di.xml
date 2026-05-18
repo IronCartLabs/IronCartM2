@@ -8,6 +8,11 @@
  / declarative XML in view/adminhtml/ui_component/* cannot resolve
  / the `class` attribute on its `<dataProvider>` node.
  /
+ / Also wires the stuck-consumer admin notice (issue #92) into the
+ / framework MessageList so it surfaces in the admin notice bell on
+ / every adminhtml render — including the Scans listing page where the
+ / customer hits the bug.
+ /
  / Scoped to the adminhtml area only — these classes have no business
  / loading in storefront / frontend / API DI graphs.
 -->
@@ -22,6 +27,30 @@
                 </item>
                 <item name="ironcartscan_finding_listing_data_source" xsi:type="string">
                     IronCart\Scan\Model\ResourceModel\ScanFinding\Collection
+                </item>
+            </argument>
+        </arguments>
+    </type>
+
+    <!--
+     / Issue #92 — Run-Scan-Now stuck-QUEUED operator notice.
+     /
+     / ConsumerStalledMessage implements Magento\Framework\Notification\
+     / MessageInterface; appending it here under the `messages` argument
+     / of MessageList is what Magento expects for module-supplied admin
+     / notices (the same pattern AdminNotification module uses).
+     /
+     / The notice is read-only: it inspects ironcart_scan_run rows via
+     / the standard collection and reads the threshold from the
+     / `ironcart_scan/runtime/consumer_alert_threshold_seconds` config
+     / path (default 60s, set in etc/config.xml). No outbound network,
+     / no write paths — preserves the read-only invariant.
+    -->
+    <type name="Magento\Framework\Notification\MessageList">
+        <arguments>
+            <argument name="messages" xsi:type="array">
+                <item name="ironcart_scan_consumer_stalled" xsi:type="string">
+                    IronCart\Scan\Model\Notification\ConsumerStalledMessage
                 </item>
             </argument>
         </arguments>
