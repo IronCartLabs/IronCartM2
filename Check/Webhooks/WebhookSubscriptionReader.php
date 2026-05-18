@@ -116,6 +116,20 @@ class WebhookSubscriptionReader
      * Resolve the subscription collection factory, mirroring the resolution
      * precedence used by IC-043: injected test seam first, then a
      * `class_exists()`-guarded ObjectManager lookup, then null.
+     *
+     * MEQP suppression — see #84. The `ObjectManager::getInstance()` call
+     * below is a documented graceful-degradation seam for an optional
+     * cross-module dependency (Adobe Commerce Webhooks). Constructor DI of
+     * `\Magento\AdobeCommerceWebhooks\Model\ResourceModel\Subscription\CollectionFactory`
+     * would make `setup:di:compile` resolve the class eagerly and abort on
+     * hosts where the module is absent. Adobe's own modules use the same
+     * pattern in the same situation (canonical example:
+     * `Magento\AdvancedSearch\Model\Client\ClientResolver`). The PHPMD
+     * suppression annotation + phpcs:ignore directive below are read by
+     * Adobe's MEQP static analyser; do not remove without keeping the
+     * graceful-degradation contract intact.
+     *
+     * @SuppressWarnings(PHPMD.StaticAccess)
      */
     private function resolveFactory(): ?object
     {
@@ -127,6 +141,7 @@ class WebhookSubscriptionReader
             return null;
         }
 
+        // phpcs:ignore Magento2.PHP.AvoidObjectManager.FoundObjectManager
         return ObjectManager::getInstance()->get(self::SUBSCRIPTION_FACTORY_FQCN);
     }
 

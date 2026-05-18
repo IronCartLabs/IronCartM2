@@ -142,6 +142,21 @@ class MessageQueueBacklogCheck implements CheckInterface
      *   2. ObjectManager lookup, *guarded* by `class_exists()` so the autoloader
      *      never tries to load the absent class.
      *   3. null — caller short-circuits to no findings.
+     *
+     * MEQP suppression — see #84. The `ObjectManager::getInstance()` call
+     * below is a documented graceful-degradation seam for an optional
+     * cross-module dependency (`Magento_MysqlMq`). Constructor DI of
+     * `\Magento\MysqlMq\Model\ResourceModel\Queue\CollectionFactory` would
+     * make `setup:di:compile` resolve the class eagerly and abort on hosts
+     * where the module is absent (vanilla CE, RabbitMQ-only operators).
+     * Adobe's own modules use the same pattern in the same situation
+     * (canonical example:
+     * `Magento\AdvancedSearch\Model\Client\ClientResolver`). The PHPMD
+     * suppression annotation + phpcs:ignore directive below are read by
+     * Adobe's MEQP static analyser; do not remove without keeping the
+     * graceful-degradation contract intact.
+     *
+     * @SuppressWarnings(PHPMD.StaticAccess)
      */
     private function resolveFactory(): ?object
     {
@@ -159,6 +174,7 @@ class MessageQueueBacklogCheck implements CheckInterface
         // ObjectManager direct access is normally discouraged but is the
         // canonical pattern for *exactly this case*: an optional cross-module
         // dependency where the depending module must boot without it.
+        // phpcs:ignore Magento2.PHP.AvoidObjectManager.FoundObjectManager
         return ObjectManager::getInstance()->get(self::MYSQLMQ_FACTORY_FQCN);
     }
 }
