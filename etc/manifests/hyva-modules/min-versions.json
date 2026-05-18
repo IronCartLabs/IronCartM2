@@ -1,0 +1,22 @@
+{
+  "schema_version": "1",
+  "generated_at": "2026-05-18T00:00:00Z",
+  "source": "Hyvä release notes + OSV cross-reference (manual curation)",
+  "packages": {
+    "hyva-themes/magento2-default-theme": {
+      "min_version": "1.3.6",
+      "security": true,
+      "note": "Pre-1.3.6 ships a vulnerable AlpineJS bundle (CVE proxy IC-060 catches the JS dep, IC-912 catches the Magento package floor)."
+    },
+    "hyva-themes/magento2-hyva-checkout": {
+      "min_version": "1.1.16",
+      "security": true,
+      "note": "Pre-1.1.16 has a documented XSS regression in the address-edit flow; upgrade is the only mitigation."
+    },
+    "hyva-themes/magento2-graphql-tokens": {
+      "min_version": "1.0.5",
+      "security": false,
+      "note": "Routine bugfix floor; not security-tagged."
+    }
+  }
+}
