@@ -1,0 +1,59 @@
+<?xml version="1.0"?>
+<!--
+ / Copyright (c) Ironcart (https://ironcart.dev)
+ / Licensed under MIT.
+ /
+ / Content-Security-Policy whitelist for IronCart_Scan (issue #85,
+ / EQP audit items 29 + 30).
+ /
+ / Magento_Csp merges every module's `etc/csp_whitelist.xml` into the
+ / page-emitted CSP header at runtime. We declare exactly the outbound
+ / hosts the module ever contacts, scoped to `connect-src` because
+ / every outbound surface in this module is an XHR / cURL POST or GET —
+ / no `<script src>`, no `<img src>`, no `<style>`, no iframes.
+ /
+ / Hosts declared here:
+ /
+ /   - `ironcart.dev` — covered by three opt-in flows:
+ /       * IC-060 CVE proxy lookups (Check/Cve/, off-by-default; admin
+ /         must enable the proxy in Stores → Configuration → Ironcart →
+ /         Scan → CVE proxy)
+ /       * `bin/magento ironcart:scan` with the &#45;&#45;upload flag (v3, off-by-default;
+ /         admin must enable in Stores → Configuration → Ironcart →
+ /         Scan → Scan Upload)
+ /       * `ironcart_scan_upload_cron` cron job (v4, off-by-default;
+ /         admin must enable in Stores → Configuration → Ironcart →
+ /         Scan → Continuous Monitoring)
+ /     All three hit `ironcart.dev` directly — same TLD, no subdomains.
+ /     We declare `ironcart.dev` only; the Csp module appends scheme
+ /     and trailing slash semantics per the connect-src spec.
+ /
+ / Notes:
+ /
+ /   - We deliberately do NOT whitelist the merchant's own storefront
+ /     base URL (IC-080..IC-085 CSP probe pack hits it). That probe
+ /     runs from the CLI / cron context, server-side cURL, never
+ /     browser XHR, so it never reaches the page CSP — there is
+ /     nothing to whitelist for it.
+ /
+ /   - The admin button's own AJAX (`view/adminhtml/web/js/run-scan-now.js`)
+ /     POSTs same-origin to `ironcartscan/scans/run` and GETs to
+ /     `ironcartscan/scans/status`; `'self'` is in connect-src by
+ /     default so no whitelist entry is needed.
+ /
+ /   - No `script-src` entries: after the #85 refactor the module
+ /     emits zero inline JS. All admin JS ships as RequireJS modules
+ /     under `view/adminhtml/web/js/`, loaded via Magento's normal
+ /     bundle pipeline, which the default 'self' / 'unsafe-inline'
+ /     core CSP already covers.
+ -->
+<csp_whitelist xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+               xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Csp:etc/csp_whitelist.xsd">
+    <policies>
+        <policy id="connect-src">
+            <values>
+                <value id="ironcart-dev" type="host">ironcart.dev</value>
+            </values>
+        </policy>
+    </policies>
+</csp_whitelist>

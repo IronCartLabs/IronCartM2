@@ -44,6 +44,8 @@ class RunScanNowShapeTest extends TestCase
     private const STATUS_CONTROLLER = self::MODULE_ROOT . '/Controller/Adminhtml/Scans/Status.php';
     private const BUTTON_CLASS = self::MODULE_ROOT . '/Ui/Component/Control/RunScanNowButton.php';
     private const JS_MODULE = self::MODULE_ROOT . '/view/adminhtml/web/js/run-scan-now.js';
+    private const JS_INIT_SHIM = self::MODULE_ROOT . '/view/adminhtml/web/js/run-scan-now-init.js';
+    private const CSP_WHITELIST = self::MODULE_ROOT . '/etc/csp_whitelist.xml';
     private const ACL = self::MODULE_ROOT . '/etc/acl.xml';
 
     public function testRunListingDeclaresRunScanNowButton(): void
@@ -163,15 +165,55 @@ class RunScanNowShapeTest extends TestCase
         );
     }
 
-    public function testButtonClassRendersDispatchIntoRequireJsModule(): void
+    /**
+     * Declarative-init contract (issue #85, EQP CSP refactor).
+     *
+     * The button provider now emits a `data_attribute` => `mage-init`
+     * JSON payload instead of an `on_click` `require([...], ...)`
+     * inline JS string. Magento's toolbar template renders
+     * `data_attribute` entries as `data-<name>="<value>"` attributes,
+     * and the `mage/apply` bootstrap resolves the module on DOM ready.
+     *
+     * This test pins:
+     *   - No `on_click` inline JS surface (load-bearing for EQP CSP).
+     *   - `data_attribute` array is present with a `mage-init` key.
+     *   - The init module id points at the run-scan-now-init shim.
+     *   - The same URL constants the route table relies on are still
+     *     declared on the class.
+     */
+    public function testButtonProviderEmitsDeclarativeMageInitNotInlineJs(): void
     {
         $source = file_get_contents(self::BUTTON_CLASS);
         self::assertIsString($source);
 
-        self::assertMatchesRegularExpression(
-            "/IronCart_Scan\\/js\\/run-scan-now/",
+        // No `on_click` key in the returned array — that was the
+        // inline-JS surface flagged by the EQP CSP review.
+        self::assertDoesNotMatchRegularExpression(
+            "/'on_click'\s*=>/",
             $source,
-            'RunScanNowButton must dispatch into IronCart_Scan/js/run-scan-now'
+            'RunScanNowButton must not emit an on_click inline JS handler (EQP CSP audit item 29)'
+        );
+        // And the require()-from-PHP string-build pattern must be gone.
+        self::assertDoesNotMatchRegularExpression(
+            "/require\\(\\[\\s*'IronCart_Scan/",
+            $source,
+            'RunScanNowButton must not build a require([...]) inline string'
+        );
+
+        self::assertMatchesRegularExpression(
+            "/'data_attribute'\s*=>/",
+            $source,
+            'RunScanNowButton must emit a data_attribute array carrying mage-init'
+        );
+        self::assertMatchesRegularExpression(
+            "/'mage-init'\s*=>/",
+            $source,
+            'RunScanNowButton data_attribute must contain a mage-init key'
+        );
+        self::assertMatchesRegularExpression(
+            "/IronCart_Scan\\/js\\/run-scan-now-init/",
+            $source,
+            'RunScanNowButton must point mage-init at the run-scan-now-init shim'
         );
         self::assertMatchesRegularExpression(
             "/RUN_URL_PATH\s*=\s*'ironcartscan\\/scans\\/run'/",
@@ -182,6 +224,45 @@ class RunScanNowShapeTest extends TestCase
             "/STATUS_URL_PATH\s*=\s*'ironcartscan\\/scans\\/status'/",
             $source,
             'RunScanNowButton must point at the ironcartscan/scans/status route'
+        );
+    }
+
+    /**
+     * The init shim is the only glue between the declarative
+     * `data-mage-init` payload and the unchanged `run-scan-now`
+     * module. It must depend on the latter (so the public surface
+     * tested elsewhere is exercised) and pass URLs through unchanged.
+     */
+    public function testInitShimDelegatesIntoRunScanNowModuleWithUrlsFromConfig(): void
+    {
+        self::assertFileExists(self::JS_INIT_SHIM);
+        $source = file_get_contents(self::JS_INIT_SHIM);
+        self::assertIsString($source);
+
+        self::assertMatchesRegularExpression(
+            "/'IronCart_Scan\\/js\\/run-scan-now'/",
+            $source,
+            'Init shim must depend on the unchanged IronCart_Scan/js/run-scan-now module'
+        );
+        self::assertMatchesRegularExpression(
+            '/runScanNow\s*\(\s*runUrl\s*,\s*statusUrl\s*\)/',
+            $source,
+            'Init shim must call runScanNow(runUrl, statusUrl) — public surface from #77'
+        );
+        self::assertMatchesRegularExpression(
+            "/config\\.runUrl/",
+            $source,
+            'Init shim must pull runUrl from the data-mage-init config payload'
+        );
+        self::assertMatchesRegularExpression(
+            "/config\\.statusUrl/",
+            $source,
+            'Init shim must pull statusUrl from the data-mage-init config payload'
+        );
+        self::assertMatchesRegularExpression(
+            "/addEventListener\\s*\\(\\s*'click'/",
+            $source,
+            'Init shim must wire a click listener — replaces the on_click inline handler'
         );
     }
 
@@ -259,6 +340,43 @@ class RunScanNowShapeTest extends TestCase
             '/postInFlight/',
             $source,
             'JS module must guard against stacked button-clicks with postInFlight — issue #77 AC'
+        );
+    }
+
+    /**
+     * EQP CSP audit items 29 + 30 — issue #85.
+     *
+     * The module must ship `etc/csp_whitelist.xml` declaring exactly
+     * the outbound hosts it can reach. We assert the file exists, is
+     * shaped against the Magento_Csp schema, and includes the
+     * `connect-src` entry for `ironcart.dev` — the host every opt-in
+     * outbound surface in this module talks to (IC-060 CVE proxy,
+     * --upload, v4 cron).
+     */
+    public function testCspWhitelistDeclaresConnectSrcForIroncartDev(): void
+    {
+        self::assertFileExists(self::CSP_WHITELIST);
+        $xml = simplexml_load_file(self::CSP_WHITELIST);
+        self::assertInstanceOf(SimpleXMLElement::class, $xml);
+
+        $found = false;
+        foreach ($xml->policies->policy as $policy) {
+            if ((string)$policy['id'] !== 'connect-src') {
+                continue;
+            }
+            foreach ($policy->values->value as $value) {
+                if ((string)$value === 'ironcart.dev'
+                    && (string)$value['type'] === 'host'
+                ) {
+                    $found = true;
+                    break 2;
+                }
+            }
+        }
+
+        self::assertTrue(
+            $found,
+            'etc/csp_whitelist.xml must declare ironcart.dev as a connect-src host'
         );
     }
 }
