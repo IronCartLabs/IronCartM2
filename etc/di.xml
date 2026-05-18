@@ -153,8 +153,9 @@
         <arguments>
             <!--
                 v6 (#123) — pass the shared ScanSession so CLI overrides
-                (`bin/magento ironcart:scan --license=<blob>`) take precedence
-                over env vars and admin config. The constructor arg is
+                (the license blob option on `bin/magento ironcart:scan`)
+                take precedence over env vars and admin config. The
+                constructor arg is
                 nullable so test fixtures and third-party DI overrides
                 that omit this argument keep working.
             -->
