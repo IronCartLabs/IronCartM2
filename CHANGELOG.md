@@ -6,9 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
-Adobe Marketplace EQP CSP-readiness pass. No behaviour change for
+Adobe Marketplace EQP-readiness pass. No behaviour change for
 merchants — the admin "Run scan now" button continues to enqueue +
-poll exactly as before; the wiring just stops violating strict CSP.
+poll exactly as before; the wiring just stops violating strict CSP,
+and the marketplace submission scanner stops failing on missing
+`i18n/en_US.csv` source-locale rows.
 
 ### Changed
 
@@ -18,11 +20,13 @@ poll exactly as before; the wiring just stops violating strict CSP.
 
 - **`view/adminhtml/web/js/run-scan-now-init.js`** ([#85](https://github.com/IronCartLabs/IronCartM2/issues/85)). Thin shim that adapts the `data-mage-init` config object to the existing `IronCart_Scan/js/run-scan-now` module. Pulls `runUrl` / `statusUrl` out of the config, wires an `addEventListener('click', ...)` on the button element, and delegates. No new module surface, no inline JS, no URL building in the browser.
 - **`etc/csp_whitelist.xml`** ([#85](https://github.com/IronCartLabs/IronCartM2/issues/85), [EQP audit item 30](docs/marketplace-eqp-audit.md)). Declares the module's outbound `connect-src` host (`ironcart.dev`) so admins running `system/csp/mode_admin = restrict_mode` (enforced CSP) don't lose IC-060 / `--upload` / v4 cron functionality. No `script-src` entries are needed — after this refactor the module emits zero inline JS.
+- **`i18n/en_US.csv`** ([#86](https://github.com/IronCartLabs/IronCartM2/issues/86)). Source-locale translation file covering every `__()` call site and every `translate="…"` XML attribute in the module (44 phrases). Adobe Marketplace EQP's `MEQP2.Translation.MissingI18n` rule is a hard submission blocker without this; the file repeats each phrase as its own translation because en_US is the source locale. Format and authoring rules: [`docs/i18n.md`](./docs/i18n.md).
+- **`bin/check-i18n.php`** ([#86](https://github.com/IronCartLabs/IronCartM2/issues/86)). Build-time validator that re-scans the tree for translatable phrases and fails if any are missing from `i18n/en_US.csv`. Wired into CI as a new `i18n` job in `.github/workflows/ci.yml` so future PRs adding a `__()` or `translate=` literal without a CSV row fail at PR time, not at marketplace submission.
 
 ### Notes
 
-- The module-version constants (`etc/module.xml` `setup_version`, `composer.json` `extra.module-version`) are unchanged at `1.2.0`. This refactor will ship in `1.2.1` per semver (patch — no behaviour change, no API change). The version bump and `[1.2.1]` heading land in the release PR, not here.
-- Verifies against EQP audit items 29 (inline JS on admin button) and 30 (`etc/csp_whitelist.xml` absent) in [`docs/marketplace-eqp-audit.md`](docs/marketplace-eqp-audit.md). The audit doc is a snapshot — it gets re-walked at the next release-readiness pass, not edited here.
+- The module-version constants (`etc/module.xml` `setup_version`, `composer.json` `extra.module-version`) are at `1.3.0` (bumped in the [1.3.0] release that ships the deprecation taxonomy). These EQP-readiness changes ship in the next patch (`1.3.1` per semver — no behaviour change, no API change). The version bump and `[1.3.1]` heading land in the release PR, not here.
+- Verifies against EQP audit items 29 (inline JS on admin button), 30 (`etc/csp_whitelist.xml` absent), and the `MEQP2.Translation.MissingI18n` blocker in [`docs/marketplace-eqp-audit.md`](docs/marketplace-eqp-audit.md). The audit doc is a snapshot — it gets re-walked at the next release-readiness pass, not edited here.
 
 ## [1.3.0] - 2026-05-18
 
