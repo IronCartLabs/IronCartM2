@@ -23,6 +23,10 @@ and the marketplace submission scanner stops failing on missing
 - **`i18n/en_US.csv`** ([#86](https://github.com/IronCartLabs/IronCartM2/issues/86)). Source-locale translation file covering every `__()` call site and every `translate="…"` XML attribute in the module (44 phrases). Adobe Marketplace EQP's `MEQP2.Translation.MissingI18n` rule is a hard submission blocker without this; the file repeats each phrase as its own translation because en_US is the source locale. Format and authoring rules: [`docs/i18n.md`](./docs/i18n.md).
 - **`bin/check-i18n.php`** ([#86](https://github.com/IronCartLabs/IronCartM2/issues/86)). Build-time validator that re-scans the tree for translatable phrases and fails if any are missing from `i18n/en_US.csv`. Wired into CI as a new `i18n` job in `.github/workflows/ci.yml` so future PRs adding a `__()` or `translate=` literal without a CSV row fail at PR time, not at marketplace submission.
 
+### Removed
+
+- Reverted PR #88 marketplace-mirror skeleton; single-module strategy per IronCartWeb#1071 amendment 2026-05-18 ([#101](https://github.com/IronCartLabs/IronCartM2/issues/101)). Drops `package-marketplace/` (composer.json + README), `bin/build-marketplace.php`, the `build-marketplace` / `check-marketplace-version` / `clean-marketplace` Makefile targets, and the marketplace branch of `.github/workflows/release-marketplace.yml`. The workflow itself is retained — it now publishes only the OSS Packagist parity tarball on tag, and is the natural home for a future canonical-source Marketplace tarball if Adobe Marketplace is ever pursued. Packagist's one-package-per-VCS-URL rule means a second package can't ship from this repo anyway.
+
 ### Notes
 
 - The module-version constants (`etc/module.xml` `setup_version`, `composer.json` `extra.module-version`) are at `1.3.0` (bumped in the [1.3.0] release that ships the deprecation taxonomy). These EQP-readiness changes ship in the next patch (`1.3.1` per semver — no behaviour change, no API change). The version bump and `[1.3.1]` heading land in the release PR, not here.
