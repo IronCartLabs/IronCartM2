@@ -4,9 +4,8 @@
  * IronCart_Scan — "Run scan now" header button on the run-listing.
  *
  * Implements Magento's `ButtonProviderInterface` so the button is
- * declared declaratively in `ironcartscan_run_listing.xml` (matches
- * the existing {@see ShowAllSeveritiesButton} pattern on the findings
- * listing).
+ * declared declaratively in `ironcartscan_run_listing.xml` via the
+ * UI Component `buttons` argument array (no PHTML / layout XML).
  *
  * ## Declarative `data-mage-init` wiring (issue #85 / EQP CSP)
  *

@@ -42,8 +42,6 @@
 "Sends package name + version only. No domain, admin user, IP, or store identifier. The destination host is pinned to ironcart.dev.","Sends package name + version only. No domain, admin user, IP, or store identifier. The destination host is pinned to ironcart.dev."
 "Severity","Severity"
 "Severity Totals","Severity Totals"
-"Show all severities","Show all severities"
-"Show critical only","Show critical only"
 "Standard crontab string consumed by Magento's cron framework. Default: <code>0 3 * * *</code> (daily at 03:00 store-server time). Examples:<br/> <code>0 */6 * * *</code> — every 6 hours.<br/> <code>0 2 * * 1</code> — Mondays at 02:00.<br/> Magento re-reads this value at the start of each cron tick; no <code>cron:install</code> reboot is required after a change. The schedule only fires when <em>Enable scheduled scan + upload</em> above is set to Yes.","Standard crontab string consumed by Magento's cron framework. Default: <code>0 3 * * *</code> (daily at 03:00 store-server time). Examples:<br/> <code>0 */6 * * *</code> — every 6 hours.<br/> <code>0 2 * * 1</code> — Mondays at 02:00.<br/> Magento re-reads this value at the start of each cron tick; no <code>cron:install</code> reboot is required after a change. The schedule only fires when <em>Enable scheduled scan + upload</em> above is set to Yes."
 "Started","Started"
 "Status","Status"
