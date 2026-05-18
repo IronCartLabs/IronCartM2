@@ -18,6 +18,15 @@
  *      lifted for the current request only — no persistence across
  *      sessions, no UI bookmark involvement.
  *
+ *      The flag itself is read from the admin backend session, NOT
+ *      from this AJAX request's query string. Reason: the grid's
+ *      data-fetch XHR (`mui/index/render`) does not inherit query
+ *      params from the parent page URL — `?showAll=1` on the page
+ *      URL never reaches this provider's request scope. The detail-
+ *      view controller writes the flag to the session on every page
+ *      render so the value the user just opted into is the value
+ *      this provider reads. See issue #97.
+ *
  *   3. Truncates `detail` to 240 chars at provider time so the column
  *      renderer can stay a plain TextColumn (no per-cell PHP).
  *
@@ -32,6 +41,7 @@ namespace IronCart\Scan\Ui\DataProvider;
 use IronCart\Scan\Model\ResourceModel\ScanFinding\Collection as ScanFindingCollection;
 use IronCart\Scan\Model\ResourceModel\ScanFinding\CollectionFactory as ScanFindingCollectionFactory;
 use IronCart\Scan\Report\Severity;
+use Magento\Backend\Model\Session as BackendSession;
 use Magento\Framework\App\RequestInterface;
 use Magento\Ui\DataProvider\AbstractDataProvider;
 
@@ -46,8 +56,11 @@ class ScanFindingDataProvider extends AbstractDataProvider
 
     /**
      * Route param flipped by the "Show all severities" header button.
-     * Presence (any truthy value) disables the default severity filter
-     * for the current request.
+     * Presence of a truthy value on the *page* request (handled by
+     * the detail-view controller) disables the default severity
+     * filter for that page render and any AJAX grid refresh that
+     * follows. Reading this directly from the AJAX request scope is
+     * the bug fixed by issue #97 — use the session bucket instead.
      */
     public const SHOW_ALL_PARAM = 'showAll';
 
@@ -67,7 +80,8 @@ class ScanFindingDataProvider extends AbstractDataProvider
      * @param string                       $primaryFieldName  Usually `entity_id`.
      * @param string                       $requestFieldName  Usually `entity_id`.
      * @param ScanFindingCollectionFactory $collectionFactory Factory for ScanFinding collection.
-     * @param RequestInterface             $request           Current request (for `id` / `showAll`).
+     * @param RequestInterface             $request           Current request (for `id`).
+     * @param BackendSession               $backendSession    Admin session bucket carrying the showAll flag written by the detail-view controller.
      * @param array<string,mixed>          $meta              UI component meta.
      * @param array<string,mixed>          $data              UI component data.
      */
@@ -77,6 +91,7 @@ class ScanFindingDataProvider extends AbstractDataProvider
         string $requestFieldName,
         ScanFindingCollectionFactory $collectionFactory,
         private readonly RequestInterface $request,
+        private readonly BackendSession $backendSession,
         array $meta = [],
         array $data = []
     ) {
@@ -128,12 +143,14 @@ class ScanFindingDataProvider extends AbstractDataProvider
     }
 
     /**
-     * Add the critical-only default filter unless `?showAll=1` is set.
+     * Add the critical-only default filter unless the session bucket
+     * carries a truthy showAll flag (written by the detail-view
+     * controller on the most recent page render).
      *
      * The filter is applied via `addFieldToFilter` on the collection
      * (not as a UI Component `<filter>` default) so admin users cannot
      * inadvertently persist a bookmark that removes it. The toggle
-     * lifts it per-request only.
+     * lifts it per-page-render only.
      */
     private function applyDefaultSeverityFilter(): void
     {
@@ -144,16 +161,20 @@ class ScanFindingDataProvider extends AbstractDataProvider
     }
 
     /**
-     * Public so the layout XML helper / header button can compute the
-     * inverse URL without re-reading the request param parsing rule.
+     * Whether the most recent detail-view page render opted into the
+     * "show all severities" mode. Reads from the admin backend
+     * session bucket {@see ShowAllFlag::SESSION_KEY} that the
+     * controller writes on every render — the page URL's `?showAll`
+     * param is *not* forwarded to this AJAX request scope.
+     *
+     * Public so layout helpers can inspect the same state without
+     * re-implementing the session-read path.
      */
     public function isShowAllRequested(): bool
     {
-        $param = $this->request->getParam(self::SHOW_ALL_PARAM);
-        if ($param === null || $param === '' || $param === '0' || $param === false) {
-            return false;
-        }
-        return true;
+        return ShowAllFlag::isTruthy(
+            $this->backendSession->getData(ShowAllFlag::SESSION_KEY)
+        );
     }
 
     /**
