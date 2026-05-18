@@ -12,6 +12,7 @@
 "Enable scan upload to ironcart.dev","Activer le téléversement du scan vers ironcart.dev"
 "Enable scheduled scan + upload","Activer le scan + téléversement planifié"
 "Endpoint URL (advanced — leave blank)","URL du point de terminaison (avancé — laisser vide)"
+"Findings","Constats"
 "Finished","Terminé"
 "Hard host-pin for the upload client. Leave blank to use the production value (<code>ironcart.dev</code>). Defense in depth — even if the Endpoint URL is overwritten at runtime, the upload client will refuse to POST anywhere whose host does not match this exact string.","Verrouillage strict de l'hôte pour le client de téléversement. Laisser vide pour utiliser la valeur de production (<code>ironcart.dev</code>). Défense en profondeur — même si l'URL du point de terminaison est remplacée à l'exécution, le client de téléversement refusera de POSTer vers tout hôte dont le nom ne correspond pas exactement à cette chaîne."
 "ID","ID"

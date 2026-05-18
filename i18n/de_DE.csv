@@ -12,6 +12,7 @@
 "Enable scan upload to ironcart.dev","Scan-Upload zu ironcart.dev aktivieren"
 "Enable scheduled scan + upload","Geplanten Scan + Upload aktivieren"
 "Endpoint URL (advanced — leave blank)","Endpoint-URL (erweitert — leer lassen)"
+"Findings","Befunde"
 "Finished","Abgeschlossen"
 "Hard host-pin for the upload client. Leave blank to use the production value (<code>ironcart.dev</code>). Defense in depth — even if the Endpoint URL is overwritten at runtime, the upload client will refuse to POST anywhere whose host does not match this exact string.","Feste Host-Bindung für den Upload-Client. Leer lassen, um den Produktionswert (<code>ironcart.dev</code>) zu verwenden. Tiefenverteidigung — selbst wenn die Endpoint-URL zur Laufzeit überschrieben wird, weigert sich der Upload-Client, an einen Host zu POSTen, dessen Name nicht exakt mit dieser Zeichenfolge übereinstimmt."
 "ID","ID"

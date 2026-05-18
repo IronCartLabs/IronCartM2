@@ -145,14 +145,20 @@ class ScanRunConsumer
         );
 
         $finishedAt = $this->nowUtc();
+        $findingCount = count($findings);
         $run->setStatus(ScanRun::STATUS_SUCCEEDED);
         $run->setFinishedAt($finishedAt);
         $run->setSummaryJson($this->serializer->serialize([
             'totals' => $report['summary'],
-            'finding_count' => count($findings),
+            'finding_count' => $findingCount,
             'magento' => $report['magento'],
             'schema_version' => $report['schema_version'],
         ]));
+        // Mirror finding_count into a scalar column so the admin grid
+        // (issue #118) can pushdown a numeric-range filter. The JSON
+        // payload stays the source of truth; this column is denormalised
+        // for filter pushdown only.
+        $run->setData('finding_count', $findingCount);
         // Defense-in-depth (#76): fail loud if a future refactor lets a
         // terminal status reach the save without finished_at being set.
         ScanRunTerminalState::assertConsistent(ScanRun::STATUS_SUCCEEDED, $finishedAt);

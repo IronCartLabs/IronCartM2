@@ -50,7 +50,8 @@ class DbSchemaShapeTest extends TestCase
         $columns = $this->columnNames($table);
 
         // AC: entity_id (PK), status, started_at, finished_at (nullable),
-        // triggered_by, summary_json, created_at, updated_at.
+        // triggered_by, summary_json, finding_count (#118), created_at,
+        // updated_at.
         $expected = [
             'entity_id',
             'status',
@@ -58,6 +59,7 @@ class DbSchemaShapeTest extends TestCase
             'started_at',
             'finished_at',
             'summary_json',
+            'finding_count',
             'created_at',
             'updated_at',
         ];
@@ -74,6 +76,20 @@ class DbSchemaShapeTest extends TestCase
     {
         $col = $this->column('ironcart_scan_run', 'finished_at');
         self::assertSame('true', (string)$col['nullable'], 'finished_at must be nullable');
+    }
+
+    public function testScanRunFindingCountIsNullableUnsignedInt(): void
+    {
+        // Issue #118: scalar column denormalised from summary_json so
+        // the admin run-listing grid can pushdown a numeric-range
+        // filter. Nullable because queued/running rows have no count
+        // yet, and failed rows never reach the totals stage. Unsigned
+        // because a negative finding count is structurally impossible
+        // and we want MariaDB to reject any insert that tries.
+        $col = $this->column('ironcart_scan_run', 'finding_count');
+        self::assertSame('int', $this->xsiType($col), 'finding_count must be int');
+        self::assertSame('true', (string)$col['nullable'], 'finding_count must be nullable');
+        self::assertSame('true', (string)$col['unsigned'], 'finding_count must be unsigned');
     }
 
     public function testScanRunHasPrimaryKeyOnEntityId(): void
