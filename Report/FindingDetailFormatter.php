@@ -138,7 +138,7 @@ class FindingDetailFormatter
      */
     private function flattenArray(array $evidence): string
     {
-        if ($this->isList($evidence)) {
+        if (array_is_list($evidence)) {
             $parts = [];
             foreach ($evidence as $value) {
                 $parts[] = $this->valueToString($value);
@@ -193,18 +193,5 @@ class FindingDetailFormatter
             return $value ? 'true' : 'false';
         }
         return (string)$value;
-    }
-
-    /**
-     * Whether an array is list-shaped (sequential integer keys from 0).
-     * PHP 8.1+ has `array_is_list()`; we use it directly. Implemented
-     * here as a separate predicate purely so the call site reads as
-     * intent rather than a bare stdlib call.
-     *
-     * @param array<array-key,mixed> $value
-     */
-    private function isList(array $value): bool
-    {
-        return array_is_list($value);
     }
 }
