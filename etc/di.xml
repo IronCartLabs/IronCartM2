@@ -82,9 +82,25 @@
                      is flipped. IC-061 is emitted by the same class on transport
                      failure so it is NOT registered separately here. -->
                 <item name="IC-060" xsi:type="object">IronCart\Scan\Check\Cve\ComposerCveCheck</item>
+                <!-- Hyva-specific check pack (v6, #125). All three checks short-
+                     circuit to zero findings on non-Hyva stores via the shared
+                     HyvaDetector (declared shared below). Read-only filesystem
+                     walks + bundled manifests under etc/manifests/hyva-*; no
+                     outbound network. -->
+                <item name="IC-910" xsi:type="object">IronCart\Scan\Check\Hyva\TailwindConfigExposureCheck</item>
+                <item name="IC-911" xsi:type="object">IronCart\Scan\Check\Hyva\CheckoutCspRegressionCheck</item>
+                <item name="IC-912" xsi:type="object">IronCart\Scan\Check\Hyva\HyvaModuleDriftCheck</item>
             </argument>
         </arguments>
     </type>
+
+    <!--
+        v6 (#125) — Hyva detector shared across IC-910/IC-911/IC-912 so the
+        ModuleListInterface lookup + composer.lock parse happens once per
+        scan run. The detector is the contract these checks adapt against;
+        non-Hyva stores get zero findings from this pack.
+    -->
+    <type name="IronCart\Scan\Check\Hyva\HyvaDetector" shared="true"/>
 
     <!--
         CVE proxy client — production wires the hardened ext-curl
