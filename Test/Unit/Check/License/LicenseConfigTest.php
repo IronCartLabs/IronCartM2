@@ -28,6 +28,7 @@ namespace IronCart\Scan\Test\Unit\Check\License;
 
 use IronCart\Scan\Check\License\LicenseConfig;
 use IronCart\Scan\Check\License\LicenseVerifier;
+use IronCart\Scan\Check\ScanSession;
 use Magento\Framework\App\Config\ScopeConfigInterface;
 use Magento\Framework\Encryption\EncryptorInterface;
 use PHPUnit\Framework\TestCase;
@@ -158,6 +159,159 @@ class LicenseConfigTest extends TestCase
         self::assertSame(1, $counter->verifyCalls, 'LicenseConfig must memoise the verify result');
     }
 
+    // ----- v6 (#123) multi-store resolution tests --------------------
+
+    /**
+     * Env var beats `core_config_data` when no CLI override is set. We
+     * configure DIFFERENT blob bytes in env and config_data so the test
+     * asserts which layer actually won, not just that "some blob came
+     * back".
+     */
+    public function testEnvVarOverridesConfigData(): void
+    {
+        [$publicB64, $privateBytes] = $this->freshKeypair();
+
+        $envBlob = $this->signBlob([
+            'accountId' => 'acct_from_env',
+            'sku' => 'magento-pro-annual',
+            'issuedAt' => (time() - 60) * 1000,
+            'expiresAt' => (time() + 86400) * 1000,
+            'nonce' => $this->b64url(random_bytes(16)),
+            'sigVersion' => 1,
+        ], $privateBytes);
+
+        $configDataBlob = $this->signBlob([
+            'accountId' => 'acct_from_config',
+            'sku' => 'magento-pro-annual',
+            'issuedAt' => (time() - 60) * 1000,
+            'expiresAt' => (time() + 86400) * 1000,
+            'nonce' => $this->b64url(random_bytes(16)),
+            'sigVersion' => 1,
+        ], $privateBytes);
+
+        putenv(LicenseConfig::ENV_BLOB . '=' . $envBlob);
+        try {
+            $config = $this->makeConfigWithVerifier(
+                $configDataBlob,
+                new LicenseVerifier($publicB64),
+                null
+            );
+            self::assertSame($envBlob, $config->blob());
+            $claims = $config->parsedClaims();
+            self::assertIsArray($claims);
+            self::assertSame('acct_from_env', $claims['accountId']);
+        } finally {
+            putenv(LicenseConfig::ENV_BLOB);
+        }
+    }
+
+    public function testCliOverrideBeatsEnvVarAndConfigData(): void
+    {
+        [$publicB64, $privateBytes] = $this->freshKeypair();
+
+        $envBlob = $this->signBlob([
+            'accountId' => 'acct_from_env',
+            'sku' => 'magento-pro-annual',
+            'issuedAt' => (time() - 60) * 1000,
+            'expiresAt' => (time() + 86400) * 1000,
+            'nonce' => $this->b64url(random_bytes(16)),
+            'sigVersion' => 1,
+        ], $privateBytes);
+
+        $configDataBlob = $this->signBlob([
+            'accountId' => 'acct_from_config',
+            'sku' => 'magento-pro-annual',
+            'issuedAt' => (time() - 60) * 1000,
+            'expiresAt' => (time() + 86400) * 1000,
+            'nonce' => $this->b64url(random_bytes(16)),
+            'sigVersion' => 1,
+        ], $privateBytes);
+
+        $cliBlob = $this->signBlob([
+            'accountId' => 'acct_from_cli',
+            'sku' => 'magento-pro-annual',
+            'issuedAt' => (time() - 60) * 1000,
+            'expiresAt' => (time() + 86400) * 1000,
+            'nonce' => $this->b64url(random_bytes(16)),
+            'sigVersion' => 1,
+        ], $privateBytes);
+
+        $session = new ScanSession();
+        $session->setLicenseOverride($cliBlob);
+
+        putenv(LicenseConfig::ENV_BLOB . '=' . $envBlob);
+        try {
+            $config = $this->makeConfigWithVerifier(
+                $configDataBlob,
+                new LicenseVerifier($publicB64),
+                $session
+            );
+            self::assertSame($cliBlob, $config->blob());
+            $claims = $config->parsedClaims();
+            self::assertIsArray($claims);
+            self::assertSame('acct_from_cli', $claims['accountId']);
+        } finally {
+            putenv(LicenseConfig::ENV_BLOB);
+        }
+    }
+
+    public function testConfigDataResolvedWhenEnvAndCliBothMissing(): void
+    {
+        [$publicB64, $privateBytes] = $this->freshKeypair();
+
+        $blob = $this->signBlob([
+            'accountId' => 'acct_from_config_only',
+            'sku' => 'magento-pro-annual',
+            'issuedAt' => (time() - 60) * 1000,
+            'expiresAt' => (time() + 86400) * 1000,
+            'nonce' => $this->b64url(random_bytes(16)),
+            'sigVersion' => 1,
+        ], $privateBytes);
+
+        // Belt-and-braces: ensure no env-var leak from sibling tests.
+        putenv(LicenseConfig::ENV_BLOB);
+
+        $config = $this->makeConfigWithVerifier(
+            $blob,
+            new LicenseVerifier($publicB64),
+            new ScanSession() // no override set
+        );
+        self::assertSame($blob, $config->blob());
+        $claims = $config->parsedClaims();
+        self::assertIsArray($claims);
+        self::assertSame('acct_from_config_only', $claims['accountId']);
+    }
+
+    public function testEmptyEnvVarFallsThroughToConfigData(): void
+    {
+        // An EXPORTED-BUT-EMPTY env var (`IRONCART_SCAN_LICENSE_BLOB=`)
+        // must NOT shadow a perfectly valid config_data blob. This is
+        // the realistic Magento Cloud failure mode where an unset var
+        // gets exported as empty by a wrapper script.
+        [$publicB64, $privateBytes] = $this->freshKeypair();
+
+        $blob = $this->signBlob([
+            'accountId' => 'acct_config_wins_when_env_empty',
+            'sku' => 'magento-pro-annual',
+            'issuedAt' => (time() - 60) * 1000,
+            'expiresAt' => (time() + 86400) * 1000,
+            'nonce' => $this->b64url(random_bytes(16)),
+            'sigVersion' => 1,
+        ], $privateBytes);
+
+        putenv(LicenseConfig::ENV_BLOB . '=');
+        try {
+            $config = $this->makeConfigWithVerifier(
+                $blob,
+                new LicenseVerifier($publicB64),
+                null
+            );
+            self::assertSame($blob, $config->blob());
+        } finally {
+            putenv(LicenseConfig::ENV_BLOB);
+        }
+    }
+
     // ----- helpers --------------------------------------------------
 
     /**
@@ -169,8 +323,11 @@ class LicenseConfigTest extends TestCase
         return $this->makeConfigWithVerifier($blobPlaintext, new LicenseVerifier(''));
     }
 
-    private function makeConfigWithVerifier(string $blobPlaintext, LicenseVerifier $verifier): LicenseConfig
-    {
+    private function makeConfigWithVerifier(
+        string $blobPlaintext,
+        LicenseVerifier $verifier,
+        ?ScanSession $session = null
+    ): LicenseConfig {
         $scope = $this->createMock(ScopeConfigInterface::class);
         $scope->method('getValue')->willReturnCallback(static function (string $path) use ($blobPlaintext): ?string {
             if ($path === LicenseConfig::PATH_BLOB) {
@@ -184,7 +341,7 @@ class LicenseConfigTest extends TestCase
             return str_starts_with($enc, 'enc:') ? substr($enc, 4) : $enc;
         });
 
-        return new LicenseConfig($scope, $encryptor, $verifier);
+        return new LicenseConfig($scope, $encryptor, $verifier, $session);
     }
 
     /**

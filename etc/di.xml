@@ -149,7 +149,25 @@
         resulting scan run as `tier='pro'`.
     -->
     <type name="IronCart\Scan\Check\License\LicenseVerifier" shared="true"/>
-    <type name="IronCart\Scan\Check\License\LicenseConfig" shared="true"/>
+    <type name="IronCart\Scan\Check\License\LicenseConfig" shared="true">
+        <arguments>
+            <!--
+                v6 (#123) — pass the shared ScanSession so CLI overrides
+                (`bin/magento ironcart:scan --license=<blob>`) take precedence
+                over env vars and admin config. The constructor arg is
+                nullable so test fixtures and third-party DI overrides
+                that omit this argument keep working.
+            -->
+            <argument name="scanSession" xsi:type="object">IronCart\Scan\Check\ScanSession</argument>
+        </arguments>
+    </type>
+    <type name="IronCart\Scan\Check\Upload\UploadConfig">
+        <arguments>
+            <!-- v6 (#123) — same wiring rationale as LicenseConfig above. -->
+            <argument name="scanSession" xsi:type="object">IronCart\Scan\Check\ScanSession</argument>
+        </arguments>
+    </type>
+    <type name="IronCart\Scan\Check\ScanSession" shared="true"/>
 
     <!--
         v5 — free-tier upload Pro-upgrade nag (#104).
