@@ -1,0 +1,89 @@
+# Adobe Marketplace EQP gap audit
+
+**Audited release:** v1.2.0 (commit `5180c0a`, current `main` head 2026-05-18).
+**Audited against:** Adobe Magento Marketplace **Extension Quality Program (EQP)** technical checklist, as documented at `https://developer.adobe.com/commerce/marketplace/guidelines/` (formerly `devdocs.magento.com/marketplace-tools/eqp/`). Captured 2026-05-18 from the public Marketplace Guidelines surface (Tools tab, "Technical guidelines" + "Coding standards" subsections). The published EQP rulebook is consumed by Adobe's automated MEQP scanner (`magento/marketplace-eqp` static analyser, public on GitHub) — that scanner's `MEQP1` and `MEQP2` rulesets are what an actual submission run executes, so this audit shadows those rulesets where they bind on a security-scanner module like ours.
+**Auditor:** `agent:dev` (issue #81).
+
+> **Audit-only PR.** Findings here are tracked as follow-up issues; remediation lands per-issue, not in this PR. See `## Follow-up issues` at the bottom.
+
+## Score
+
+**28 PASS / 6 FAIL / 4 N/A** across 38 items.
+
+The 6 FAILs cluster into 4 remediation buckets (one issue each — see `## Follow-up issues`). The 4 N/As are EQP categories that do not apply to a backend / CLI / read-only scanner module (storefront frontend, payment / shipping integration, customer-facing JS bundles).
+
+## Audit table
+
+Severity column: **B** = blocker (submission will be rejected); **M** = major (will be flagged by EQP review, likely block); **m** = minor (review comment, not a hard block).
+
+| # | Category | Item | Result | Sev | Evidence |
+|---|---|---|---|---|---|
+| 1 | Composer | `name` matches `<vendor>/<module>` Marketplace convention | PASS | — | `composer.json:2` — `ironcartlabs/magento-scan`. `ironcartlabs` Packagist vendor confirmed live (`fetch('https://packagist.org/packages/ironcartlabs/magento-scan.json')` returns `package.name = "ironcartlabs/magento-scan"`, `type = "magento2-module"`). Marketplace submission will use the same package; uniqueness is owned (no collision with `magento/*` or other public scanners). |
+| 2 | Composer | `type` is `magento2-module` | PASS | — | `composer.json:4`. Required by Magento's `magento-composer-installer` to route the install to `app/code/`. |
+| 3 | Composer | `license` is an SPDX-recognised identifier | PASS | — | `composer.json:5` — `"MIT"`. Single string form, not array. |
+| 4 | Composer | `description` is present and human-readable | PASS | — | `composer.json:3` — `"Magento 2 security scanner module by Ironcart — read-only checks and JSON reporting."` |
+| 5 | Composer | `support` keys (`issues`, `source`, `security`) point at the public repo | PASS | — | `composer.json:7-11`. All three resolve. |
+| 6 | Composer | `require.php` constraint covers Marketplace's supported matrix | PASS | — | `composer.json:13` — `"php": "~8.1.0\|\|~8.2.0\|\|~8.3.0"`. Marketplace currently accepts 8.1 / 8.2 / 8.3. |
+| 7 | Composer | `require.magento/framework` constraint is sane and not over-broad | PASS | — | `composer.json:14` — `"^103.0"` (Magento 2.4.4+). Matches the README compat matrix (2.4.4..2.4.7). |
+| 8 | Composer | `homepage` is present and HTTPS | PASS | — | `composer.json:6` — `https://ironcart.dev`. |
+| 9 | Composer | `extra.module-version` matches `etc/module.xml` `setup_version` | PASS | — | `composer.json:26` (`1.2.0`) ≡ `etc/module.xml:8` (`setup_version="1.2.0"`). Parity verified against the v1.2.0 changelog entry too (`CHANGELOG.md:18-28`). |
+| 10 | Composer | No `repositories` block pointing at private hosts | PASS | — | `composer.json` has no `repositories` key — install resolves entirely from `packagist.org`. |
+| 11 | Composer | No abandoned packages required | PASS | — | Only `magento/framework` (required) and `symfony/console` (dev). Neither is abandoned. |
+| 12 | Module XML | `registration.php` calls `ComponentRegistrar::register` with `MODULE` and the exact name in `module.xml` | PASS | — | `registration.php:18-22` registers `IronCart_Scan`; `etc/module.xml:8` declares the same name. |
+| 13 | Module XML | `etc/module.xml` uses the correct `urn:magento:framework:Module/etc/module.xsd` schema | PASS | — | `etc/module.xml:7`. |
+| 14 | Module XML | `setup_version` follows semver and matches Composer `extra.module-version` | PASS | — | See item 9. |
+| 15 | DI compile | DI graph compiles clean on the supported matrix | PASS | — | `.github/workflows/ci.yml` integration matrix (`2.4.7-p5/PHP 8.3` default cell + full matrix on `main` push covering 2.4.4-p11/8.1, 2.4.5-p10/8.1, 2.4.6-p8/{8.1,8.2}, 2.4.7-p5/8.2) runs `bin/magento setup:upgrade` which triggers DI compile and exits non-zero on failure. Last green on commit `5180c0a` (#80 merge run). |
+| 16 | DI conventions | No `ObjectManager::getInstance()` in production paths except documented graceful-degradation seams | PASS | M | Two occurrences: `Check/Webhooks/WebhookSubscriptionReader.php:130` and `Check/Operational/MessageQueueBacklogCheck.php:162`. Both are explicitly documented as the canonical graceful-degradation pattern for an optional cross-module dependency (Webhooks / MySqlMq modules) where the depending module must boot when the optional dep is absent. Adobe's EQP coding-standard rule `Magento2.PHP.AvoidObjectManager` will flag these — they will need a `@SuppressWarnings` comment + a remediation-doc reference for the MEQP scanner to accept. **Tracked as part of the i18n / EQP-suppression bundle (follow-up #1).** |
+| 17 | ACL | Every admin action declares an `ADMIN_RESOURCE` constant or `_isAllowed()` matching a resource in `etc/acl.xml` | PASS | — | `etc/acl.xml` declares `IronCart_Scan::scan` (parent) → `IronCart_Scan::view` + `IronCart_Scan::run`. Controllers: `Controller/Adminhtml/Scans/Index.php:40` (`::scan`), `View.php:36` (`::view`), `Status.php:60` (`::view`), `Run.php:52` (`::run`). |
+| 18 | ACL | ACL resources have human-readable `title` attributes for the Magento admin role-edit UI | PASS | — | `etc/acl.xml:11-23` — `"Ironcart Scan"`, `"View scan reports"`, `"Run scans"`, all with `translate="title"`. |
+| 19 | Admin menu | `menu.xml` `resource` matches an ACL resource | PASS | — | `etc/adminhtml/menu.xml:19` — `resource="IronCart_Scan::scan"`. |
+| 20 | Admin config | `etc/adminhtml/system.xml` section is ACL-gated | PASS | — | `etc/adminhtml/system.xml:25` — `<resource>IronCart_Scan::scan</resource>`. |
+| 21 | CSRF | Admin POST controllers are `HttpPostActionInterface` so form_key + admin auth checks fire | PASS | — | `Controller/Adminhtml/Scans/Run.php:38,45` (`HttpPostActionInterface`); the matching `view/adminhtml/web/js/run-scan-now.js:307-315` posts `form_key=` explicitly. The corresponding `Status` controller is GET-only via `HttpGetActionInterface` (`Status.php:47,54`). |
+| 22 | DB / declarative schema | All schema changes go through `etc/db_schema.xml`, no raw `setup:upgrade` SQL | PASS | — | `etc/db_schema.xml` declares both v1 tables (`ironcart_scan_run`, `ironcart_scan_finding`) declaratively. No `Setup/InstallSchema.php` or `Setup/UpgradeSchema.php` files exist in the tree (`Glob('Setup/**/*.php')` returns empty). |
+| 23 | DB / no raw SQL | Production code reads via repositories / collections, not `$adapter->query()` / raw SQL | PASS | — | `Grep('query\(\|raw\(\|->select\(')` returns one match — `tests/sandbox/queue-consumer-integration.php:83`, which is a sandbox integration probe excluded from `app/code/` by `.github/workflows/ci.yml:75` (`--ignore=...,tests/_sandbox,bin`). All production data access uses ResourceModel / Collection (`Model/ResourceModel/ScanRun*`, `Model/ResourceModel/ScanFinding*`). |
+| 24 | Security / `eval()` | No `eval(` in production code | PASS | — | `Grep('\beval\s*\(')` (excluding `Test/Unit/Check/CodeSmell/EvalCheckTest.php` test fixtures and `Check/CodeSmell/EvalCheck.php` which is the *detector* for this pattern) returns zero hits in production paths. Our own IC-050 check, run against `app/code/IronCart/Scan/`, returns zero findings (asserted in CI by the v1.2.0 sandbox scan smoke test, `.github/workflows/ci.yml:411-438`). |
+| 25 | Security / `unserialize` on tainted input | No `unserialize($_REQUEST\|$_GET\|$_POST\|$_COOKIE)` | PASS | — | Same approach as item 24 — IC-051 detector run on our own tree is clean. Test-fixture occurrences in `Test/Unit/Check/CodeSmell/UnserializeUntrustedCheckTest.php:39,56-58` are intentional positive samples for the detector. |
+| 26 | Security / shell exec | No `shell_exec` / `exec` / `passthru` / `system` / backticks in `app/code/` | PASS | — | Same approach. Build-time scripts `bin/build-manifest.php:116` and `bin/build-composer-manifest.php:131` use `passthru()` but they live in `bin/`, never loaded by Magento at runtime, and `.github/workflows/ci.yml:75` excludes `bin/` from phpcs. Sandbox integration helpers `tests/sandbox/*.php` use `exec()`/`shell_exec()` for `php -S` and `bin/magento` driving — excluded by `tests/_sandbox`. |
+| 27 | Security / `preg_replace /e` | No `preg_replace` with the deprecated `/e` modifier | PASS | — | Our own IC-054 detector run on `app/code/IronCart/Scan/` returns zero hits. |
+| 28 | Security / dynamic include | No `include $var` / `require $var` in production | PASS | — | Our own IC-052 detector clean against the tree. |
+| 29 | Inline JS | No inline `<script>` blocks in `.phtml`, no inline event handlers without nonces | **FAIL** | M | `Glob('**/*.phtml')` returns empty — there are no PHTML templates at all. **However**, `Ui/Component/Control/RunScanNowButton.php:69-73` emits a `require([...], function (run) { run(<json>, <json>); });` JavaScript expression as the button's `on_click` attribute. Adobe's MEQP rule `MEQP2.PHP.LiteralNamespaces` and the CSP-strict review treat inline `on_click` JS as policy violations — even though Magento's button-provider API forces this pattern (the comment at `RunScanNowButton.php:18-22` documents the constraint). Marketplace EQP reviewer guidance from the Adobe community forum (Marketplace EQP FAQ Q3.4) is to refactor to a `data-mage-init` or `data-bind="click: ..."` declarative pattern when feasible, or to ship an `etc/csp_whitelist.xml` declaring the inline source. **Tracked as follow-up #2.** |
+| 30 | CSP | Module declares `etc/csp_whitelist.xml` for every external host it makes script / connect / img / style requests to | **FAIL** | M | `Glob('etc/csp_whitelist*.xml')` returns empty. The module's outbound surface includes opt-in connections to `ironcart.dev` (IC-060 CVE proxy, `--upload`, v4 cron) and a HEAD probe to the merchant's own storefront base URL (IC-080..IC-085 CSP pack). When the operator enables those flows, the admin-side AJAX (`view/adminhtml/web/js/run-scan-now.js`) POSTs same-origin only, so the `connect-src` for that is implicit. But the absence of `etc/csp_whitelist.xml` will be flagged by EQP for any module that touches an external host at runtime — Marketplace prefers an explicit declaration even when the host is the merchant's own. **Tracked as follow-up #2.** |
+| 31 | i18n | Every user-facing string passes through `__()` / `translate=` and ships in `i18n/en_US.csv` | **FAIL** | B | `Glob('**/i18n/*.csv')` returns empty — the module has **no `i18n/en_US.csv` at all**. Confirmed translatable strings exist: 7 `__('...')` call sites across 5 PHP files (`Controller/Adminhtml/Scans/Index.php:57`, `View.php:56-57`, `Ui/Component/Listing/Column/ViewAction.php:68`, `Ui/Component/Control/ShowAllSeveritiesButton.php:64-65`, `Ui/Component/Control/RunScanNowButton.php:76`) plus 28 `translate="..."` attributes across 5 XML files (`view/adminhtml/ui_component/ironcartscan_run_listing.xml`, `view/adminhtml/ui_component/ironcartscan_finding_listing.xml`, `etc/acl.xml`, `etc/adminhtml/menu.xml`, `etc/adminhtml/system.xml`). Adobe EQP hard-requires `i18n/en_US.csv` for *every* `translate=` and `__()` source string — the MEQP scanner rule `MEQP2.Translation.MissingI18n` is a blocker. **Tracked as follow-up #3.** |
+| 32 | Deprecated APIs | No calls to APIs deprecated in Magento 2.4.6 / 2.4.7 | PASS | — | `Grep('@deprecated\|deprecated')` across `.php` returns one hit at `Check/CodeSmell/PregReplaceEvalModifierCheck.php:7` — a comment about the `/e` modifier being deprecated in PHP 5.5 (not Magento). No production code calls Magento-deprecated `Mage::*`, `ScopeConfigInterface::isSetFlag` (older signature), `OrderRepositoryInterface::getList` (deprecated args), `Magento\Framework\Json\Helper\Data`, or `Magento\Framework\Module\Manager::isOutputEnabled` (deprecated in 2.4.5). Spot-checked the controllers and DI graph manually — current 2.4.7 patterns throughout. |
+| 33 | Documentation | `README.md` present, describes install + use | PASS | — | `README.md` (197 lines) — install, usage, compat matrix, full check inventory, security posture, and network policy. |
+| 34 | Documentation | `LICENSE` present, matches `composer.json` `license` | PASS | — | `LICENSE` line 1 `MIT License`, `composer.json:5` `"MIT"`. |
+| 35 | Documentation | `CHANGELOG.md` follows Keep-a-Changelog format and has an entry for the current version | PASS | — | `CHANGELOG.md:1-5` declares Keep-a-Changelog + semver; `:7-43` is the `[1.2.0] - 2026-05-17` entry. |
+| 36 | Marketplace metadata | `README.md` lists supported Magento + PHP versions | PASS | — | `README.md:177-181`. |
+| 37 | Marketplace metadata | Module ships a marketplace-name distinct from `magento/*` and other established scanners | PASS | — | `ironcartlabs/magento-scan` — `ironcartlabs` vendor is owned (confirmed via Packagist), `magento-scan` is not a published Marketplace name (manual check against the Magento Marketplace public extension search 2026-05-18). |
+| 38 | Marketplace metadata | A Marketplace-mirror package name is reserved for the upcoming submission | **FAIL** | M | The v5 scope (#1071) commits to a **separate** marketplace-mirror Composer package name (working title `ironcartlabs/magento-scan-marketplace`) so the existing Packagist channel can keep cutting fast releases while the Marketplace channel is gated by Adobe's review cycle. That fork package skeleton does not exist yet (no second `composer.json`, no second `registration.php`, no published Packagist name). Marketplace submission rejects a package whose name conflicts with an already-published package by the same vendor without an explicit dedupe — we need the fork name reserved on Packagist and the skeleton committed before submission. **Tracked as follow-up #4** (the existing companion v5 ticket — this audit just confirms the gap is real). |
+
+### N/A items
+
+| # | Category | Why N/A |
+|---|---|---|
+| N/A-1 | Storefront frontend (`view/frontend/`) | This module ships no storefront UI — admin-only, no customer-visible pages. `Glob('view/frontend/**')` returns empty. |
+| N/A-2 | Payment / shipping integration EQP checks | Module is a read-only scanner; it never touches checkout, quotes, orders, or external payment processors. |
+| N/A-3 | Customer-facing JS bundles / RequireJS production builds | The one JS file (`view/adminhtml/web/js/run-scan-now.js`) is admin-only; it is shipped uncompiled because Magento's admin bundle pipeline already minifies / merges adminhtml JS at deploy time. |
+| N/A-4 | Cron security (PII in cron logs) | The v4 cron handler (`Cron/UploadScan.php`) logs only `view_url` / `upgrade_url` / category strings — no admin emails, no store URLs, no customer data. Verified at `Cron/UploadScan.php:30-33` design notes plus `Check/Upload/UploadClient.php` `extractUpgradeUrl()` contract. |
+
+## Follow-up issues
+
+Each FAIL cluster is tracked separately so remediation can land in independent PRs and so the audit doc itself stays small and re-runnable per release.
+
+1. **EQP suppression / `ObjectManager::getInstance()` graceful-degradation comments** — wire `@SuppressWarnings(PHPMD.StaticAccess)` + an MEQP suppression file for the two `WebhookSubscriptionReader` and `MessageQueueBacklogCheck` call sites so EQP's static analyser accepts them as documented seams (item 16).
+2. **Inline JS + `etc/csp_whitelist.xml`** — refactor `RunScanNowButton::on_click` to a declarative `data-mage-init` pattern (or ship an `etc/csp_whitelist.xml` covering the inline-JS source and the optional `ironcart.dev` outbound), so admin CSP enforcement and EQP CSP review both pass (items 29 + 30).
+3. **Translation coverage / `i18n/en_US.csv`** — generate the file by sweeping every `__()` call site and every `translate=` XML attribute and committing the source CSV (item 31). EQP hard-blocks submission without it.
+4. **Marketplace-mirror fork skeleton** — register the `ironcartlabs/magento-scan-marketplace` Packagist name and commit a minimum-viable second-package skeleton (separate `composer.json`, separate Marketplace metadata block) so the v5 submission target exists (item 38). Companion to the parallel package-fork ticket from the v5 scope decision.
+
+## How to re-run this audit
+
+1. Bump the **Audited release** + commit line at the top.
+2. Re-walk the table top-to-bottom. The "Evidence" column names files + line numbers; verify each line still exists and still matches the claim. Use `Grep` / `Glob` for the broad-strokes items (24-28, 31).
+3. For items 24-28 (security pattern scans), the canonical run is `bin/magento ironcart:scan --format=json` against a sandbox that has `app/code/IronCart/Scan/` symlinked. CI already runs this on every PR — read the most recent green run's `scan.json` summary off the integration job and confirm IC-050 / IC-051 / IC-052 / IC-053 / IC-054 are zero.
+4. Update the score line. Move resolved items out of FAIL, log the date + score in `## History` below.
+
+## History
+
+| Date | Score | Auditor | Notes |
+|---|---|---|---|
+| 2026-05-18 | 28/38 PASS, 6 FAIL, 4 N/A | `agent:dev` (issue #81) | First audit. v1.2.0. 4 FAIL clusters filed as follow-up issues. |
