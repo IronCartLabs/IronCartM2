@@ -90,6 +90,16 @@
                 <item name="IC-910" xsi:type="object">IronCart\Scan\Check\Hyva\TailwindConfigExposureCheck</item>
                 <item name="IC-911" xsi:type="object">IronCart\Scan\Check\Hyva\CheckoutCspRegressionCheck</item>
                 <item name="IC-912" xsi:type="object">IronCart\Scan\Check\Hyva\HyvaModuleDriftCheck</item>
+                <!-- Recon 7.3 admin-actions audit pack (IronCartWeb#1187).
+                     Reads the last 24h of admin_user / admin_passwords /
+                     admin_user_session activity. Usernames are SHA-256
+                     hashed in the evidence payload unless the operator
+                     opts in to plaintext via the include-usernames CLI
+                     flag; login IPs are truncated to a /24 or /48 prefix.
+                     The off-hours sub-detector is suppressed until the
+                     operator configures admin/security/business_hours_start
+                     and business_hours_end. -->
+                <item name="IC-014" xsi:type="object">IronCart\Scan\Check\AdminAudit\RecentActionsCheck</item>
             </argument>
         </arguments>
     </type>
