@@ -121,6 +121,13 @@
                 <item name="IC-921" xsi:type="object">IronCart\Scan\Check\PwaStudio\GraphQlIntrospectionCheck</item>
                 <item name="IC-922" xsi:type="object">IronCart\Scan\Check\PwaStudio\GraphQlQueryComplexityCheck</item>
                 <item name="IC-923" xsi:type="object">IronCart\Scan\Check\PwaStudio\GraphQlCorsWildcardCheck</item>
+                <!-- Integrity check pack (Recon 7.2, IronCartWeb#1186). Single
+                     class emits IC-200..IC-205 from a Recon-grade env.php sweep:
+                     mode-strict-enough, owner-not-root-or-web, not-a-symlink,
+                     default-crypt-key, empty-db-password, session.save=files
+                     with no save_path. Read-only; never copies key / password
+                     bytes into evidence. -->
+                <item name="IC-200" xsi:type="object">IronCart\Scan\Check\Integrity\EnvPhpPermissionsCheck</item>
             </argument>
         </arguments>
     </type>

@@ -81,6 +81,12 @@ The check inventory, in stable ID order:
 | IC-921 | medium   | PwaStudio   | GraphQL introspection enabled (`graphql/validation/disable_introspection = 0`) while `MAGE_MODE=production` |
 | IC-922 | medium   | PwaStudio   | GraphQL `maximum_query_depth` / `maximum_query_complexity` missing or above safe ceilings (depth > 20, complexity > 300) |
 | IC-923 | high     | PwaStudio   | GraphQL `web/graphql/cors_allowed_origins` contains a wildcard (`*`, `null`, or `*.example.com`) |
+| IC-200 | high     | Integrity   | `app/etc/env.php` file mode is not `0640` or stricter |
+| IC-201 | high     | Integrity   | `app/etc/env.php` owner is `root` or a known webserver user |
+| IC-202 | high     | Integrity   | `app/etc/env.php` is a symlink |
+| IC-203 | high     | Integrity   | `crypt.key` matches a documented default value |
+| IC-204 | high     | Integrity   | A `db.connection.*` entry has an empty password |
+| IC-205 | high     | Integrity   | `session.save = 'files'` with no explicit `save_path` |
 
 The **Hyva** pack (IC-910..IC-913) only emits findings when the storefront is detected as Hyvä — either the `Hyva_Theme` module is registered with Magento, or `hyva-themes/*` packages are present in `composer.lock`. Non-Hyvä stores see zero findings from this pack. Detection is read-only and runs only when Magento itself is detected.
 
