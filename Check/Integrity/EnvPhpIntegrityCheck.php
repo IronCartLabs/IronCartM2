@@ -46,7 +46,7 @@ use IronCart\Scan\Report\Severity;
 /**
  * IC-200..IC-205: Recon-tier `app/etc/env.php` integrity sweep.
  */
-class EnvPhpPermissionsCheck implements CheckInterface
+class EnvPhpIntegrityCheck implements CheckInterface
 {
     public const ID_MODE = 'IC-200';
     public const ID_OWNER = 'IC-201';
