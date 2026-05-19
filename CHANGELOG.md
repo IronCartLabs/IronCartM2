@@ -6,25 +6,25 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
-### Added — Integrity check pack (Recon Phase 7.2)
+## [1.4.0] - 2026-05-19
 
-- **IC-200..IC-205 — `Check/Integrity/EnvPhpPermissionsCheck`** ([IronCartLabs/IronCartWeb#1186](https://github.com/IronCartLabs/IronCartWeb/issues/1186)). Single check class emits up to six HIGH-severity findings from a Recon-grade `app/etc/env.php` sweep: file mode not `0640`-or-stricter (IC-200), owner is `root` or a known webserver user (IC-201), `env.php` is a symlink (IC-202), `crypt.key` matches a documented default value (IC-203), a `db.connection.*` entry has an empty password (IC-204), and `session.save = 'files'` with no explicit `save_path` (IC-205). Goes beyond the free-tier IC-030/IC-031/IC-032 by enforcing the stricter posture an outside-the-store scanner cannot observe — IC-030 only flags world-readable mode bits, IC-031 only flags the webserver-user owner case, and IC-032 only catches absent / string-placeholder crypt keys. Privacy invariant: never copies key bytes, password values, or session paths into the evidence payload — only structural facts (`present`, `default_match`, mode bits, owner name). Read-only; degrades with an `info` finding when env.php is missing or unreadable. `etc/di.xml` appends one new `IC-200` entry; the single class returns findings for all six IDs.
+The v6 + Recon Phase 7 module wave. Folds the Hyvä-specific check pack,
+the PWA Studio check pack, and the Recon Phase 7 module-side checks
+(file-integrity baseline, env.php Recon-grade permissions sweep, recent
+admin-actions audit) into one tag on top of `1.3.0`. Strictly additive
+from the merchant install perspective — no removed or renamed CLI /
+class / config surface; upgrades are `composer update
+ironcartlabs/magento-scan && bin/magento setup:upgrade`. Non-Hyvä /
+non-PWA / free-tier installs see byte-identical scan output to `1.3.0`
+because the new Hyvä, PWA-Studio, and Recon checks all short-circuit to
+zero findings on the detector-says-no / no-license path.
 
-### Added — Recon 7.3 admin-actions audit
-
-- **IC-014 — Recent admin-actions audit** ([IronCartWeb#1187](https://github.com/IronCartLabs/IronCartWeb/issues/1187)). New `Check\AdminAudit\RecentActionsCheck` reads the last 24h of activity from `admin_user` (created / modified timestamps), `admin_passwords` (`last_updated`), and `admin_user_session` (login IPs + `updated_at`) and emits sub-findings for new admin users (`IC-014.new-admin`, HIGH), recently modified existing admin rows as a coarse role-change proxy (`IC-014.role-change`, MEDIUM), password resets (`IC-014.password-reset`, MEDIUM), the set of `/24` / `/48` login-IP prefixes (`IC-014.login-ips`, INFO), and logins outside an operator-configured business-hours window (`IC-014.off-hours`, HIGH). PII contract: usernames are SHA-256 hashed (first 16 hex chars) and IPs truncated to network prefixes by default; plaintext usernames only surface when the operator passes the existing `include-usernames` flag. Off-hours detection is suppressed until the operator sets `admin/security/business_hours_start` and `admin/security/business_hours_end` (24-hour ints) — default is "no opinion". Read-only: no raw SQL, no writes, no outbound network.
-
-### Changed — CI
-
-- **CI integration matrix extended with Hyvä + PWA Studio sandbox cells** ([#131](https://github.com/IronCartLabs/IronCartM2/issues/131)). Two new jobs in `.github/workflows/ci.yml` (`integration-hyva` and `integration-pwa`) boot the existing docker-compose Magento sandbox against the 2.4.7-p5 / PHP 8.3 baseline, layer in Hyvä-detection signals (composer `hyva-themes/magento2-theme-module` + a planted CDN-Alpine fixture template) and PWA-Studio-detection fixtures (a non-installed `package.json` + `pwa-studio.config.json` marker plus pre-configured GraphQL knobs), then drive new `tests/sandbox/hyva-integration.php` and `tests/sandbox/pwa-integration.php` drivers that assert IC-910..IC-913 and IC-921..IC-923 fire end-to-end against a real Magento boot. Gated on the same `INTEGRATION_ENABLED` repo variable as the default Luma `integration` cell. No `Check/` source touched.
-
-## [1.4.0] - Unreleased
-
-The v6 module wave. Adds the Hyvä-specific check pack on top of the
-1.3.0 baseline. Strictly additive — no removed or renamed CLI / class /
-config surface. Non-Hyvä stores see byte-identical scan output to v1.3.0
-because every IC-9xx check short-circuits to zero findings on the
-detector-says-no path.
+> **Packaging note (per resolved Recon 7.0 decision, [IronCartWeb#1184](https://github.com/IronCartLabs/IronCartWeb/issues/1184)).**
+> Recon Phase 7 ships inside the existing `ironcartlabs/magento-scan`
+> Packagist package — no separate `magento-recon` repo, no second
+> Packagist submission. Recon-only checks are runtime-gated via the
+> Ed25519 `LicenseConfig` plumbing landed in v1.3.0 (#111); free-tier
+> installs see them silently no-op.
 
 ### Added — Hyvä check pack
 
@@ -32,9 +32,6 @@ detector-says-no path.
 - **IC-910 — Tailwind / postcss config exposed under `pub/static`** ([#125](https://github.com/IronCartLabs/IronCartM2/issues/125)). Walks `<magento_root>/pub/static/frontend/<vendor>/<theme>/` two levels deep looking for `tailwind.config.js`, `tailwind.source.css`, and `postcss.config.js` (both at the theme root and inside the `tailwind/` subdir Hyvä's default theme uses). Severity MEDIUM; remediation at `https://ironcart.dev/docs/checks/IC-910`. Read-only filesystem walk, bounded so a wrecked deploy with hundreds of stale theme directories does not blow the scan timeout.
 - **IC-911 — Hyvä Checkout CSP whitelist hash drift** ([#125](https://github.com/IronCartLabs/IronCartM2/issues/125)). Parses the merchant's `app/etc/csp_whitelist.xml` for every `sha256` hash under `<policy id="script-src">` and compares against the bundled `etc/manifests/hyva-checkout/<version>.json` for the installed `hyva-themes/magento2-hyva-checkout` version. Hashes whitelisted but not in the manifest surface as MEDIUM findings. When the installed checkout version is newer than every bundled manifest, IC-911 emits a single LOW informational finding pointing at the manifest-refresh path (`bin/refresh-osv-snapshot.php` cadence). No network call — the manifest ships in-repo. Manifest seed at `etc/manifests/hyva-checkout/1.1.16.json` (placeholder hashes; first real Hyvä Checkout release the manifest covers will replace them).
 - **IC-912 — Hyvä module version drift** ([#125](https://github.com/IronCartLabs/IronCartM2/issues/125)). Cross-references every installed `hyva-themes/*` composer package against the bundled `etc/manifests/hyva-modules/min-versions.json` floor manifest. Packages below the floor emit one finding each; severity is HIGH when the floor row is tagged `"security": true` (set because of a published advisory) and MEDIUM otherwise. Packages with no manifest row are silently skipped — IC-002 / IC-060 already provide CVE-driven coverage for the long tail. No network call; refresh path is the same `bin/refresh-osv-snapshot.php` flow as IC-002.
-
-### Added — Hyvä addition beyond v6 baseline
-
 - **IC-913 — Hyvä template references Alpine.js from a public CDN** ([#129](https://github.com/IronCartLabs/IronCartM2/issues/129)). Walks `app/design/frontend/` and `vendor/hyva-themes/` (bounded to 6 directory levels and 2000 files per root) for `.phtml` / `.html` templates that load Alpine.js from a public JS CDN (jsdelivr, unpkg, cdnjs, esm.sh, jspm, skypack). Severity MEDIUM; one finding per scan listing every match. First-party / vendored Alpine bundles are not flagged. Read-only filesystem walk; no network call.
 
 ### Added — PWA Studio check pack
@@ -44,17 +41,34 @@ detector-says-no path.
 - **IC-922 — GraphQL query depth / complexity limits** ([#129](https://github.com/IronCartLabs/IronCartM2/issues/129)). Reads `graphql/validation/maximum_query_depth` and `graphql/validation/maximum_query_complexity`. Emits one MEDIUM finding (listing every gap in the `evidence.gaps` array) when either knob is unset / non-numeric, ≤ 0, or above the safe ceilings (depth > 20, complexity > 300, aligned with Magento 2.4.7 shipping defaults).
 - **IC-923 — GraphQL CORS allows wildcard origin** ([#129](https://github.com/IronCartLabs/IronCartM2/issues/129)). Reads `web/graphql/cors_allowed_origins` and flags the literal `*`, the literal `null` origin, and `*.<domain>` subdomain wildcards. Severity HIGH because PWA Studio's Apollo client routinely sends `Authorization: Bearer <customer-token>` headers — a wildcard origin lets any third-party site mount credentialed GraphQL requests from the visitor's browser. Skipped silently when the config is unset (Magento defaults to no CORS exposure).
 
+### Added — Recon Phase 7 module-side checks
+
+- **IC-073 / IC-074 — file-integrity baseline (Recon Phase 7.1)** ([IronCartLabs/IronCartWeb#1185](https://github.com/IronCartLabs/IronCartWeb/issues/1185), [#136](https://github.com/IronCartLabs/IronCartM2/pull/136)). New `Check/Integrity/FileHashCheck` diffs the live `app/code/**`, `app/etc/**`, and `vendor/magento/**` tree against a locally-built SHA-256 baseline at `var/recon/baseline.json`. Severity ladder: HIGH for `app/code/**` + `app/etc/**` drift, MEDIUM for `vendor/magento/**` drift, CRITICAL mass-tampering summary above 200 altered files. IC-074 LOW informational when no baseline exists yet. Pro-only: short-circuits to zero findings when `LicenseConfig::parsedClaims()` returns null, so free-tier installs see nothing from this check. New `bin/magento recon:integrity:rebaseline` CLI (gated by the new `IronCart_Scan::recon_integrity_rebaseline` ACL resource — distinct from `IronCart_Scan::run` so a scheduled-scan operator cannot silence the integrity check by re-baselining) regenerates the baseline; the command refuses to run without a verified Pro license so a compromised free-tier install cannot legitimise tampering. Bundled ignore whitelist at `etc/integrity-ignore.json` (prefixes `var/`, `generated/`, `pub/static/`, `pub/media/`, `.git/`; exact `app/etc/env.php`, `app/etc/config.php`). Read-only against the merchant filesystem; the only on-disk write is `var/recon/baseline.json`, touched exclusively by the rebaseline command. No outbound network calls.
+- **IC-200..IC-205 — `Check/Integrity/EnvPhpPermissionsCheck` (Recon Phase 7.2)** ([IronCartLabs/IronCartWeb#1186](https://github.com/IronCartLabs/IronCartWeb/issues/1186), [#134](https://github.com/IronCartLabs/IronCartM2/pull/134)). Single check class emits up to six HIGH-severity findings from a Recon-grade `app/etc/env.php` sweep: file mode not `0640`-or-stricter (IC-200), owner is `root` or a known webserver user (IC-201), `env.php` is a symlink (IC-202), `crypt.key` matches a documented default value (IC-203), a `db.connection.*` entry has an empty password (IC-204), and `session.save = 'files'` with no explicit `save_path` (IC-205). Goes beyond the free-tier IC-030/IC-031/IC-032 by enforcing the stricter posture an outside-the-store scanner cannot observe — IC-030 only flags world-readable mode bits, IC-031 only flags the webserver-user owner case, and IC-032 only catches absent / string-placeholder crypt keys. Privacy invariant: never copies key bytes, password values, or session paths into the evidence payload — only structural facts (`present`, `default_match`, mode bits, owner name). Read-only; degrades with an `info` finding when env.php is missing or unreadable. `etc/di.xml` appends one new `IC-200` entry; the single class returns findings for all six IDs.
+- **IC-014 — recent admin-actions audit (Recon Phase 7.3)** ([IronCartLabs/IronCartWeb#1187](https://github.com/IronCartLabs/IronCartWeb/issues/1187), [#133](https://github.com/IronCartLabs/IronCartM2/pull/133)). New `Check\AdminAudit\RecentActionsCheck` reads the last 24h of activity from `admin_user` (created / modified timestamps), `admin_passwords` (`last_updated`), and `admin_user_session` (login IPs + `updated_at`) and emits sub-findings for new admin users (`IC-014.new-admin`, HIGH), recently modified existing admin rows as a coarse role-change proxy (`IC-014.role-change`, MEDIUM), password resets (`IC-014.password-reset`, MEDIUM), the set of `/24` / `/48` login-IP prefixes (`IC-014.login-ips`, INFO), and logins outside an operator-configured business-hours window (`IC-014.off-hours`, HIGH). PII contract: usernames are SHA-256 hashed (first 16 hex chars) and IPs truncated to network prefixes by default; plaintext usernames only surface when the operator passes the existing `include-usernames` flag. Off-hours detection is suppressed until the operator sets `admin/security/business_hours_start` and `admin/security/business_hours_end` (24-hour ints) — default is "no opinion". Read-only: no raw SQL, no writes, no outbound network.
+
+### Added — Recon push-event recipient (ironcart.dev side)
+
+- **Module push events now have a server-side recipient.** The Recon Phase 7.4 ingest endpoint (`POST /api/recon/module-event`, [IronCartLabs/IronCartWeb#1188](https://github.com/IronCartLabs/IronCartWeb/issues/1188)) shipped on the ironcart.dev side this slot. The module does not yet emit push events from `1.4.0` — that producer ships in a follow-up minor release once the HMAC secret distribution path is finalised. Documented here so operators auditing the v6 / Recon-7 wave know the inbound side exists.
+
+### Changed — CI
+
+- **CI integration matrix extended with Hyvä + PWA Studio sandbox cells** ([#131](https://github.com/IronCartLabs/IronCartM2/issues/131), [#132](https://github.com/IronCartLabs/IronCartM2/pull/132)). Two new jobs in `.github/workflows/ci.yml` (`integration-hyva` and `integration-pwa`) boot the existing docker-compose Magento sandbox against the 2.4.7-p5 / PHP 8.3 baseline, layer in Hyvä-detection signals (composer `hyva-themes/magento2-theme-module` + a planted CDN-Alpine fixture template) and PWA-Studio-detection fixtures (a non-installed `package.json` + `pwa-studio.config.json` marker plus pre-configured GraphQL knobs), then drive new `tests/sandbox/hyva-integration.php` and `tests/sandbox/pwa-integration.php` drivers that assert IC-910..IC-913 and IC-921..IC-923 fire end-to-end against a real Magento boot. Gated on the same `INTEGRATION_ENABLED` repo variable as the default Luma `integration` cell. No `Check/` source touched.
+
 ### Changed
 
-- **`etc/di.xml`** appends three new entries to the `CheckRegistry` `checks` argument (`IC-910`, `IC-911`, `IC-912`) and declares `HyvaDetector` as `shared="true"`. The follow-up #129 wave appends `IC-913` (Hyvä) plus `IC-921` / `IC-922` / `IC-923` (PWA Studio) and declares `PwaStudioDetector` as `shared="true"`. Existing entries are unchanged — the v6 pack is strictly additive.
+- **`etc/module.xml` `setup_version`** bumped from `1.3.0` to `1.4.0`. Read at runtime to construct the `IronCart-Scan/<version>` User-Agent on outbound HTTP surfaces.
+- **`composer.json` `extra.module-version`** bumped from `1.3.0` to `1.4.0`. Kept in sync with `etc/module.xml`.
+- **`etc/di.xml`** appends entries to the `CheckRegistry` `checks` argument across the v6 + Recon-7 wave: `IC-910`, `IC-911`, `IC-912`, `IC-913` (Hyvä); `IC-921`, `IC-922`, `IC-923` (PWA Studio); `IC-073` (Recon file-integrity, Pro-gated); `IC-200` (Recon env.php sweep, single class returns IC-200..IC-205); `IC-014` (Recon admin-actions audit). Declares `HyvaDetector` and `PwaStudioDetector` as `shared="true"`. Existing entries are unchanged — the wave is strictly additive.
 
 ### Notes
 
-- Strictly additive — Free OSS check pack stays open-source. The paywall axis (delivery + enrichment via the Recon subscription) is unchanged; IC-910..IC-913 + IC-921..IC-923 all ship under the MIT module like every other check.
-- No outbound network calls. The Hyvä manifests (Checkout CSP hash + module min-version) ship in-repo and are refreshed on the OSV-snapshot cadence; the new IC-913 / IC-92x checks are pure config / filesystem reads with no manifest at all.
+- Strictly additive — no removed or renamed CLI commands, class names, config keys, or DI bindings from the v1.3.0 baseline.
+- Free OSS check pack stays open-source. The paywall axis (delivery + enrichment via the Recon subscription) is unchanged; IC-910..IC-913 + IC-921..IC-923 all ship under the MIT module like every other free-tier check. The Recon-specific checks (IC-073 file-integrity baseline, IC-200..IC-205 env.php sweep, IC-014 admin-actions audit) are present in the same MIT codebase but runtime-gated by the Ed25519 `LicenseConfig` parsed-claims check — free-tier installs see them silently no-op.
+- No new outbound network calls from the module. The Hyvä / PWA / Recon checks are pure config / filesystem / DB reads; the Hyvä manifests (Checkout CSP hash + module min-version) ship in-repo and are refreshed on the OSV-snapshot cadence.
 - Compat matrix unchanged: Magento 2.4.4–2.4.7 × PHP 8.1–8.3 stays green.
-- Remediation guide stubs (`docs/checks/IC-910`, `docs/checks/IC-911`, `docs/checks/IC-912`, `docs/checks/IC-913`, `docs/checks/IC-921`, `docs/checks/IC-922`, `docs/checks/IC-923`) land in IronCartWeb as a follow-up `agent:content` ticket once the check IDs are locked.
-- Tracking epic: [IronCartLabs/IronCartWeb#884](https://github.com/IronCartLabs/IronCartWeb/issues/884) ("v6 — Hyvä/PWA Studio specific checks").
+- Remediation guide stubs (`docs/checks/IC-014`, `docs/checks/IC-073`, `docs/checks/IC-200`..`IC-205`, `docs/checks/IC-910`..`IC-913`, `docs/checks/IC-921`..`IC-923`) land in IronCartWeb as a follow-up `agent:content` ticket once the check IDs are locked.
+- Tracking epics: [IronCartLabs/IronCartWeb#884](https://github.com/IronCartLabs/IronCartWeb/issues/884) ("v6 — Hyvä/PWA Studio specific checks") and [IronCartLabs/IronCartWeb#186](https://github.com/IronCartLabs/IronCartWeb/issues/186) ("Recon Phase 7 — Optional Magento module").
 
 ### Install
 
@@ -224,7 +238,8 @@ bin/magento module:enable IronCart_Scan
 bin/magento setup:upgrade
 ```
 
-[Unreleased]: https://github.com/IronCartLabs/IronCartM2/compare/v1.3.0...HEAD
+[Unreleased]: https://github.com/IronCartLabs/IronCartM2/compare/v1.4.0...HEAD
+[1.4.0]: https://github.com/IronCartLabs/IronCartM2/releases/tag/v1.4.0
 [1.3.0]: https://github.com/IronCartLabs/IronCartM2/releases/tag/v1.3.0
 [1.2.0]: https://github.com/IronCartLabs/IronCartM2/releases/tag/v1.2.0
 [1.1.0]: https://github.com/IronCartLabs/IronCartM2/releases/tag/v1.1.0
