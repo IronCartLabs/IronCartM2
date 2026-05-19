@@ -90,6 +90,17 @@
                 <item name="IC-910" xsi:type="object">IronCart\Scan\Check\Hyva\TailwindConfigExposureCheck</item>
                 <item name="IC-911" xsi:type="object">IronCart\Scan\Check\Hyva\CheckoutCspRegressionCheck</item>
                 <item name="IC-912" xsi:type="object">IronCart\Scan\Check\Hyva\HyvaModuleDriftCheck</item>
+                <!-- Hyva addition beyond v6 baseline (#129). Detects Alpine.js
+                     loaded from a public JS CDN in Hyva theme templates. Shares
+                     the HyvaDetector singleton declared below. -->
+                <item name="IC-913" xsi:type="object">IronCart\Scan\Check\Hyva\AlpineCdnUsageCheck</item>
+                <!-- PWA Studio check pack (v6, #129). All checks short-circuit
+                     to zero findings on non-PWA stores via the shared
+                     PwaStudioDetector (declared shared below). Read-only
+                     config + filesystem reads; no outbound network. -->
+                <item name="IC-921" xsi:type="object">IronCart\Scan\Check\PwaStudio\GraphQlIntrospectionCheck</item>
+                <item name="IC-922" xsi:type="object">IronCart\Scan\Check\PwaStudio\GraphQlQueryComplexityCheck</item>
+                <item name="IC-923" xsi:type="object">IronCart\Scan\Check\PwaStudio\GraphQlCorsWildcardCheck</item>
                 <!-- Integrity check pack (Recon 7.2, IronCartWeb#1186). Single
                      class emits IC-200..IC-205 from a Recon-grade env.php sweep:
                      mode-strict-enough, owner-not-root-or-web, not-a-symlink,
@@ -108,6 +119,13 @@
         non-Hyva stores get zero findings from this pack.
     -->
     <type name="IronCart\Scan\Check\Hyva\HyvaDetector" shared="true"/>
+
+    <!--
+        v6 (#129) — PWA Studio detector shared across IC-921/IC-922/IC-923 so
+        the composer.lock parse + package.json read + filesystem markers happen
+        once per scan run. Non-PWA stores get zero findings from this pack.
+    -->
+    <type name="IronCart\Scan\Check\PwaStudio\PwaStudioDetector" shared="true"/>
 
     <!--
         CVE proxy client — production wires the hardened ext-curl
