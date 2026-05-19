@@ -20,6 +20,19 @@
                               title="Run scans"
                               translate="title"
                               sortOrder="20"/>
+                    <!--
+                        Recon Phase 7.1 (IronCartLabs/IronCartWeb#1185) —
+                        gates the `recon:integrity:rebaseline` CLI command
+                        and any future admin UI button that resets the
+                        local file-integrity baseline. Distinct from
+                        `IronCart_Scan::run` so a tenant can grant read /
+                        scheduled-run access without granting the power to
+                        silence the integrity check by re-baselining.
+                    -->
+                    <resource id="IronCart_Scan::recon_integrity_rebaseline"
+                              title="Rebuild Recon file-integrity baseline"
+                              translate="title"
+                              sortOrder="30"/>
                 </resource>
             </resource>
         </resources>

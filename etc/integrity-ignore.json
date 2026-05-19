@@ -1,0 +1,15 @@
+{
+  "schema_version": "v0",
+  "_comment": "Webroot-relative paths excluded from the Recon file-integrity baseline + diff (IC-073). Prefix matches are str_starts_with(); exact matches must be equal. Schema lives in Check/Integrity/IgnorePatterns.php.",
+  "prefixes": [
+    "var/",
+    "generated/",
+    "pub/static/",
+    "pub/media/",
+    ".git/"
+  ],
+  "exact": [
+    "app/etc/env.php",
+    "app/etc/config.php"
+  ]
+}
