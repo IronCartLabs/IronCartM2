@@ -74,11 +74,19 @@ The check inventory, in stable ID order:
 | IC-091 | high     | Webhooks    | Webhook signature secret missing |
 | IC-092 | medium   | Webhooks    | Webhook retry policy unsafe (too many / too short) |
 | IC-093 | medium   | Webhooks    | Webhook destination resolves to a private network |
+| IC-200 | high     | Integrity   | `app/etc/env.php` mode is not 0640-or-stricter |
+| IC-201 | high     | Integrity   | `app/etc/env.php` owned by `root` or a webserver user |
+| IC-202 | high     | Integrity   | `app/etc/env.php` is a symlink |
+| IC-203 | high     | Integrity   | Magento crypt key matches a documented default value |
+| IC-204 | high     | Integrity   | DB connection in env.php has an empty password |
+| IC-205 | high     | Integrity   | Session handler is `files` with no `save_path` configured |
 | IC-910 | medium   | Hyva        | Hyvä Tailwind / postcss config file reachable under `pub/static/` |
 | IC-911 | medium / low | Hyva    | Hyvä Checkout CSP whitelist contains hashes not present in the installed checkout version (medium); manifest unavailable for installed version (low) |
 | IC-912 | high / medium | Hyva   | `hyva-themes/*` composer package installed below the bundled min-version floor (high when the floor is security-tagged, medium otherwise) |
 
 The **Hyva** pack (IC-910..IC-912) only emits findings when the storefront is detected as Hyvä — either the `Hyva_Theme` module is registered with Magento, or `hyva-themes/*` packages are present in `composer.lock`. Non-Hyvä stores see zero findings from this pack. Detection is read-only and runs only when Magento itself is detected.
+
+The **Integrity** pack (IC-200..IC-205, Recon Phase 7.2) is a deeper `app/etc/env.php` sweep than the free-tier `Filesystem` checks: stricter mode enforcement (0640-or-stricter rather than just "not world-readable"), `root`-included owner blocklist, symlink detection, default-crypt-key matching, empty-DB-password detection, and session-handler `files`-without-`save_path`. All six are HIGH-severity. Privacy invariant: no key or password bytes ever appear in evidence — only structural facts (`present`, `default_match`, mode bits, owner name).
 
 The **CodeSmell** pack scans `<magento_root>/app/code/**/*.php` only. Composer-managed code under `vendor/` is covered by IC-001/IC-002; core code is covered by the file-integrity pack (IC-070..IC-073).
 
