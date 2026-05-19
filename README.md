@@ -195,15 +195,13 @@ Full documentation: [ironcart.dev/docs/scanner/continuous-monitoring](https://ir
 
 The admin **Run Scan Now** button (Stores > Ironcart > Scans > Run Scan Now) and the continuous-monitoring cron both enqueue scans via Magento's DB message queue rather than running them inline. The queued row is created up-front so the admin grid shows it immediately, then a **queue consumer** picks it up and runs the actual checks.
 
-The consumer is named `ironcartScanRunConsumer` (declared in `etc/queue_consumer.xml`). Magento ships two supported ways to keep queue consumers draining; pick the one that fits your hosting.
+As long as Magento's own cron is running (`bin/magento cron:install`, the standard Magento prerequisite), queued scans drain automatically — the module ships its own cron job (`ironcart_scan_consumer_drain`, in `etc/crontab.xml`) that drives `ironcartScanRunConsumer` every minute. **No `app/etc/env.php` changes required.**
 
-### Option A: foreground / supervisor worker
+A fresh **Run Scan Now** click flips from `QUEUED` to a terminal status within one or two cron ticks. The drain is bounded by both message count and a wall-clock budget so a single tick cannot overlap the next.
 
-```bash
-bin/magento queue:consumers:start ironcartScanRunConsumer
-```
+### Already running a dedicated consumer supervisor?
 
-This runs the consumer as a long-lived process that picks up messages as soon as they're published. In production, wrap it in a supervisor (systemd unit, supervisord, pm2, etc.) so it restarts on failure. Example systemd unit:
+If your hosting setup already runs `bin/magento queue:consumers:start ironcartScanRunConsumer` under a long-lived supervisor (systemd unit, supervisord, pm2, etc.), that keeps working. The module's cron tick try-locks a named lock with a 0s timeout and exits clean when the supervisor holds it, so the queue is never double-drained. Example systemd unit:
 
 ```ini
 [Service]
@@ -213,29 +211,11 @@ User=www-data
 WorkingDirectory=/var/www/magento
 ```
 
-### Option B: cron-driven (no extra processes)
-
-Magento's core `consumers_runner` cron job will start every declared consumer on every cron tick (default every minute), run it for a bounded number of messages, then exit. Enable it by ensuring the `cron_consumers_runner` configuration in `app/etc/env.php` is either absent or has `consumers_only` unset / containing `ironcartScanRunConsumer`:
-
-```php
-// app/etc/env.php
-'cron_consumers_runner' => [
-    'cron_run' => true,
-    'max_messages' => 1000,
-    // Leave 'consumers' unset to run all declared consumers, or include
-    // 'ironcartScanRunConsumer' explicitly if you keep an allowlist.
-    'consumers' => [
-        'ironcartScanRunConsumer',
-        // ... other consumers you want to run
-    ],
-],
-```
-
-Confirm Magento's cron itself is running (`bin/magento cron:install` if not), then a fresh **Run Scan Now** click should flip from `QUEUED` to `SUCCEEDED` within one cron tick.
+The legacy `cron_consumers_runner` edit in `app/etc/env.php` is no longer necessary for this module.
 
 ### Detection: the stuck-QUEUED admin notice
 
-On installs where neither option above is in place (the consumer is never being driven), every **Run Scan Now** click leaves a row permanently at status `QUEUED` with an empty `Finished` column and all-zero severity totals. To stop that bug from being silent, the module fires an admin notice (severity MAJOR, visible in the admin notice bell) whenever it sees any `ironcart_scan_run` row whose status is `queued` and whose `started_at` is older than 60 seconds. The threshold is operator-tunable via `ironcart_scan/runtime/consumer_alert_threshold_seconds` (lower it to fire faster on a sluggish consumer; raise it if you have a chronically slow cron tick).
+On installs where Magento's own cron is not running at all (so neither the module's drain job nor any supervisor is driving the queue), every **Run Scan Now** click leaves a row permanently at status `QUEUED` with an empty `Finished` column and all-zero severity totals. To stop that bug from being silent, the module fires an admin notice (severity MAJOR, visible in the admin notice bell) whenever it sees any `ironcart_scan_run` row whose status is `queued` and whose `started_at` is older than 60 seconds. The threshold is operator-tunable via `ironcart_scan/runtime/consumer_alert_threshold_seconds` (lower it to fire faster on a sluggish consumer; raise it if you have a chronically slow cron tick).
 
 The notice clears automatically the next time the queued rows drain to a terminal status.
 
