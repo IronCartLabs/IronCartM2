@@ -46,6 +46,16 @@
                 <item name="IC-011" xsi:type="object">IronCart\Scan\Check\Admin\AdminUserInventoryCheck</item>
                 <item name="IC-012" xsi:type="object">IronCart\Scan\Check\Admin\TwoFactorCoverageCheck</item>
                 <item name="IC-013" xsi:type="object">IronCart\Scan\Check\Admin\WeakPasswordIndicatorCheck</item>
+                <!-- Recon 7.3 admin-actions audit pack (IronCartWeb#1187).
+                     Reads the last 24h of admin_user / admin_passwords /
+                     admin_user_session activity. Usernames are SHA-256
+                     hashed in the evidence payload unless the operator
+                     opts in to plaintext via the include-usernames CLI
+                     flag; login IPs are truncated to a /24 or /48 prefix.
+                     The off-hours sub-detector is suppressed until the
+                     operator configures admin/security/business_hours_start
+                     and business_hours_end. -->
+                <item name="IC-014" xsi:type="object">IronCart\Scan\Check\AdminAudit\RecentActionsCheck</item>
                 <!-- Webhook posture check pack (#49) -->
                 <item name="IC-090" xsi:type="object">IronCart\Scan\Check\Webhooks\PlaintextDestinationCheck</item>
                 <item name="IC-091" xsi:type="object">IronCart\Scan\Check\Webhooks\SignatureSecretCheck</item>
@@ -90,16 +100,17 @@
                 <item name="IC-910" xsi:type="object">IronCart\Scan\Check\Hyva\TailwindConfigExposureCheck</item>
                 <item name="IC-911" xsi:type="object">IronCart\Scan\Check\Hyva\CheckoutCspRegressionCheck</item>
                 <item name="IC-912" xsi:type="object">IronCart\Scan\Check\Hyva\HyvaModuleDriftCheck</item>
-                <!-- Recon 7.3 admin-actions audit pack (IronCartWeb#1187).
-                     Reads the last 24h of admin_user / admin_passwords /
-                     admin_user_session activity. Usernames are SHA-256
-                     hashed in the evidence payload unless the operator
-                     opts in to plaintext via the include-usernames CLI
-                     flag; login IPs are truncated to a /24 or /48 prefix.
-                     The off-hours sub-detector is suppressed until the
-                     operator configures admin/security/business_hours_start
-                     and business_hours_end. -->
-                <item name="IC-014" xsi:type="object">IronCart\Scan\Check\AdminAudit\RecentActionsCheck</item>
+                <!-- Hyva addition beyond v6 baseline (#129). Detects Alpine.js
+                     loaded from a public JS CDN in Hyva theme templates. Shares
+                     the HyvaDetector singleton declared below. -->
+                <item name="IC-913" xsi:type="object">IronCart\Scan\Check\Hyva\AlpineCdnUsageCheck</item>
+                <!-- PWA Studio check pack (v6, #129). All checks short-circuit
+                     to zero findings on non-PWA stores via the shared
+                     PwaStudioDetector (declared shared below). Read-only
+                     config + filesystem reads; no outbound network. -->
+                <item name="IC-921" xsi:type="object">IronCart\Scan\Check\PwaStudio\GraphQlIntrospectionCheck</item>
+                <item name="IC-922" xsi:type="object">IronCart\Scan\Check\PwaStudio\GraphQlQueryComplexityCheck</item>
+                <item name="IC-923" xsi:type="object">IronCart\Scan\Check\PwaStudio\GraphQlCorsWildcardCheck</item>
             </argument>
         </arguments>
     </type>
@@ -111,6 +122,13 @@
         non-Hyva stores get zero findings from this pack.
     -->
     <type name="IronCart\Scan\Check\Hyva\HyvaDetector" shared="true"/>
+
+    <!--
+        v6 (#129) — PWA Studio detector shared across IC-921/IC-922/IC-923 so
+        the composer.lock parse + package.json read + filesystem markers happen
+        once per scan run. Non-PWA stores get zero findings from this pack.
+    -->
+    <type name="IronCart\Scan\Check\PwaStudio\PwaStudioDetector" shared="true"/>
 
     <!--
         CVE proxy client — production wires the hardened ext-curl
