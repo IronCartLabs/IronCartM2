@@ -14,6 +14,8 @@
         <arguments>
             <argument name="commands" xsi:type="array">
                 <item name="ironcart_scan" xsi:type="object">IronCart\Scan\Console\Command\ScanCommand</item>
+                <!-- Recon Phase 7.1 (IronCartLabs/IronCartWeb#1185) — operator-driven baseline rebuild. -->
+                <item name="recon_integrity_rebaseline" xsi:type="object">IronCart\Scan\Console\Command\ReconIntegrityRebaselineCommand</item>
             </argument>
         </arguments>
     </type>
@@ -46,6 +48,16 @@
                 <item name="IC-011" xsi:type="object">IronCart\Scan\Check\Admin\AdminUserInventoryCheck</item>
                 <item name="IC-012" xsi:type="object">IronCart\Scan\Check\Admin\TwoFactorCoverageCheck</item>
                 <item name="IC-013" xsi:type="object">IronCart\Scan\Check\Admin\WeakPasswordIndicatorCheck</item>
+                <!-- Recon 7.3 admin-actions audit pack (IronCartWeb#1187).
+                     Reads the last 24h of admin_user / admin_passwords /
+                     admin_user_session activity. Usernames are SHA-256
+                     hashed in the evidence payload unless the operator
+                     opts in to plaintext via the include-usernames CLI
+                     flag; login IPs are truncated to a /24 or /48 prefix.
+                     The off-hours sub-detector is suppressed until the
+                     operator configures admin/security/business_hours_start
+                     and business_hours_end. -->
+                <item name="IC-014" xsi:type="object">IronCart\Scan\Check\AdminAudit\RecentActionsCheck</item>
                 <!-- Webhook posture check pack (#49) -->
                 <item name="IC-090" xsi:type="object">IronCart\Scan\Check\Webhooks\PlaintextDestinationCheck</item>
                 <item name="IC-091" xsi:type="object">IronCart\Scan\Check\Webhooks\SignatureSecretCheck</item>
@@ -63,6 +75,14 @@
                      separately here. -->
                 <item name="IC-070" xsi:type="object">IronCart\Scan\Check\FileIntegrity\CoreFileIntegrityCheck</item>
                 <item name="IC-072" xsi:type="object">IronCart\Scan\Check\FileIntegrity\ComposerLockIntegrityCheck</item>
+                <!-- Recon Phase 7.1 (IronCartLabs/IronCartWeb#1185) — Pro-gated
+                     file-integrity diff against the locally-built baseline
+                     under var/recon/baseline.json. IC-074 is emitted by the
+                     same class when no baseline exists, so it is NOT
+                     registered separately. Free-tier installs see zero
+                     findings from this check — gating is enforced inside
+                     FileHashCheck via LicenseConfig::parsedClaims(). -->
+                <item name="IC-073" xsi:type="object">IronCart\Scan\Check\Integrity\FileHashCheck</item>
                 <!-- CSP posture check pack (#48). Issues ONE local-loopback HEAD
                      probe via CspProbeRunner (shared instance, declared below).
                      The probe is gated by LoopbackHostGuard and skipped entirely
@@ -210,6 +230,24 @@
         </arguments>
     </type>
     <type name="IronCart\Scan\Check\ScanSession" shared="true"/>
+
+    <!--
+        Recon Phase 7.1 (IronCartLabs/IronCartWeb#1185) — file-integrity
+        baseline + diff wiring. IgnorePatterns is shared so a single scan
+        run only parses etc/integrity-ignore.json once, and the same
+        allow-list governs both the rebaseline walk and the live diff.
+        BaselineRepository / BaselineBuilder are stateless and only
+        marked shared to keep the in-memory entry count down on multi-
+        store scans (one MagentoRoot + IgnorePatterns reused per check).
+        Free-tier installs still construct these objects (the registry
+        holds an IC-073 slot regardless) — the actual diff is short-
+        circuited inside FileHashCheck via LicenseConfig::parsedClaims(),
+        so non-Pro merchants only pay the cost of loading the JSON
+        whitelist.
+    -->
+    <type name="IronCart\Scan\Check\Integrity\IgnorePatterns" shared="true"/>
+    <type name="IronCart\Scan\Check\Integrity\BaselineRepository" shared="true"/>
+    <type name="IronCart\Scan\Check\Integrity\BaselineBuilder" shared="true"/>
 
     <!--
         v5 — free-tier upload Pro-upgrade nag (#104).
