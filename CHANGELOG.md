@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Changed — CI
+
+- **CI integration matrix extended with Hyvä + PWA Studio sandbox cells** ([#131](https://github.com/IronCartLabs/IronCartM2/issues/131)). Two new jobs in `.github/workflows/ci.yml` (`integration-hyva` and `integration-pwa`) boot the existing docker-compose Magento sandbox against the 2.4.7-p5 / PHP 8.3 baseline, layer in Hyvä-detection signals (composer `hyva-themes/magento2-theme-module` + a planted CDN-Alpine fixture template) and PWA-Studio-detection fixtures (a non-installed `package.json` + `pwa-studio.config.json` marker plus pre-configured GraphQL knobs), then drive new `tests/sandbox/hyva-integration.php` and `tests/sandbox/pwa-integration.php` drivers that assert IC-910..IC-913 and IC-921..IC-923 fire end-to-end against a real Magento boot. Gated on the same `INTEGRATION_ENABLED` repo variable as the default Luma `integration` cell. No `Check/` source touched.
+
 ## [1.4.0] - Unreleased
 
 The v6 module wave. Adds the Hyvä-specific check pack on top of the

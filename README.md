@@ -248,6 +248,19 @@ Native-speaker refinements are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md#tr
 
 Run `make sandbox` for a one-command Magento 2 install with this module symlinked in (wraps [markshust/docker-magento](https://github.com/markshust/docker-magento)). See [docs/sandbox.md](docs/sandbox.md) for prerequisites, Adobe auth keys, the M2/PHP matrix, and known papercuts.
 
+## Testing
+
+Three layers of automated coverage run in CI on every PR (`.github/workflows/ci.yml`):
+
+- **Unit tests** — `Test/Unit/**` via PHPUnit on PHP 8.1 / 8.2 / 8.3. No Magento source needed; the CI cell strips `magento/framework` from `composer.json` before installing so the Magento-free `Test/Unit/Report/**` slice runs cleanly. Magento-typed test subtrees (`Test/Unit/Check/**`) are validated end-to-end by the integration cells below.
+- **Lint** — `magento/magento-coding-standard` ^32 (phpcs) + phpstan level 6 against the pure-PHP report builder slice.
+- **Integration sandbox cells** — docker-compose Magento sandbox (MariaDB + OpenSearch + Redis + `markoshust/magento-php` pinned to a sha256 digest) booted by three cells:
+  - `integration` — default **Luma** storefront; runs `bin/magento ironcart:scan --format=json` and asserts the v0 report shape (`schema_version`, `findings`, `summary`) plus the IC-072 composer-lock baseline.
+  - `integration-hyva` — adds `hyva-themes/magento2-theme-module` and plants an IC-913 CDN-Alpine fixture template under `app/design/frontend/`, then runs `tests/sandbox/hyva-integration.php` to assert IC-910..IC-913 and the CheckRegistry wiring.
+  - `integration-pwa` — plants PWA Studio detection fixtures (`package.json` + `pwa-studio.config.json` markers; no npm install) and pre-configures the GraphQL admin knobs IC-921 / IC-922 / IC-923 read, then runs `tests/sandbox/pwa-integration.php` to assert the PWA pack fires end-to-end.
+
+  All three integration cells are gated on the `INTEGRATION_ENABLED` repo variable (Magento composer auth wiring lives in repo secrets — see [#18](https://github.com/IronCartLabs/IronCartM2/issues/18)). Pinned to Magento 2.4.7-p5 / PHP 8.3 on PR runs; the full Magento 2.4.4–2.4.7 × PHP 8.1–8.3 matrix runs on pushes to `main` or PRs labelled `v0`.
+
 ## Security
 
 This module is read-only. Its outbound network surface is documented in [Network access posture](#network-access-posture) above and is opt-in by default:
