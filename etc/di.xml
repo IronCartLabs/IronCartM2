@@ -308,4 +308,22 @@
             <argument name="upgradeNagEmitter" xsi:type="object">IronCart\Scan\Check\License\UpgradeNagEmitter</argument>
         </arguments>
     </type>
+
+    <!--
+        IronCartLabs/IronCartM2#140 — module-owned queue-consumer drain.
+
+        Routes the every-minute `ironcart_scan_consumer_drain` cron job
+        through the same `ironcart_scan_cron` Monolog channel as the
+        upload cron above (`var/log/ironcart_scan.log`) so operators
+        can tail one file for all module-internal cron activity.
+
+        ConsumerFactory and LockManagerInterface are stock Magento
+        services injected with their framework-default wiring; the only
+        thing this declaration changes is the logger channel.
+    -->
+    <type name="IronCart\Scan\Cron\DrainScanConsumer">
+        <arguments>
+            <argument name="logger" xsi:type="object">IronCartScanCronLogger</argument>
+        </arguments>
+    </type>
 </config>

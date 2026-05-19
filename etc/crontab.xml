@@ -33,5 +33,24 @@
             <schedule>0 3 * * *</schedule>
             <config_path>ironcart_scan/cron/schedule</config_path>
         </job>
+        <!--
+         / IronCartLabs/IronCartM2#140 — module-owned drain for
+         / `ironcartScanRunConsumer`. Runs every minute so that on a
+         / fresh `composer require ironcartlabs/magento-scan` +
+         / `bin/magento setup:upgrade` queued scans actually run, with
+         / NO operator edits to app/etc/env.php and NO long-lived
+         / supervisor process required.
+         /
+         / The handler try-locks `ironcart_scan_consumer_drain` with a
+         / 0s timeout — if an operator IS running the supervisor
+         / (`bin/magento queue:consumers:start ironcartScanRunConsumer`)
+         / under the same lock, the cron tick exits clean and the
+         / supervisor keeps draining as before. No double-processing.
+        -->
+        <job name="ironcart_scan_consumer_drain"
+             instance="IronCart\Scan\Cron\DrainScanConsumer"
+             method="execute">
+            <schedule>* * * * *</schedule>
+        </job>
     </group>
 </config>
