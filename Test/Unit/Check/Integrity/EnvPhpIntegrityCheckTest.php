@@ -4,15 +4,15 @@ declare(strict_types=1);
 
 namespace IronCart\Scan\Test\Unit\Check\Integrity;
 
-use IronCart\Scan\Check\Integrity\EnvPhpPermissionsCheck;
+use IronCart\Scan\Check\Integrity\EnvPhpIntegrityCheck;
 use IronCart\Scan\Report\Severity;
 use IronCart\Scan\Test\Unit\Check\Filesystem\FilesystemSandbox;
 use PHPUnit\Framework\TestCase;
 
 /**
- * @covers \IronCart\Scan\Check\Integrity\EnvPhpPermissionsCheck
+ * @covers \IronCart\Scan\Check\Integrity\EnvPhpIntegrityCheck
  */
-class EnvPhpPermissionsCheckTest extends TestCase
+class EnvPhpIntegrityCheckTest extends TestCase
 {
     private FilesystemSandbox $sandbox;
 
@@ -28,19 +28,19 @@ class EnvPhpPermissionsCheckTest extends TestCase
 
     public function testEmitsInfoWhenEnvPhpMissing(): void
     {
-        $check = new EnvPhpPermissionsCheck($this->sandbox->magentoRoot());
+        $check = new EnvPhpIntegrityCheck($this->sandbox->magentoRoot());
 
         $findings = $check->run();
 
         self::assertCount(1, $findings);
         self::assertSame(Severity::INFO, $findings[0]['severity']);
-        self::assertSame(EnvPhpPermissionsCheck::ID_MODE, $findings[0]['id']);
+        self::assertSame(EnvPhpIntegrityCheck::ID_MODE, $findings[0]['id']);
     }
 
     public function testNoFindingsForCleanEnvPhp(): void
     {
         $this->sandbox->writeFile('app/etc/env.php', $this->validEnvPhpSource(), 0o640);
-        $check = new EnvPhpPermissionsCheck($this->sandbox->magentoRoot());
+        $check = new EnvPhpIntegrityCheck($this->sandbox->magentoRoot());
 
         $findings = $check->run();
 
@@ -49,10 +49,10 @@ class EnvPhpPermissionsCheckTest extends TestCase
         // sensitivity finding (IC-203/IC-204/IC-205) fires for a healthy
         // env.php.
         $sensitivityIds = [
-            EnvPhpPermissionsCheck::ID_DEFAULT_CRYPT_KEY,
-            EnvPhpPermissionsCheck::ID_EMPTY_DB_PASSWORD,
-            EnvPhpPermissionsCheck::ID_SESSION_FILES_NO_PATH,
-            EnvPhpPermissionsCheck::ID_SYMLINK,
+            EnvPhpIntegrityCheck::ID_DEFAULT_CRYPT_KEY,
+            EnvPhpIntegrityCheck::ID_EMPTY_DB_PASSWORD,
+            EnvPhpIntegrityCheck::ID_SESSION_FILES_NO_PATH,
+            EnvPhpIntegrityCheck::ID_SYMLINK,
         ];
         foreach ($findings as $finding) {
             self::assertNotContains($finding['id'], $sensitivityIds, sprintf(
@@ -65,9 +65,9 @@ class EnvPhpPermissionsCheckTest extends TestCase
     public function testHighWhenModeIs644(): void
     {
         $this->sandbox->writeFile('app/etc/env.php', $this->validEnvPhpSource(), 0o644);
-        $check = new EnvPhpPermissionsCheck($this->sandbox->magentoRoot());
+        $check = new EnvPhpIntegrityCheck($this->sandbox->magentoRoot());
 
-        $finding = $this->findById($check->run(), EnvPhpPermissionsCheck::ID_MODE);
+        $finding = $this->findById($check->run(), EnvPhpIntegrityCheck::ID_MODE);
 
         self::assertNotNull($finding, 'IC-200 should fire for mode 0644');
         self::assertSame(Severity::HIGH, $finding['severity']);
@@ -78,9 +78,9 @@ class EnvPhpPermissionsCheckTest extends TestCase
     {
         // 0660 = group write -> still violates "0640 or stricter".
         $this->sandbox->writeFile('app/etc/env.php', $this->validEnvPhpSource(), 0o660);
-        $check = new EnvPhpPermissionsCheck($this->sandbox->magentoRoot());
+        $check = new EnvPhpIntegrityCheck($this->sandbox->magentoRoot());
 
-        $finding = $this->findById($check->run(), EnvPhpPermissionsCheck::ID_MODE);
+        $finding = $this->findById($check->run(), EnvPhpIntegrityCheck::ID_MODE);
 
         self::assertNotNull($finding, 'IC-200 should fire for mode 0660');
         self::assertSame(Severity::HIGH, $finding['severity']);
@@ -90,9 +90,9 @@ class EnvPhpPermissionsCheckTest extends TestCase
     {
         // 0600 is stricter than 0640 (no group access) -> must not fire.
         $this->sandbox->writeFile('app/etc/env.php', $this->validEnvPhpSource(), 0o600);
-        $check = new EnvPhpPermissionsCheck($this->sandbox->magentoRoot());
+        $check = new EnvPhpIntegrityCheck($this->sandbox->magentoRoot());
 
-        $finding = $this->findById($check->run(), EnvPhpPermissionsCheck::ID_MODE);
+        $finding = $this->findById($check->run(), EnvPhpIntegrityCheck::ID_MODE);
 
         self::assertNull($finding, 'IC-200 must not fire for mode 0600');
     }
@@ -104,9 +104,9 @@ class EnvPhpPermissionsCheckTest extends TestCase
             $this->envPhpWithCryptKey('0123456789abcdef0123456789abcdef'),
             0o640
         );
-        $check = new EnvPhpPermissionsCheck($this->sandbox->magentoRoot());
+        $check = new EnvPhpIntegrityCheck($this->sandbox->magentoRoot());
 
-        $finding = $this->findById($check->run(), EnvPhpPermissionsCheck::ID_DEFAULT_CRYPT_KEY);
+        $finding = $this->findById($check->run(), EnvPhpIntegrityCheck::ID_DEFAULT_CRYPT_KEY);
 
         self::assertNotNull($finding);
         self::assertSame(Severity::HIGH, $finding['severity']);
@@ -122,9 +122,9 @@ class EnvPhpPermissionsCheckTest extends TestCase
             $this->envPhpWithCryptKey(str_repeat('0', 64)),
             0o640
         );
-        $check = new EnvPhpPermissionsCheck($this->sandbox->magentoRoot());
+        $check = new EnvPhpIntegrityCheck($this->sandbox->magentoRoot());
 
-        $finding = $this->findById($check->run(), EnvPhpPermissionsCheck::ID_DEFAULT_CRYPT_KEY);
+        $finding = $this->findById($check->run(), EnvPhpIntegrityCheck::ID_DEFAULT_CRYPT_KEY);
 
         self::assertNotNull($finding);
     }
@@ -136,9 +136,9 @@ class EnvPhpPermissionsCheckTest extends TestCase
             $this->envPhpWithCryptKey('a8b3f0c9e1d2470d8e6f1234abcd5678'),
             0o640
         );
-        $check = new EnvPhpPermissionsCheck($this->sandbox->magentoRoot());
+        $check = new EnvPhpIntegrityCheck($this->sandbox->magentoRoot());
 
-        $finding = $this->findById($check->run(), EnvPhpPermissionsCheck::ID_DEFAULT_CRYPT_KEY);
+        $finding = $this->findById($check->run(), EnvPhpIntegrityCheck::ID_DEFAULT_CRYPT_KEY);
 
         self::assertNull($finding);
     }
@@ -156,11 +156,11 @@ class EnvPhpPermissionsCheckTest extends TestCase
             . "];\n";
         $this->sandbox->writeFile('app/etc/env.php', $source, 0o640);
 
-        $check = new EnvPhpPermissionsCheck($this->sandbox->magentoRoot());
+        $check = new EnvPhpIntegrityCheck($this->sandbox->magentoRoot());
 
         $findings = array_values(array_filter(
             $check->run(),
-            static fn (array $f): bool => $f['id'] === EnvPhpPermissionsCheck::ID_EMPTY_DB_PASSWORD
+            static fn (array $f): bool => $f['id'] === EnvPhpIntegrityCheck::ID_EMPTY_DB_PASSWORD
         ));
 
         self::assertCount(1, $findings, 'Exactly one IC-204 finding expected (default connection)');
@@ -179,9 +179,9 @@ class EnvPhpPermissionsCheckTest extends TestCase
             . "];\n";
         $this->sandbox->writeFile('app/etc/env.php', $source, 0o640);
 
-        $check = new EnvPhpPermissionsCheck($this->sandbox->magentoRoot());
+        $check = new EnvPhpIntegrityCheck($this->sandbox->magentoRoot());
 
-        $finding = $this->findById($check->run(), EnvPhpPermissionsCheck::ID_SESSION_FILES_NO_PATH);
+        $finding = $this->findById($check->run(), EnvPhpIntegrityCheck::ID_SESSION_FILES_NO_PATH);
 
         self::assertNotNull($finding);
         self::assertSame(Severity::HIGH, $finding['severity']);
@@ -196,9 +196,9 @@ class EnvPhpPermissionsCheckTest extends TestCase
             . "];\n";
         $this->sandbox->writeFile('app/etc/env.php', $source, 0o640);
 
-        $check = new EnvPhpPermissionsCheck($this->sandbox->magentoRoot());
+        $check = new EnvPhpIntegrityCheck($this->sandbox->magentoRoot());
 
-        $finding = $this->findById($check->run(), EnvPhpPermissionsCheck::ID_SESSION_FILES_NO_PATH);
+        $finding = $this->findById($check->run(), EnvPhpIntegrityCheck::ID_SESSION_FILES_NO_PATH);
 
         self::assertNull($finding);
     }
@@ -211,9 +211,9 @@ class EnvPhpPermissionsCheckTest extends TestCase
             . "];\n";
         $this->sandbox->writeFile('app/etc/env.php', $source, 0o640);
 
-        $check = new EnvPhpPermissionsCheck($this->sandbox->magentoRoot());
+        $check = new EnvPhpIntegrityCheck($this->sandbox->magentoRoot());
 
-        $finding = $this->findById($check->run(), EnvPhpPermissionsCheck::ID_SESSION_FILES_NO_PATH);
+        $finding = $this->findById($check->run(), EnvPhpIntegrityCheck::ID_SESSION_FILES_NO_PATH);
 
         self::assertNull($finding);
     }
