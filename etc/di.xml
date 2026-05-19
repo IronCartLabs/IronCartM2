@@ -46,6 +46,16 @@
                 <item name="IC-011" xsi:type="object">IronCart\Scan\Check\Admin\AdminUserInventoryCheck</item>
                 <item name="IC-012" xsi:type="object">IronCart\Scan\Check\Admin\TwoFactorCoverageCheck</item>
                 <item name="IC-013" xsi:type="object">IronCart\Scan\Check\Admin\WeakPasswordIndicatorCheck</item>
+                <!-- Recon 7.3 admin-actions audit pack (IronCartWeb#1187).
+                     Reads the last 24h of admin_user / admin_passwords /
+                     admin_user_session activity. Usernames are SHA-256
+                     hashed in the evidence payload unless the operator
+                     opts in to plaintext via the include-usernames CLI
+                     flag; login IPs are truncated to a /24 or /48 prefix.
+                     The off-hours sub-detector is suppressed until the
+                     operator configures admin/security/business_hours_start
+                     and business_hours_end. -->
+                <item name="IC-014" xsi:type="object">IronCart\Scan\Check\AdminAudit\RecentActionsCheck</item>
                 <!-- Webhook posture check pack (#49) -->
                 <item name="IC-090" xsi:type="object">IronCart\Scan\Check\Webhooks\PlaintextDestinationCheck</item>
                 <item name="IC-091" xsi:type="object">IronCart\Scan\Check\Webhooks\SignatureSecretCheck</item>
