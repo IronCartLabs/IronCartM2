@@ -127,7 +127,7 @@
                      default-crypt-key, empty-db-password, session.save=files
                      with no save_path. Read-only; never copies key / password
                      bytes into evidence. -->
-                <item name="IC-200" xsi:type="object">IronCart\Scan\Check\Integrity\EnvPhpPermissionsCheck</item>
+                <item name="IC-200" xsi:type="object">IronCart\Scan\Check\Integrity\EnvPhpIntegrityCheck</item>
             </argument>
         </arguments>
     </type>
