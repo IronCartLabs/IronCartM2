@@ -1,16 +1,7 @@
 name: CI
 
-# Hyvä + PWA Studio integration cells were removed in #139:
-#   - Hyvä's `magento2-theme-module` lives behind paid Composer auth at
-#     repo.hyva.io; no public credential bundle is suitable for this OSS
-#     repo's CI matrix.
-#   - The PWA Studio integration cell had a separate unrelated docker-
-#     compose bootstrap failure (see #137 diagnosis).
-# Load-bearing protection for IC-910..IC-913 (Hyvä) and IC-921..IC-923
-# (PWA Studio) is the static fixture coverage in the `unit` job's PHPUnit
-# suites under tests/Unit/Check/. The integration cells were "nice-to-have"
-# end-to-end smoke, never a hard correctness gate. Restoration is tracked
-# as a follow-up to #139 once the credential / sandbox path is sorted.
+# Hyvä integration cell restored in #146 (PR follow-up to #144). PWA Studio
+# cell remains out until its docker-compose bootstrap regression is sorted.
 
 on:
   pull_request:
@@ -419,6 +410,234 @@ jobs:
           # No `composer require` here — the module is already in
           # app/code/IronCart/Scan from the previous step. Magento's
           # ComponentRegistrar auto-discovers it at setup:install time.
+          docker compose -f tests/sandbox/docker-compose.yml exec -T magento bash -lc '
+            set -euo pipefail
+            cd /var/www/html
+            bin/magento setup:install \
+              --base-url=http://magento.test/ \
+              --db-host=mariadb \
+              --db-name=magento \
+              --db-user=magento \
+              --db-password=magento \
+              --admin-firstname=ci \
+              --admin-lastname=ci \
+              --admin-email=ci@ironcart.dev \
+              --admin-user=admin \
+              --admin-password=magento-ci-123! \
+              --language=en_US \
+              --currency=USD \
+              --timezone=UTC \
+              --use-rewrites=1 \
+              --search-engine=opensearch \
+              --opensearch-host=opensearch \
+              --opensearch-port=9200 \
+              --session-save=redis \
+              --session-save-redis-host=redis \
+              --cache-backend=redis \
+              --cache-backend-redis-server=redis
+            bin/magento module:enable IronCart_Scan
+            bin/magento setup:upgrade
+          '
+
+      - name: Run ironcart:scan and assert exit 0 + valid JSON
+        working-directory: module
+        env:
+          PHP_VERSION: ${{ matrix.php }}
+          MAGENTO_SRC_HOST: ${{ github.workspace }}/.magento
+        run: |
+          docker compose -f tests/sandbox/docker-compose.yml exec -T magento bash -lc '
+            set -euo pipefail
+            cd /var/www/html
+            bin/magento ironcart:scan --format=json > /tmp/scan.json
+          '
+          docker compose -f tests/sandbox/docker-compose.yml cp magento:/tmp/scan.json ./scan.json
+          python3 - <<'PY'
+          import json
+          with open('scan.json') as f:
+              data = json.load(f)
+          assert isinstance(data, dict), 'top-level must be object'
+          assert data.get('schema_version') == 'v0', f'schema_version: {data.get("schema_version")}'
+          assert 'findings' in data and isinstance(data['findings'], list)
+          assert 'summary' in data and isinstance(data['summary'], dict)
+          # IC-072 — composer-lock integrity. A clean sandbox install must
+          # produce zero IC-072 HIGH findings; if it does, either the
+          # bundled manifest is wrong for the cell's Magento version, or
+          # the sandbox composer cache served a tampered package.
+          ic072 = [f for f in data['findings'] if f.get('id') == 'IC-072']
+          assert ic072 == [], f'unexpected IC-072 findings on clean install: {ic072}'
+          print('scan.json OK:', json.dumps(data['summary']))
+          PY
+
+      - name: Surface sandbox logs on failure
+        if: failure()
+        working-directory: module
+        env:
+          PHP_VERSION: ${{ matrix.php }}
+          MAGENTO_SRC_HOST: ${{ github.workspace }}/.magento
+        run: docker compose -f tests/sandbox/docker-compose.yml logs --no-color --tail=200
+
+      - name: Tear down sandbox
+        if: always()
+        working-directory: module
+        env:
+          PHP_VERSION: ${{ matrix.php }}
+          MAGENTO_SRC_HOST: ${{ github.workspace }}/.magento
+        run: docker compose -f tests/sandbox/docker-compose.yml down --volumes --remove-orphans
+
+  integration-hyva:
+    name: Integration (Hyvä) — Magento ${{ matrix.magento }} / PHP ${{ matrix.php }}
+    runs-on: ubuntu-latest
+    needs: [lint, unit]
+    # Same gate as the other integration cells — needs MAGENTO_* repo
+    # secrets for `composer create-project` against repo.magento.com,
+    # plus the HYVA_REPO_URL / HYVA_TOKEN secrets to pull the Hyvä
+    # theme module from the private Packagist mirror at
+    # hyva-themes.repo.packagist.com.
+    if: ${{ vars.INTEGRATION_ENABLED == 'true' }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        # Matches the default `integration` cell — single latest-patched
+        # smoke. The point of this cell is to confirm the scanner does
+        # not regress when the Hyvä theme module is present in the
+        # Magento source tree; we don't need the full compat fan-out.
+        magento: ['2.4.7-p5']
+        php: ['8.3']
+    # Job-level COMPOSER_AUTH carries both registries so every composer
+    # call in the job (create-project, install, require) can talk to
+    # repo.magento.com AND hyva-themes.repo.packagist.com.
+    env:
+      COMPOSER_AUTH: |
+        {
+          "http-basic": {
+            "repo.magento.com": {
+              "username": "${{ secrets.MAGENTO_PUBLIC_KEY }}",
+              "password": "${{ secrets.MAGENTO_PRIVATE_KEY }}"
+            },
+            "hyva-themes.repo.packagist.com": {
+              "username": "token",
+              "password": "${{ secrets.HYVA_TOKEN }}"
+            }
+          }
+        }
+    steps:
+      - name: Checkout module
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          path: module
+
+      - name: Setup PHP ${{ matrix.php }}
+        uses: shivammathur/setup-php@9e72090525849c5e82e596468b86eb55e9cc5401 # v2.32.0
+        with:
+          php-version: ${{ matrix.php }}
+          tools: composer:v2
+          extensions: bcmath, ctype, curl, dom, gd, hash, iconv, intl, mbstring, openssl, pdo_mysql, simplexml, soap, sockets, sodium, tokenizer, xmlwriter, xsl, zip
+          coverage: none
+
+      - name: Verify Magento Composer credentials are present
+        env:
+          MAGENTO_PUBLIC_KEY: ${{ secrets.MAGENTO_PUBLIC_KEY }}
+          MAGENTO_PRIVATE_KEY: ${{ secrets.MAGENTO_PRIVATE_KEY }}
+        run: |
+          if [ -z "${MAGENTO_PUBLIC_KEY}" ] || [ -z "${MAGENTO_PRIVATE_KEY}" ]; then
+            echo "::error::MAGENTO_PUBLIC_KEY and/or MAGENTO_PRIVATE_KEY repo secrets are not configured."
+            echo "See https://github.com/IronCartLabs/IronCartM2/issues/18 for the wiring steps."
+            exit 1
+          fi
+
+      - name: Verify Hyvä Composer credentials are present
+        # Mirrors the Magento credentials check above. Fail fast with a
+        # clear error if either Hyvä secret is missing rather than
+        # letting composer 401 with a noisy stack trace.
+        env:
+          HYVA_REPO_URL: ${{ secrets.HYVA_REPO_URL }}
+          HYVA_TOKEN: ${{ secrets.HYVA_TOKEN }}
+        run: |
+          if [ -z "${HYVA_REPO_URL}" ] || [ -z "${HYVA_TOKEN}" ]; then
+            echo "::error::HYVA_REPO_URL and/or HYVA_TOKEN repo secrets are not configured."
+            echo "See https://github.com/IronCartLabs/IronCartM2/issues/146 for the wiring steps."
+            exit 1
+          fi
+
+      - name: Resolve markoshust/magento-php digest for PHP ${{ matrix.php }}
+        # See the matching step on the `integration` job for the rationale
+        # and the bump procedure. Digests must stay in sync across all
+        # integration jobs.
+        run: |
+          case "${{ matrix.php }}" in
+            8.1) digest="sha256:66de4cc3b07014a439d80212efcbdcc8e8b461dba8fe9322e4d2ab35c6f95dcb" ;;  # last_updated 2025-04-18T18:42:33Z
+            8.2) digest="sha256:c7693a6843134ea0e834f72a09b7fa0b48d864f194c3b04a1aa609fc5c45d7ec" ;;  # last_updated 2025-04-18T18:45:08Z
+            8.3) digest="sha256:6905c3be235500c31d84029e1ec3e1d31d2b46959eda1ec73554a709d9f8c687" ;;  # last_updated 2025-04-17T22:58:36Z
+            *)
+              echo "::error::No pinned markoshust/magento-php digest for PHP ${{ matrix.php }}. Add one to this step in .github/workflows/ci.yml."
+              exit 1
+              ;;
+          esac
+          echo "MAGENTO_PHP_IMAGE=markoshust/magento-php@${digest}" >> "${GITHUB_ENV}"
+
+      - name: Prepare Magento source (composer create-project)
+        env:
+          MAGENTO_VERSION: ${{ matrix.magento }}
+        run: |
+          set -euo pipefail
+          composer create-project \
+            --no-interaction \
+            --no-progress \
+            --no-install \
+            --repository-url=https://repo.magento.com/ \
+            magento/project-community-edition:${MAGENTO_VERSION} \
+            "${GITHUB_WORKSPACE}/.magento"
+          (
+            cd "${GITHUB_WORKSPACE}/.magento"
+            composer install --no-interaction --no-progress
+          )
+
+      - name: Register Hyvä private packagist repo + install theme module
+        # Add the per-account Hyvä repo to the prepared Magento source's
+        # composer.json, then require the theme module so it lands under
+        # vendor/hyva-themes/ + magento-composer-installer drops it into
+        # app/code/ alongside our scanner. Job-level COMPOSER_AUTH (above)
+        # carries the http-basic credentials for hyva-themes.repo.packagist.com.
+        working-directory: ${{ github.workspace }}/.magento
+        run: |
+          composer config repositories.hyva composer "${{ secrets.HYVA_REPO_URL }}"
+          composer require --no-interaction --no-progress hyva-themes/magento2-theme-module
+
+      - name: Drop module into Magento app/code/IronCart/Scan
+        # See the matching step on the `integration` job for rationale —
+        # canonical Magento module testing pattern, avoids the composer-
+        # require chain of bugs from #34.
+        env:
+          MODULE_DEST: ${{ github.workspace }}/.magento/app/code/IronCart/Scan
+        run: |
+          set -euo pipefail
+          mkdir -p "${MODULE_DEST}"
+          rsync -a --delete --exclude='.git' --exclude='_m2-workspace' \
+            "${GITHUB_WORKSPACE}/module/" "${MODULE_DEST}/"
+
+      - name: Align bind-mount ownership with container uid 1000
+        # Bug 3 fix from #34 — see the matching step on the `integration`
+        # job. Container runs as uid 1000; runner writes as uid 1001.
+        run: |
+          sudo chown -R 1000:1000 "${GITHUB_WORKSPACE}/.magento"
+
+      - name: Boot Magento sandbox (MariaDB + OpenSearch + Redis)
+        working-directory: module
+        env:
+          PHP_VERSION: ${{ matrix.php }}
+          MAGENTO_SRC_HOST: ${{ github.workspace }}/.magento
+        run: |
+          docker compose -f tests/sandbox/docker-compose.yml up -d --wait
+          docker compose -f tests/sandbox/docker-compose.yml ps
+
+      - name: Install Magento + enable module
+        working-directory: module
+        env:
+          PHP_VERSION: ${{ matrix.php }}
+          MAGENTO_SRC_HOST: ${{ github.workspace }}/.magento
+        run: |
+          set -euo pipefail
           docker compose -f tests/sandbox/docker-compose.yml exec -T magento bash -lc '
             set -euo pipefail
             cd /var/www/html
