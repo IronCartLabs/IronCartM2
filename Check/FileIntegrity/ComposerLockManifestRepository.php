@@ -34,6 +34,7 @@ declare(strict_types=1);
 
 namespace IronCart\Scan\Check\FileIntegrity;
 
+use IronCart\Scan\Check\Manifests\ManifestEntrySanitiser;
 use RuntimeException;
 
 /**
@@ -172,21 +173,13 @@ class ComposerLockManifestRepository
             throw new RuntimeException(sprintf('Manifest %s missing entries map', basename($path)));
         }
 
+        // Apply the shared sanitiser first (path-traversal guard +
+        // lowercase normalisation), then layer the composer-lock-specific
+        // SHA-1 hex check on top. A well-formed manifest never trips the
+        // hex check; malformed values are dropped quietly.
         $sanitised = [];
-        foreach ($entries as $package => $sha) {
-            if (!is_string($package) || !is_string($sha) || $package === '' || $sha === '') {
-                continue;
-            }
-            // Composer package names follow `<vendor>/<package>`. Reject
-            // anything with traversal segments so a malformed manifest
-            // cannot influence callers that might use the key downstream.
-            if (str_contains($package, '..') || str_starts_with($package, '/') || str_contains($package, "\0")) {
-                continue;
-            }
-            // SHA-1 hex is always 40 chars. Reject non-hex / wrong-length
-            // entries quietly — a well-formed manifest never trips this.
-            $shaLower = strtolower($sha);
-            if (!preg_match('/^[0-9a-f]{40}$/', $shaLower)) {
+        foreach (ManifestEntrySanitiser::sanitise($entries) as $package => $shaLower) {
+            if (preg_match('/^[0-9a-f]{40}$/', $shaLower) !== 1) {
                 continue;
             }
             $sanitised[$package] = $shaLower;
