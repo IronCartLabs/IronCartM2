@@ -907,6 +907,31 @@ jobs:
             --repository-url=https://repo.magento.com/ \
             magento/project-community-edition:${MAGENTO_VERSION} \
             "${GITHUB_WORKSPACE}/.magento"
+          # Legacy Magento 2.4.4–2.4.6 metapackages pin `symfony/process
+          # <=v5.4.23`, the version range now flagged by Packagist advisories
+          # PKSA-rkkf-636k-qjb3 and PKSA-wws7-mr54-jsny. Composer 2.9's
+          # `block-insecure: true` default (a change from composer 2.2)
+          # therefore refuses to resolve `composer install` in those cells —
+          # see issue #164 for the upstream chain.
+          #
+          # We whitelist exactly those two advisories on the prepared
+          # sandbox tree (NEVER on the module's own composer.json) so the
+          # legacy Magento lines can install while `block-insecure` stays
+          # ON for every net-new resolution. The whitelist is sandbox-only
+          # (it lives inside ${GITHUB_WORKSPACE}/.magento, which is
+          # discarded after the cell) and gated to the affected matrix
+          # cells — 2.4.7-pX onwards installs cleanly without it.
+          case "${MAGENTO_VERSION}" in
+            2.4.4-*|2.4.5-*|2.4.6-*)
+              (
+                cd "${GITHUB_WORKSPACE}/.magento"
+                composer config audit.ignore.PKSA-rkkf-636k-qjb3 \
+                  'sandbox-only — legacy Magento line (#164)'
+                composer config audit.ignore.PKSA-wws7-mr54-jsny \
+                  'sandbox-only — legacy Magento line (#164)'
+              )
+              ;;
+          esac
           (
             cd "${GITHUB_WORKSPACE}/.magento"
             composer install --no-interaction --no-progress
