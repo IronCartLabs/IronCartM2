@@ -8,7 +8,7 @@
  *
  *   - The lock-held path NEVER reaches `runScan()`. Two concurrent
  *     `process()` invocations against the same consumer collapse to a
- *     single `checkRegistry->runAll()` call — the second one
+ *     single `scanEngineRunner->runAndReport()` call — the second one
  *     re-publishes its message back to the topic and ACKs cleanly.
  *   - The happy path acquires AND releases the lock around `runScan()`.
  *   - An exception inside `runScan()` still releases the lock so a
@@ -35,18 +35,16 @@ declare(strict_types=1);
 
 namespace IronCart\Scan\Test\Unit\Model;
 
-use IronCart\Scan\Check\CheckRegistry;
 use IronCart\Scan\Model\ResourceModel\ScanFinding as ScanFindingResource;
 use IronCart\Scan\Model\ResourceModel\ScanRun as ScanRunResource;
+use IronCart\Scan\Model\ScanEngineResult;
+use IronCart\Scan\Model\ScanEngineRunner;
 use IronCart\Scan\Model\ScanFindingFactory;
 use IronCart\Scan\Model\ScanRun;
 use IronCart\Scan\Model\ScanRunConsumer;
 use IronCart\Scan\Model\ScanRunFactory;
 use IronCart\Scan\Model\ScanRunPublisher;
 use IronCart\Scan\Report\FindingDetailFormatter;
-use IronCart\Scan\Report\ReportBuilder;
-use Magento\Framework\App\Config\ScopeConfigInterface;
-use Magento\Framework\App\ProductMetadataInterface;
 use Magento\Framework\Event\ManagerInterface as EventManagerInterface;
 use Magento\Framework\Lock\LockManagerInterface;
 use Magento\Framework\MessageQueue\PublisherInterface;
@@ -93,11 +91,11 @@ class ScanRunConsumerLockTest extends TestCase
     {
         $body = '{"scan_run_id":7,"triggered_by":"admin:1"}';
 
-        $registry = $this->createMock(CheckRegistry::class);
+        $runner = $this->createMock(ScanEngineRunner::class);
         // The whole point of #155: if the lock is held, the second
-        // process MUST NOT invoke the check registry. Doubling this
+        // process MUST NOT invoke the scan engine. Doubling this
         // call is the race we are closing.
-        $registry->expects(self::never())->method('runAll');
+        $runner->expects(self::never())->method('runAndReport');
 
         $lockManager = $this->createMock(LockManagerInterface::class);
         $lockManager->expects(self::once())
@@ -126,7 +124,7 @@ class ScanRunConsumerLockTest extends TestCase
 
         $consumer = $this->buildConsumer(
             scanRunId: 7,
-            registry: $registry,
+            runner: $runner,
             lockManager: $lockManager,
             publisher: $publisher,
             logger: $logger
@@ -139,8 +137,10 @@ class ScanRunConsumerLockTest extends TestCase
     {
         $body = '{"scan_run_id":11,"triggered_by":"cli"}';
 
-        $registry = $this->createMock(CheckRegistry::class);
-        $registry->expects(self::once())->method('runAll')->willReturn([]);
+        $runner = $this->createMock(ScanEngineRunner::class);
+        $runner->expects(self::once())
+            ->method('runAndReport')
+            ->willReturn($this->buildEmptyResult());
 
         $lockManager = $this->createMock(LockManagerInterface::class);
         $lockManager->expects(self::once())
@@ -157,7 +157,7 @@ class ScanRunConsumerLockTest extends TestCase
 
         $consumer = $this->buildConsumer(
             scanRunId: 11,
-            registry: $registry,
+            runner: $runner,
             lockManager: $lockManager,
             publisher: $publisher,
             logger: $this->createMock(LoggerInterface::class)
@@ -170,8 +170,8 @@ class ScanRunConsumerLockTest extends TestCase
     {
         $body = '{"scan_run_id":13,"triggered_by":"cron"}';
 
-        $registry = $this->createMock(CheckRegistry::class);
-        $registry->method('runAll')
+        $runner = $this->createMock(ScanEngineRunner::class);
+        $runner->method('runAndReport')
             ->willThrowException(new RuntimeException('check blew up'));
 
         $lockManager = $this->createMock(LockManagerInterface::class);
@@ -184,7 +184,7 @@ class ScanRunConsumerLockTest extends TestCase
 
         $consumer = $this->buildConsumer(
             scanRunId: 13,
-            registry: $registry,
+            runner: $runner,
             lockManager: $lockManager,
             publisher: $this->createMock(PublisherInterface::class),
             logger: $this->createMock(LoggerInterface::class)
@@ -196,6 +196,28 @@ class ScanRunConsumerLockTest extends TestCase
     }
 
     /**
+     * Empty-findings result envelope used by the happy-path test. Matches
+     * the v0 report shape produced by {@see \IronCart\Scan\Report\ReportBuilder}
+     * so the consumer's summary serialisation path executes without
+     * exploding on missing keys.
+     */
+    private function buildEmptyResult(): ScanEngineResult
+    {
+        return new ScanEngineResult(
+            findings: [],
+            report: [
+                'schema_version' => 'v0',
+                'generated_at' => '2026-01-01T00:00:00Z',
+                'magento' => ['version' => '2.4.7-p3', 'edition' => 'Community'],
+                'summary' => [],
+                'findings' => [],
+            ],
+            magentoVersion: '2.4.7-p3',
+            magentoEdition: 'Community'
+        );
+    }
+
+    /**
      * Assemble a `ScanRunConsumer` with the supplied collaborators.
      * Resource model + factory are stubbed to hydrate a queued ScanRun
      * row with the given id so the lock decision branches reach their
@@ -203,7 +225,7 @@ class ScanRunConsumerLockTest extends TestCase
      */
     private function buildConsumer(
         int $scanRunId,
-        CheckRegistry $registry,
+        ScanEngineRunner $runner,
         LockManagerInterface $lockManager,
         PublisherInterface $publisher,
         LoggerInterface $logger
@@ -216,9 +238,7 @@ class ScanRunConsumerLockTest extends TestCase
             $scanRunResource,
             $this->createMock(ScanFindingFactory::class),
             $this->createMock(ScanFindingResource::class),
-            $registry,
-            $this->createMock(ReportBuilder::class),
-            $this->createMock(ProductMetadataInterface::class),
+            $runner,
             $this->buildPassthroughJson(),
             $logger,
             $this->createMock(FindingDetailFormatter::class),
