@@ -71,12 +71,30 @@ class DrainScanConsumer
     public const CONSUMER_NAME = 'ironcartScanRunConsumer';
 
     /**
-     * Hard cap on messages processed per tick. The DB queue is FIFO and
-     * a single scan run is the unit of work; ~100 covers any realistic
-     * burst of admin **Run Scan Now** clicks while leaving the per-tick
-     * budget bounded.
+     * Hard cap on messages processed per tick. Pinned at **one** scan run
+     * per cron tick because each `ironcart.scan.run` message drives the
+     * full check registry (file-integrity walk over `app/code/**` and
+     * `vendor/magento/**`, CSP probe, OSV proxy round-trip, etc.) and
+     * costs 5–30 seconds on a moderate Magento install.
+     *
+     * The earlier value (100) was a copy-paste of Magento core's generic
+     * `consumers_runner` default and was wrong for this workload — at
+     * 5–30s per message it could hold {@see self::LOCK_NAME} for
+     * 500–3000s, far past the cron group's minute cadence, and would
+     * trip the 60-second freshness threshold in
+     * {@see \IronCart\Scan\Model\Notification\ConsumerStalledPredicate}
+     * while a backlog was draining. See IronCartLabs/IronCartM2#160.
+     *
+     * With MAX_MESSAGES=1 each cron tick handles exactly one scan, the
+     * lock is released within a single scan's duration, and Magento's
+     * standard one-tick-per-minute cadence becomes the throughput rate.
+     * A backlog therefore drains at one scan/minute by design — operators
+     * with a persistent backlog should run a dedicated long-lived
+     * `bin/magento queue:consumers:start ironcartScanRunConsumer`
+     * supervisor (the documented Option A path in the README), which
+     * coordinates with this cron handler via {@see self::LOCK_NAME}.
      */
-    public const MAX_MESSAGES = 100;
+    public const MAX_MESSAGES = 1;
 
     /**
      * Wall-clock budget for a single tick, in seconds. Magento's cron
