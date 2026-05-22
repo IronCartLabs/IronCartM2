@@ -156,4 +156,31 @@ class DrainScanConsumerTest extends TestCase
         self::assertLessThan(60, DrainScanConsumer::MAX_RUNTIME_SECONDS, 'Wall-clock budget must be < 60s so one tick cannot overlap the next');
         self::assertGreaterThan(0, DrainScanConsumer::MAX_MESSAGES);
     }
+
+    public function testMaxMessagesIsOneSoEachTickHandlesAtMostOneScan(): void
+    {
+        // Regression guard for IronCartLabs/IronCartM2#160. Each
+        // `ironcart.scan.run` message drives the full check registry
+        // (5–30s wall-clock on a moderate Magento install) and holds
+        // {@see DrainScanConsumer::LOCK_NAME} for the duration. If a
+        // future refactor restores the burst behaviour (e.g. MAX_MESSAGES
+        // = 100) the lock would be held for 500–3000s, every subsequent
+        // cron tick in the minute cadence would no-op on the
+        // lock-held path, and the 60-second freshness threshold in
+        // ConsumerStalledPredicate would misfire while the queue drains.
+        //
+        // The right lever for operators with a persistent backlog is the
+        // Option A supervisor (long-lived
+        // `bin/magento queue:consumers:start ironcartScanRunConsumer`),
+        // NOT cranking this constant up.
+        self::assertSame(
+            1,
+            DrainScanConsumer::MAX_MESSAGES,
+            'MAX_MESSAGES must stay 1 — see IronCartLabs/IronCartM2#160. ' .
+            'If you need higher throughput, run the Option A supervisor instead of ' .
+            'increasing this constant; the lock-hold expectations elsewhere in the ' .
+            'module (ConsumerStalledPredicate freshness threshold, cron tick cadence) ' .
+            'assume per-tick = per-scan.'
+        );
+    }
 }
