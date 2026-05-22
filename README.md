@@ -221,7 +221,8 @@ The notice clears automatically the next time the queued rows drain to a termina
 
 ## Compatibility
 
-- Magento 2.4.4, 2.4.5, 2.4.6, 2.4.7
+- **CI-tested:** Magento 2.4.7 (on PHP 8.2 and 8.3)
+- **Community-supported only (no CI):** Magento 2.4.4, 2.4.5, 2.4.6 — Adobe's [lifecycle policy](https://experienceleague.adobe.com/en/docs/commerce-operations/release/planning/lifecycle-policy) marks these end-of-life, and their composer metapackages now carry an unresolvable `sebastian/comparator` constraint conflict with current PHPUnit 9.6 patch releases (see [#178](https://github.com/IronCartLabs/IronCartM2/issues/178)). The module's runtime code still targets Magento 2.4.4+ — installs may still work on legacy versions, but we no longer gate releases on them
 - PHP 8.1, 8.2, 8.3
 - Adobe Commerce and Magento Open Source
 
@@ -251,7 +252,7 @@ Three layers of automated coverage run in CI on every PR (`.github/workflows/ci.
   - `integration-hyva` — adds `hyva-themes/magento2-theme-module` and plants an IC-913 CDN-Alpine fixture template under `app/design/frontend/`, then runs `tests/sandbox/hyva-integration.php` to assert IC-910..IC-913 and the CheckRegistry wiring.
   - `integration-pwa` — plants PWA Studio detection fixtures (`package.json` + `pwa-studio.config.json` markers; no npm install) and pre-configures the GraphQL admin knobs IC-921 / IC-922 / IC-923 read, then runs `tests/sandbox/pwa-integration.php` to assert the PWA pack fires end-to-end.
 
-  All three integration cells are gated on the `INTEGRATION_ENABLED` repo variable (Magento composer auth wiring lives in repo secrets — see [#18](https://github.com/IronCartLabs/IronCartM2/issues/18)). Pinned to Magento 2.4.7-p5 / PHP 8.3 on PR runs; the full Magento 2.4.4–2.4.7 × PHP 8.1–8.3 matrix runs on pushes to `main` or PRs labelled `v0`.
+  All three integration cells are gated on the `INTEGRATION_ENABLED` repo variable (Magento composer auth wiring lives in repo secrets — see [#18](https://github.com/IronCartLabs/IronCartM2/issues/18)). Pinned to Magento 2.4.7-p5 / PHP 8.3 on PR runs; the full Magento 2.4.7 × PHP 8.2/8.3 matrix runs on pushes to `main` or PRs labelled `v0`. Legacy 2.4.4–2.4.6 cells were dropped in [#178](https://github.com/IronCartLabs/IronCartM2/issues/178) — see the Compatibility section above for why.
 
 ## Security
 
