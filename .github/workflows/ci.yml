@@ -921,15 +921,26 @@ jobs:
           # (it lives inside ${GITHUB_WORKSPACE}/.magento, which is
           # discarded after the cell) and gated to the affected matrix
           # cells — 2.4.7-pX onwards installs cleanly without it.
+          #
+          # NOTE: composer's `config` CLI does NOT accept
+          # `audit.ignore.<advisory>` as a dotted key path — `audit.ignore`
+          # is an array, not a map (see #173 for the regression that hit
+          # main when we tried). The supported schema is
+          # `config.audit.ignore: ["<id>", ...]` per
+          # https://getcomposer.org/doc/06-config.md#audit, so we inject it
+          # directly into the prepared composer.json via jq. This keeps
+          # `composer audit` ON for every other advisory.
           case "${MAGENTO_VERSION}" in
             2.4.4-*|2.4.5-*|2.4.6-*)
-              (
-                cd "${GITHUB_WORKSPACE}/.magento"
-                composer config audit.ignore.PKSA-rkkf-636k-qjb3 \
-                  'sandbox-only — legacy Magento line (#164)'
-                composer config audit.ignore.PKSA-wws7-mr54-jsny \
-                  'sandbox-only — legacy Magento line (#164)'
-              )
+              composer_json="${GITHUB_WORKSPACE}/.magento/composer.json"
+              tmp_json="$(mktemp)"
+              jq '.config = (.config // {})
+                  | .config.audit = (.config.audit // {})
+                  | .config.audit.ignore = ((.config.audit.ignore // [])
+                      + ["PKSA-rkkf-636k-qjb3", "PKSA-wws7-mr54-jsny"]
+                      | unique)' \
+                "${composer_json}" > "${tmp_json}"
+              mv "${tmp_json}" "${composer_json}"
               ;;
           esac
           (
