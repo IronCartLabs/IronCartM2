@@ -814,35 +814,29 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # Pruned to supported intersections per Magento system requirements:
-        #   2.4.4 → PHP 8.1
-        #   2.4.5 → PHP 8.1
-        #   2.4.6 → PHP 8.1, 8.2
+        # Pruned to supported intersections per Magento system requirements
+        # AND Adobe's lifecycle policy. The supported floor is 2.4.7:
         #   2.4.7 → PHP 8.2, 8.3
         # The 2.4.7 × 8.3 cell is already covered by the default `integration`
         # job, so it is omitted here to avoid double-spending minutes.
         #
-        # Why these specific patch versions (not bare `2.4.{4,5,6,7}`):
+        # Legacy 2.4.4 / 2.4.5 / 2.4.6 cells were dropped in #178 (re-files
+        # #175 after #177 over-edited). Adobe's lifecycle policy
+        # (https://experienceleague.adobe.com/en/docs/commerce-operations/release/planning/lifecycle-policy)
+        # marks 2.4.4 and 2.4.5 as end-of-life; 2.4.6 reached EOL on
+        # 2025-11-25. Keeping CI red on EOL Magento lines is yield-negative
+        # — community-supported only from here on; the published compat
+        # table in README.md reflects the same.
+        #
+        # Why this specific patch version (not bare `2.4.7`):
         #   Advisory PKSA-db8d-773v-rd1n (CVE-2024-34102, CosmicSting
         #   XXE → RCE) affects every unpatched 2.4.x branch. Composer's
         #   `block-insecure` policy refuses to install any version
-        #   below the per-branch fix floor:
-        #     2.4.4 → fixed in -p9
-        #     2.4.5 → fixed in -p8
-        #     2.4.6 → fixed in -p6
-        #     2.4.7 → fixed in -p1
-        #   We pick the highest patch in each branch that's still
-        #   resolvable on composer 2.9 + PHP 8.x (i.e. avoiding the
-        #   2.4.7-p8+ resolve bug from magento/magento2#40539).
+        #   below the per-branch fix floor (2.4.7 → fixed in -p1).
+        #   We pin to `-p5` to also pick up the cumulative fixes
+        #   since, while staying below the 2.4.7-p8+ resolve bug from
+        #   magento/magento2#40539.
         include:
-          - magento: '2.4.4-p11'
-            php: '8.1'
-          - magento: '2.4.5-p10'
-            php: '8.1'
-          - magento: '2.4.6-p8'
-            php: '8.1'
-          - magento: '2.4.6-p8'
-            php: '8.2'
           - magento: '2.4.7-p5'
             php: '8.2'
     steps:
@@ -907,42 +901,6 @@ jobs:
             --repository-url=https://repo.magento.com/ \
             magento/project-community-edition:${MAGENTO_VERSION} \
             "${GITHUB_WORKSPACE}/.magento"
-          # Legacy Magento 2.4.4–2.4.6 metapackages pin `symfony/process
-          # <=v5.4.23`, the version range now flagged by Packagist advisories
-          # PKSA-rkkf-636k-qjb3 and PKSA-wws7-mr54-jsny. Composer 2.9's
-          # `block-insecure: true` default (a change from composer 2.2)
-          # therefore refuses to resolve `composer install` in those cells —
-          # see issue #164 for the upstream chain.
-          #
-          # We whitelist exactly those two advisories on the prepared
-          # sandbox tree (NEVER on the module's own composer.json) so the
-          # legacy Magento lines can install while `block-insecure` stays
-          # ON for every net-new resolution. The whitelist is sandbox-only
-          # (it lives inside ${GITHUB_WORKSPACE}/.magento, which is
-          # discarded after the cell) and gated to the affected matrix
-          # cells — 2.4.7-pX onwards installs cleanly without it.
-          #
-          # NOTE: composer's `config` CLI does NOT accept
-          # `audit.ignore.<advisory>` as a dotted key path — `audit.ignore`
-          # is an array, not a map (see #173 for the regression that hit
-          # main when we tried). The supported schema is
-          # `config.audit.ignore: ["<id>", ...]` per
-          # https://getcomposer.org/doc/06-config.md#audit, so we inject it
-          # directly into the prepared composer.json via jq. This keeps
-          # `composer audit` ON for every other advisory.
-          case "${MAGENTO_VERSION}" in
-            2.4.4-*|2.4.5-*|2.4.6-*)
-              composer_json="${GITHUB_WORKSPACE}/.magento/composer.json"
-              tmp_json="$(mktemp)"
-              jq '.config = (.config // {})
-                  | .config.audit = (.config.audit // {})
-                  | .config.audit.ignore = ((.config.audit.ignore // [])
-                      + ["PKSA-rkkf-636k-qjb3", "PKSA-wws7-mr54-jsny"]
-                      | unique)' \
-                "${composer_json}" > "${tmp_json}"
-              mv "${tmp_json}" "${composer_json}"
-              ;;
-          esac
           (
             cd "${GITHUB_WORKSPACE}/.magento"
             composer install --no-interaction --no-progress
