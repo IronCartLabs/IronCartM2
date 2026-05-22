@@ -141,6 +141,94 @@ jobs:
       - name: PHPStan level 6
         run: phpstan analyse --no-progress --error-format=github
 
+  php84-validation:
+    name: PHP 8.4 surface validation (php -l + phpcs Magento2)
+    runs-on: ubuntu-latest
+    # Discovery + early-warning job for the PHP 8.4 / Magento 2.4.8 compat
+    # uplift tracked in #149. Runs `php -l` recursively across the module's
+    # PHP surface under a PHP 8.4 runtime, then runs phpcs Magento2 — also
+    # under PHP 8.4 — so any deprecation warning the 8.4 runtime emits
+    # (implicit nullable params, mb_* encoding-arg defaults, removed
+    # E_STRICT, Locale::getDisplayLanguage signature change, etc.) is
+    # surfaced on the PR. See #151 for the validation contract.
+    #
+    # NOT a merge blocker yet: this job runs alongside the existing PHP
+    # 8.1/8.2/8.3 unit matrix and the PHP-8.2 phpcs lint, which remain
+    # the canonical gate. Widening composer.json `require.php` to include
+    # 8.4 is gated separately on #149's per-check 2.4.8 audit + this job
+    # going green for 3+ runs in a row.
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Setup PHP 8.4
+        uses: shivammathur/setup-php@9e72090525849c5e82e596468b86eb55e9cc5401 # v2.32.0
+        with:
+          php-version: '8.4'
+          tools: composer:v2, cs2pr
+          coverage: none
+
+      - name: php -l recursive parse check
+        # AC item 1 of #151. The Magento2 phpcs sniff suite below catches
+        # most syntax issues too, but `php -l` is the only way to surface
+        # hard parse errors caused by 8.4-incompatible syntax (e.g. a
+        # readonly-property reassignment that 8.3 tolerated as a runtime
+        # error but 8.4 catches at parse time).
+        #
+        # Scope mirrors the issue body: every PHP file the runtime would
+        # load. We include the build-time CLI scripts under bin/ here
+        # (they're excluded from phpcs because of stylistic noise, not
+        # parse risk) — they MUST still parse under 8.4.
+        run: |
+          set -euo pipefail
+          PARSE_FAILED=0
+          while IFS= read -r -d '' file; do
+            if ! php -l "${file}" > /dev/null 2>&1; then
+              echo "::error file=${file}::php -l failed under PHP 8.4"
+              php -l "${file}" || true
+              PARSE_FAILED=1
+            fi
+          done < <(find \
+            Check Console Controller Cron Report etc Model Setup Ui Test bin \
+            registration.php \
+            -type f -name '*.php' -print0)
+          if [ "${PARSE_FAILED}" -ne 0 ]; then
+            echo "::error::One or more files failed php -l under PHP 8.4."
+            exit 1
+          fi
+          echo "All PHP files parsed cleanly under PHP 8.4."
+
+      - name: Install phpcs + magento-coding-standard ^38 (PHP 8.4 capable)
+        # magento/magento-coding-standard versions 38+ are the first to
+        # declare PHP 8.4 in their `require.php`. We pin to ^38 (not
+        # ^32 like the main lint job) so the phpcs binary itself runs
+        # cleanly under PHP 8.4 — running ^32 under 8.4 would crash at
+        # composer install time with an unsatisfied platform constraint.
+        run: |
+          composer global config --no-plugins allow-plugins.dealerdirect/phpcodesniffer-composer-installer true
+          composer global require --no-interaction --no-progress \
+            squizlabs/php_codesniffer:^3.10 \
+            magento/magento-coding-standard:^38
+          echo "$HOME/.composer/vendor/bin" >> "$GITHUB_PATH"
+
+      - name: phpcs Magento2 under PHP 8.4
+        # AC item 2 of #151. Same sniff exclusions as the main lint job —
+        # they're documentation/design exemptions, not 8.x-specific. The
+        # important bit is that this run uses the PHP 8.4 runtime to
+        # execute the sniffs, which means any sniff that itself emits a
+        # PHP 8.4 deprecation warning (or any sniffed-file deprecation
+        # the standard checks for) will surface in the report.
+        run: |
+          phpcs -n \
+            --standard=Magento2 \
+            --extensions=php,phtml \
+            --ignore=vendor,_m2-workspace,tests/_sandbox,bin \
+            --exclude=Magento2.PHP.FinalImplementation,Magento2.Classes.FinalImplementation,Generic.PHP.NoSilencedErrors,Magento2.Functions.DiscouragedFunction,Magento2.Security.IncludeFile \
+            --report=full \
+            --report-checkstyle=phpcs-php84-report.xml \
+            .
+          cs2pr --graceful-warnings phpcs-php84-report.xml
+
   unit:
     name: Unit (PHPUnit / PHP ${{ matrix.php }})
     runs-on: ubuntu-latest
