@@ -22,6 +22,7 @@ declare(strict_types=1);
 namespace IronCart\Scan\Check\Integrity;
 
 use IronCart\Scan\Check\Filesystem\MagentoRoot;
+use IronCart\Scan\Check\Manifests\ManifestEntrySanitiser;
 use RuntimeException;
 
 class BaselineRepository
@@ -88,16 +89,7 @@ class BaselineRepository
         if (!is_array($entries)) {
             throw new RuntimeException(sprintf('Baseline file %s missing entries map', $path));
         }
-        $sanitised = [];
-        foreach ($entries as $relative => $hash) {
-            if (!is_string($relative) || !is_string($hash) || $relative === '' || $hash === '') {
-                continue;
-            }
-            if (str_contains($relative, '..') || str_starts_with($relative, '/') || str_contains($relative, "\0")) {
-                continue;
-            }
-            $sanitised[$relative] = strtolower($hash);
-        }
+        $sanitised = ManifestEntrySanitiser::sanitise($entries);
 
         $roots = [];
         if (is_array($decoded['roots'] ?? null)) {

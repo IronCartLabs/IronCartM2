@@ -33,6 +33,7 @@ declare(strict_types=1);
 
 namespace IronCart\Scan\Check\FileIntegrity;
 
+use IronCart\Scan\Check\Manifests\ManifestEntrySanitiser;
 use RuntimeException;
 
 /**
@@ -161,18 +162,7 @@ class ManifestRepository
             throw new RuntimeException(sprintf('Manifest %s missing entries map', basename($path)));
         }
 
-        $sanitised = [];
-        foreach ($entries as $relative => $hash) {
-            if (!is_string($relative) || !is_string($hash) || $relative === '' || $hash === '') {
-                continue;
-            }
-            // Reject manifest entries with traversal segments so a malformed
-            // manifest cannot make the check read outside the Magento root.
-            if (str_contains($relative, '..') || str_starts_with($relative, '/') || str_contains($relative, "\0")) {
-                continue;
-            }
-            $sanitised[$relative] = strtolower($hash);
-        }
+        $sanitised = ManifestEntrySanitiser::sanitise($entries);
 
         return new Manifest($edition, $version, $algorithm, $sanitised);
     }
