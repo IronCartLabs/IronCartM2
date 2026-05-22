@@ -133,16 +133,23 @@ class ConsumerStalledMessage implements MessageInterface
     {
         // Plain string. Magento wraps the value in its own escaping
         // before rendering. The text intentionally names the consumer
-        // and both supported operator setups (foreground worker /
-        // cron-driven) so the operator does not need to round-trip to
-        // the README to act on it — though the README link is included
-        // for the full setup walkthrough.
+        // and the two supported operator setups so the operator does
+        // not need to round-trip to the README to act on it — though
+        // the README link is included for the full setup walkthrough.
+        //
+        // Per IronCartLabs/IronCartM2#155 we no longer recommend
+        // enabling the `consumers_runner` cron group as a remediation.
+        // The module ships its own `ironcart_scan_consumer_drain` cron
+        // job (declared in `etc/crontab.xml`) that drives the consumer
+        // every minute as long as Magento's own cron is installed, so
+        // `bin/magento cron:install` is the canonical fix.
         return sprintf(
             'IronCart_Scan: scans are being enqueued but the message-queue consumer "%s" is not draining them. '
             . 'Until the consumer is running, every "Run Scan Now" click leaves a row stuck at QUEUED. '
-            . 'Start it as a long-running worker '
-            . '(bin/magento queue:consumers:start %s) '
-            . 'or enable the consumers_runner cron group. '
+            . 'Install Magento\'s own cron so the module-owned drain job picks up queued scans every minute '
+            . '(bin/magento cron:install), '
+            . 'or run a long-lived worker '
+            . '(bin/magento queue:consumers:start %s). '
             . 'See https://github.com/IronCartLabs/IronCartM2#running-scans-asynchronously for the operator walkthrough.',
             self::CONSUMER_NAME,
             self::CONSUMER_NAME

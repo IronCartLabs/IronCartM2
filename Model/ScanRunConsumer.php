@@ -11,10 +11,30 @@
  * AC explicitly forbids duplicating check logic), and persists
  * findings + terminal status.
  *
+ * Concurrency contract (IronCartLabs/IronCartM2#155):
+ *   - On entry the handler try-locks {@see self::LOCK_NAME} with a
+ *     0-second timeout. This is the SAME named lock that
+ *     {@see \IronCart\Scan\Cron\DrainScanConsumer} contends on, so any
+ *     driver of this consumer — our cron job, an operator-run
+ *     `queue:consumers:start` supervisor, OR Magento core's built-in
+ *     `consumers_runner` cron group — passes through one collapse
+ *     point. If two consumer PROCESSES happen to claim different
+ *     messages out of the DB queue at the same minute, the second one
+ *     bounces its message back onto the topic instead of running
+ *     `checkRegistry->runAll()` in parallel.
+ *   - The bounced message keeps its original payload; the run row
+ *     stays at `queued`. The bounce-retry budget is naturally bounded
+ *     because the racing consumer holds the lock for at most one scan
+ *     (typically a handful of seconds), after which the next tick
+ *     succeeds. We DON'T track a republish counter — the DB queue's
+ *     row-locking guarantees each message goes to exactly one
+ *     consumer per attempt, so the bounce loop self-terminates.
+ *
  * Failure-mode contract:
- *   - On any throwable: status -> failed, summary_json carries
- *     `{ "error": { "class": ..., "message": ... } }`, finished_at set,
- *     and the exception is logged via Psr\Log\LoggerInterface.
+ *   - On any throwable inside `runScan()`: status -> failed,
+ *     summary_json carries `{ "error": { "class": ..., "message": ... } }`,
+ *     finished_at set, and the exception is logged via
+ *     Psr\Log\LoggerInterface.
  *   - The throwable is intentionally swallowed at the handler boundary
  *     so the queue worker keeps draining. Re-raising would mark the
  *     queue message as failed and trigger framework-level retries,
@@ -44,12 +64,29 @@ use IronCart\Scan\Model\ResourceModel\ScanRun as ScanRunResource;
 use IronCart\Scan\Report\FindingDetailFormatter;
 use IronCart\Scan\Report\ReportBuilder;
 use Magento\Framework\App\ProductMetadataInterface;
+use Magento\Framework\Lock\LockManagerInterface;
+use Magento\Framework\MessageQueue\PublisherInterface;
 use Magento\Framework\Serialize\Serializer\Json;
 use Psr\Log\LoggerInterface;
 use Throwable;
 
 class ScanRunConsumer
 {
+    /**
+     * Named lock that gates concurrent execution of {@see runScan()} across
+     * every driver of this consumer — module-owned cron drain, operator
+     * supervisor, AND Magento core's `consumers_runner` group. The value
+     * matches {@see \IronCart\Scan\Cron\DrainScanConsumer::LOCK_NAME} so the
+     * two paths collapse onto the same Magento lock provider row.
+     *
+     * Duplicated as a literal (rather than referencing
+     * `DrainScanConsumer::LOCK_NAME` directly) to keep `Model\` independent
+     * of `Cron\`; the Magento-free `Test/Unit/Report/ConsumerLockNameShapeTest`
+     * pins both constants to the same string via source-file regex so
+     * drift fails CI under the unit cell.
+     */
+    public const LOCK_NAME = 'ironcart_scan_consumer_drain';
+
     public function __construct(
         private readonly ScanRunFactory $scanRunFactory,
         private readonly ScanRunResource $scanRunResource,
@@ -60,7 +97,9 @@ class ScanRunConsumer
         private readonly ProductMetadataInterface $productMetadata,
         private readonly Json $serializer,
         private readonly LoggerInterface $logger,
-        private readonly FindingDetailFormatter $detailFormatter
+        private readonly FindingDetailFormatter $detailFormatter,
+        private readonly LockManagerInterface $lockManager,
+        private readonly PublisherInterface $publisher
     ) {
     }
 
@@ -113,10 +152,52 @@ class ScanRunConsumer
             return;
         }
 
+        // Race close (#155). Magento core's `consumers_runner` cron group
+        // and our `ironcart_scan_consumer_drain` cron job can both spawn
+        // the `ironcartScanRunConsumer` consumer once per minute. The
+        // DB queue's row-locking guarantees each *message* goes to
+        // exactly one consumer per attempt, but two consumer PROCESSES
+        // claiming two *different* messages at the same minute would
+        // otherwise run `runScan()` in parallel and double the
+        // wall-clock cost of the file-integrity walk. Try-lock with a
+        // 0s timeout so we fail fast: if the other process holds the
+        // lock, bounce this message back onto the topic and ACK so
+        // the queue framework doesn't mark it failed.
+        if (!$this->lockManager->lock(self::LOCK_NAME, 0)) {
+            $this->logger->info(
+                'IronCart_Scan: scan-run handler skipped — drain lock held'
+                . ' by another consumer process; re-publishing message.',
+                [
+                    'lock_name' => self::LOCK_NAME,
+                    'scan_run_id' => $message->getScanRunId(),
+                ]
+            );
+            try {
+                // Same payload — the message envelope (ScanRunMessage)
+                // carries no per-attempt state, so a republish is
+                // byte-identical to the original publish. The DB queue
+                // row-locks the new copy independently of the message
+                // we are about to ACK by returning.
+                $this->publisher->publish(ScanRunPublisher::TOPIC, $body);
+            } catch (Throwable $republishError) {
+                // If even the republish blew up (DB unreachable, etc.)
+                // we cannot leave the row stuck at `queued` forever —
+                // the stuck-QUEUED admin notice (#92) would eventually
+                // fire, but failing loudly is better than silent
+                // staleness.
+                $this->markFailed($run, $republishError);
+            }
+            return;
+        }
+
         try {
             $this->runScan($run);
         } catch (Throwable $e) {
             $this->markFailed($run, $e);
+        } finally {
+            // Always release the lock — a poison message must not
+            // brick every subsequent tick by leaving the lock held.
+            $this->lockManager->unlock(self::LOCK_NAME);
         }
     }
 

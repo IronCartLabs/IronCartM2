@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Fixed
+
+- **Concurrent-drain race between Magento core's `consumers_runner` and the module-owned `ironcart_scan_consumer_drain` cron** ([#155](https://github.com/IronCartLabs/IronCartM2/issues/155)). `IronCart\Scan\Model\ScanRunConsumer::process()` now try-locks the same `ironcart_scan_consumer_drain` named lock that the cron job uses (0s timeout). If a competing consumer process holds the lock, the handler re-publishes its message back to the `ironcart.scan.run` topic and ACKs cleanly so the queue framework does not mark it failed; only one process executes `checkRegistry->runAll()` at a time across all drivers. The stuck-QUEUED admin notice (`Model/Notification/ConsumerStalledMessage::getText()`) no longer recommends enabling the `consumers_runner` cron group as a remediation — `bin/magento cron:install` is the canonical fix because the module-owned drain job is now race-safe regardless of operator-side `consumers_runner` config.
+
 ## [1.4.0] - 2026-05-19
 
 The v6 + Recon Phase 7 module wave. Folds the Hyvä-specific check pack,
