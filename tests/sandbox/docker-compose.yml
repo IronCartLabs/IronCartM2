@@ -37,27 +37,51 @@
 # file just stitches services together. The bind-mount is read-write so
 # `bin/magento setup:upgrade` can write generated/, var/, pub/static/.
 #
-# Sidecar services match Magento 2 system requirements:
-#   - MariaDB 10.6 (Magento 2.4.4–2.4.6) / 10.6+ (2.4.7)
-#   - OpenSearch 2.x (Magento 2.4.6+ default catalog engine)
-#   - Redis 7 (cache + session)
+# Sidecar services match Magento 2 system requirements. The image tags
+# are env-overridable so the workflow can pick the right version per
+# matrix cell (bumped in #153 to support Magento 2.4.8):
+#   2.4.4–2.4.7 (default):
+#     MariaDB 10.6, OpenSearch 2.11.1, Redis 7-alpine
+#   2.4.8 (workflow overrides):
+#     MariaDB 11.4, OpenSearch 3.6.0, Valkey 8.1-alpine
+#       — Magento 2.4.8 sysreqs (Adobe Experience League):
+#         • MariaDB 11.4 or 11.8 (10.6 dropped)
+#         • OpenSearch 3 (OpenSearch 2.x dropped)
+#         • Redis "Not supported" — replaced by Valkey 8.1, which is
+#           wire-protocol compatible with Redis, so `setup:install`'s
+#           --session-save=redis / --cache-backend=redis flags still
+#           work unchanged against the Valkey sidecar.
 #
 # All services bind to localhost-only; no public ports are exposed in CI.
 #
 # Required env vars (the workflow sets all of these):
 #   - PHP_VERSION         e.g. 8.3  → selects markshust/magento-php tag
+#                         when MAGENTO_PHP_IMAGE override is not used.
 #   - MAGENTO_SRC_HOST    absolute path on the runner to the prepared
 #                         Magento source tree (composer create-project
 #                         output + app/code/IronCart/Scan). Defaults to
 #                         ../../.magento relative to this file when
 #                         running locally.
+#   - MAGENTO_PHP_IMAGE   (optional) full sha256-digest-pinned image
+#                         reference for the magento container. CI sets
+#                         this per matrix cell; local dev leaves it
+#                         unset and falls back to the floating
+#                         markoshust/magento-php:<php>-fpm tag.
+#   - MARIADB_IMAGE       (optional) defaults to mariadb:10.6; CI sets
+#                         this to mariadb:11.4 on 2.4.8 cells.
+#   - OPENSEARCH_IMAGE    (optional) defaults to opensearch:2.11.1; CI
+#                         sets this to opensearch:3.6.0 on 2.4.8 cells.
+#   - REDIS_IMAGE         (optional) defaults to redis:7-alpine; CI sets
+#                         this to valkey/valkey:8.1-alpine on 2.4.8
+#                         cells (Magento 2.4.8 dropped Redis support).
 #
 # Note: the top-level `version` key has been intentionally removed —
 # docker compose v2 treats it as obsolete and emits a warning.
 
 services:
   mariadb:
-    image: mariadb:10.6
+    # MARIADB_IMAGE override — see file-header comment block.
+    image: ${MARIADB_IMAGE:-mariadb:10.6}
     environment:
       MARIADB_ROOT_PASSWORD: magento
       MARIADB_DATABASE: magento
@@ -72,7 +96,8 @@ services:
       - /var/lib/mysql
 
   opensearch:
-    image: opensearchproject/opensearch:2.11.1
+    # OPENSEARCH_IMAGE override — see file-header comment block.
+    image: ${OPENSEARCH_IMAGE:-opensearchproject/opensearch:2.11.1}
     environment:
       discovery.type: single-node
       DISABLE_SECURITY_PLUGIN: 'true'
@@ -89,8 +114,15 @@ services:
         hard: -1
 
   redis:
-    image: redis:7-alpine
+    # REDIS_IMAGE override — see file-header comment block. On 2.4.8
+    # cells this is valkey/valkey:8.1-alpine (Redis dropped upstream;
+    # Valkey is the wire-compatible successor and the supported choice
+    # per Adobe sysreqs).
+    image: ${REDIS_IMAGE:-redis:7-alpine}
     healthcheck:
+      # `redis-cli` exists in both redis:7-alpine and valkey/valkey:8.x
+      # (the Valkey image ships a `redis-cli` symlink for drop-in
+      # compatibility), so this healthcheck works for both.
       test: ['CMD', 'redis-cli', 'ping']
       interval: 5s
       timeout: 3s
