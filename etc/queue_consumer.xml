@@ -16,6 +16,16 @@
  / global default (cron job `consumers_runner` in core, default 10000).
  / Operators who want to bound throughput can override via env.php or
  / pass the `max-messages` flag on the explicit `queue:consumers:start` call.
+ /
+ / IronCartLabs/IronCartM2#155 — the handler
+ / (`IronCart\Scan\Model\ScanRunConsumer::process`) takes the
+ / `ironcart_scan_consumer_drain` named lock with a 0s try-lock as its
+ / first per-message action, so it is safe for this consumer to be
+ / spawned by Magento core's `consumers_runner` cron group concurrently
+ / with the module-owned `ironcart_scan_consumer_drain` cron job. The
+ / second process bounces its message back onto the topic and ACKs
+ / cleanly; only one process executes `checkRegistry->runAll()` at a
+ / time across all drivers.
 -->
 <config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         xsi:noNamespaceSchemaLocation="urn:magento:framework-message-queue:etc/consumer.xsd">

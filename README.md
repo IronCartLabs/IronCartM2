@@ -211,7 +211,7 @@ User=www-data
 WorkingDirectory=/var/www/magento
 ```
 
-The legacy `cron_consumers_runner` edit in `app/etc/env.php` is no longer necessary for this module.
+The legacy `cron_consumers_runner` edit in `app/etc/env.php` is no longer necessary for this module. On installs where the `consumers_runner` cron group IS active (Magento's default), the consumer's per-message handler takes the same `ironcart_scan_consumer_drain` named lock so the module's drain cron and core's consumer-runner can coexist without double-processing a queued scan — only one process executes `checkRegistry->runAll()` at a time across all drivers. See [IronCartM2#155](https://github.com/IronCartLabs/IronCartM2/issues/155) for the race-close details.
 
 ### Detection: the stuck-QUEUED admin notice
 

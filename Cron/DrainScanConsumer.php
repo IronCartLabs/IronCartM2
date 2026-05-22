@@ -25,9 +25,18 @@
  *   - Try-locks {@see self::LOCK_NAME} with a 0-second timeout. If the
  *     lock is already held (because the operator is running a dedicated
  *     `bin/magento queue:consumers:start ironcartScanRunConsumer`
- *     supervisor under the same lock), the handler logs a single info
- *     line and exits clean. This keeps existing Option A users working
- *     without double-draining the queue.
+ *     supervisor under the same lock, OR Magento core's
+ *     `consumers_runner` cron group is currently driving the same
+ *     consumer), the handler logs a single info line and exits clean.
+ *     This keeps existing Option A users working without double-
+ *     draining the queue.
+ *   - The same lock name is acquired INSIDE
+ *     {@see \IronCart\Scan\Model\ScanRunConsumer::process()} per
+ *     IronCartLabs/IronCartM2#155 so that ANY driver of the consumer
+ *     — this cron, the supervisor, or core's `consumers_runner` —
+ *     collapses onto a single execution slot. Two consumer processes
+ *     claiming different messages at the same minute will not race
+ *     `checkRegistry->runAll()` in parallel.
  *   - All exceptions are caught and logged via the existing
  *     `ironcart_scan_cron` Monolog channel (wired in `etc/di.xml`).
  *     The handler never throws — a single bad message in the queue
