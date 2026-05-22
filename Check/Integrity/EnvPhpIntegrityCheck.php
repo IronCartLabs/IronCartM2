@@ -41,6 +41,7 @@ namespace IronCart\Scan\Check\Integrity;
 
 use IronCart\Scan\Check\CheckInterface;
 use IronCart\Scan\Check\Filesystem\MagentoRoot;
+use IronCart\Scan\Check\Filesystem\WebserverUsers;
 use IronCart\Scan\Report\Severity;
 
 /**
@@ -56,26 +57,6 @@ class EnvPhpIntegrityCheck implements CheckInterface
     public const ID_SESSION_FILES_NO_PATH = 'IC-205';
 
     private const REMEDIATION_BASE = 'https://ironcart.dev/docs/checks/';
-
-    /**
-     * Login names that conventionally denote the webserver process user.
-     *
-     * Mirrors {@see \IronCart\Scan\Check\Filesystem\EnvPhpOwnershipCheck}.
-     * `root` is intentionally listed here too — env.php owned by root is a
-     * Recon-grade finding even though IC-031 ignores it.
-     *
-     * @var list<string>
-     */
-    private const FORBIDDEN_OWNERS = [
-        'root',
-        'www-data',
-        'nginx',
-        'apache',
-        'apache2',
-        'httpd',
-        'http',
-        'nobody',
-    ];
 
     /**
      * Documented / sample crypt-key values that appear in install guides and
@@ -168,7 +149,7 @@ class EnvPhpIntegrityCheck implements CheckInterface
                     ? (string) $owner['name']
                     : null;
 
-                if ($ownerName !== null && in_array($ownerName, self::FORBIDDEN_OWNERS, true)) {
+                if ($ownerName !== null && in_array($ownerName, WebserverUsers::NAMES_INCLUDING_ROOT, true)) {
                     $findings[] = [
                         'id' => self::ID_OWNER,
                         'title' => sprintf(

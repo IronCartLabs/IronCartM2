@@ -31,21 +31,6 @@ class EnvPhpOwnershipCheck implements CheckInterface
 
     private const REMEDIATION_URL = 'https://ironcart.dev/docs/checks/IC-031';
 
-    /**
-     * Login names that conventionally denote the webserver process user.
-     *
-     * @var list<string>
-     */
-    private const WEBSERVER_USERS = [
-        'www-data',
-        'nginx',
-        'apache',
-        'apache2',
-        'httpd',
-        'http',
-        'nobody',
-    ];
-
     public function __construct(private readonly MagentoRoot $root)
     {
     }
@@ -101,7 +86,7 @@ class EnvPhpOwnershipCheck implements CheckInterface
             ]];
         }
 
-        if (!in_array($ownerName, self::WEBSERVER_USERS, true)) {
+        if (!in_array($ownerName, WebserverUsers::NAMES, true)) {
             return [];
         }
 
