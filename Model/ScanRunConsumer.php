@@ -6,9 +6,9 @@
  * Handler bound to the `ironcart.scan.run` topic via
  * etc/communication.xml + etc/queue_consumer.xml. The framework
  * delivers a JSON-string payload; the consumer rehydrates it into a
- * ScanRunMessage, loads the matching ScanRun row, drives the existing
- * CheckRegistry (the same engine `bin/magento ironcart:scan` uses —
- * AC explicitly forbids duplicating check logic), and persists
+ * ScanRunMessage, loads the matching ScanRun row, drives the shared
+ * {@see ScanEngineRunner} (the same engine `bin/magento ironcart:scan`
+ * uses — AC explicitly forbids duplicating check logic), and persists
  * findings + terminal status.
  *
  * Concurrency contract (IronCartLabs/IronCartM2#155):
@@ -21,7 +21,7 @@
  *     point. If two consumer PROCESSES happen to claim different
  *     messages out of the DB queue at the same minute, the second one
  *     bounces its message back onto the topic instead of running
- *     `checkRegistry->runAll()` in parallel.
+ *     `scanEngineRunner->runAndReport()` in parallel.
  *   - The bounced message keeps its original payload; the run row
  *     stays at `queued`. The bounce-retry budget is naturally bounded
  *     because the racing consumer holds the lock for at most one scan
@@ -57,13 +57,10 @@ namespace IronCart\Scan\Model;
 
 use DateTimeImmutable;
 use DateTimeZone;
-use IronCart\Scan\Check\CheckRegistry;
 use IronCart\Scan\Model\Message\ScanRunMessage;
 use IronCart\Scan\Model\ResourceModel\ScanFinding as ScanFindingResource;
 use IronCart\Scan\Model\ResourceModel\ScanRun as ScanRunResource;
 use IronCart\Scan\Report\FindingDetailFormatter;
-use IronCart\Scan\Report\ReportBuilder;
-use Magento\Framework\App\ProductMetadataInterface;
 use Magento\Framework\Lock\LockManagerInterface;
 use Magento\Framework\MessageQueue\PublisherInterface;
 use Magento\Framework\Serialize\Serializer\Json;
@@ -92,9 +89,7 @@ class ScanRunConsumer
         private readonly ScanRunResource $scanRunResource,
         private readonly ScanFindingFactory $scanFindingFactory,
         private readonly ScanFindingResource $scanFindingResource,
-        private readonly CheckRegistry $checkRegistry,
-        private readonly ReportBuilder $reportBuilder,
-        private readonly ProductMetadataInterface $productMetadata,
+        private readonly ScanEngineRunner $scanEngineRunner,
         private readonly Json $serializer,
         private readonly LoggerInterface $logger,
         private readonly FindingDetailFormatter $detailFormatter,
@@ -212,18 +207,14 @@ class ScanRunConsumer
         $run->setStartedAt($now);
         $this->scanRunResource->save($run);
 
-        $findings = $this->checkRegistry->runAll();
+        $result = $this->scanEngineRunner->runAndReport();
+        $findings = $result->findings;
+        $report = $result->report;
 
         $runId = (int)$run->getId();
         foreach ($findings as $finding) {
             $this->persistFinding($runId, $finding);
         }
-
-        $report = $this->reportBuilder->build(
-            magentoVersion: $this->productMetadata->getVersion(),
-            magentoEdition: $this->productMetadata->getEdition(),
-            findings: $findings
-        );
 
         $finishedAt = $this->nowUtc();
         $findingCount = count($findings);

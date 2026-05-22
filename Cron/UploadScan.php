@@ -19,7 +19,7 @@
  * Execution semantics:
  *
  *   - When `ironcart_scan/cron/enabled = 0` (default) — return immediately,
- *     do NOT enter `CheckRegistry::runAll()`, do NOT log noise.
+ *     do NOT enter `ScanEngineRunner::runAndReport()`, do NOT log noise.
  *   - When `ironcart_scan/cron/enabled = 1` — drive the full scan + upload
  *     pipeline (same path as the CLI), then log a single success or
  *     failure line to `var/log/ironcart_scan.log` and let the cron
@@ -39,10 +39,10 @@ declare(strict_types=1);
 
 namespace IronCart\Scan\Cron;
 
-use IronCart\Scan\Check\CheckRegistry;
 use IronCart\Scan\Check\License\UpgradeNagEmitter;
 use IronCart\Scan\Check\Upload\UploadRunner;
 use IronCart\Scan\Check\Upload\UploadRunnerOutcome;
+use IronCart\Scan\Model\ScanEngineRunner;
 use Magento\Framework\App\Config\ScopeConfigInterface;
 use Psr\Log\LoggerInterface;
 use RuntimeException;
@@ -84,7 +84,7 @@ class UploadScan
 
     public function __construct(
         private readonly ScopeConfigInterface $scopeConfig,
-        private readonly CheckRegistry $checkRegistry,
+        private readonly ScanEngineRunner $scanEngineRunner,
         private readonly UploadRunner $uploadRunner,
         private readonly LoggerInterface $logger,
         private readonly ?UpgradeNagEmitter $upgradeNagEmitter = null
@@ -120,7 +120,7 @@ class UploadScan
         );
 
         try {
-            $findings = $this->checkRegistry->runAll();
+            $findings = $this->scanEngineRunner->runAndReport()->findings;
         } catch (Throwable $e) {
             $this->logger->error(
                 'IronCart_Scan: cron upload run aborted — scan failed before upload',

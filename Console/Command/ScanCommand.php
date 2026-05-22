@@ -4,9 +4,10 @@
  * IronCart_Scan — scan command.
  *
  * Implements `bin/magento ironcart:scan`, the entry point for the read-only
- * Magento security scanner. v0 wires the {@see CheckRegistry} so every
- * registered {@see \IronCart\Scan\Check\CheckInterface} contributes findings
- * into the canonical v0 JSON report — see
+ * Magento security scanner. v0 wires the
+ * {@see \IronCart\Scan\Model\ScanEngineRunner} so every registered
+ * {@see \IronCart\Scan\Check\CheckInterface} contributes findings into
+ * the canonical v0 JSON report — see
  * {@link https://github.com/IronCartLabs/IronCartM2/issues/2}.
  *
  * The command is read-only by default. v2 added the IC-080..IC-085 CSP
@@ -24,14 +25,12 @@ declare(strict_types=1);
 
 namespace IronCart\Scan\Console\Command;
 
-use IronCart\Scan\Check\CheckRegistry;
 use IronCart\Scan\Check\License\UpgradeNagEmitter;
 use IronCart\Scan\Check\ScanSession;
 use IronCart\Scan\Check\Upload\UploadRunner;
 use IronCart\Scan\Check\Upload\UploadRunnerOutcome;
-use IronCart\Scan\Report\ReportBuilder;
+use IronCart\Scan\Model\ScanEngineRunner;
 use IronCart\Scan\Report\ReportRenderer;
-use Magento\Framework\App\ProductMetadataInterface;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
@@ -71,10 +70,8 @@ class ScanCommand extends Command
     public const EXIT_FAILURE = 1;
 
     public function __construct(
-        private readonly ProductMetadataInterface $productMetadata,
-        private readonly ReportBuilder $reportBuilder,
+        private readonly ScanEngineRunner $scanEngineRunner,
         private readonly ReportRenderer $reportRenderer,
-        private readonly CheckRegistry $checkRegistry,
         private readonly ScanSession $session,
         private readonly UploadRunner $uploadRunner,
         private readonly ?UpgradeNagEmitter $upgradeNagEmitter = null,
@@ -177,15 +174,10 @@ class ScanCommand extends Command
                 is_string($uploadTokenOverride) ? $uploadTokenOverride : null
             );
 
-            $findings = $this->checkRegistry->runAll();
+            $result = $this->scanEngineRunner->runAndReport();
+            $findings = $result->findings;
 
-            $report = $this->reportBuilder->build(
-                magentoVersion: $this->productMetadata->getVersion(),
-                magentoEdition: $this->productMetadata->getEdition(),
-                findings: $findings
-            );
-
-            $rendered = $this->reportRenderer->render($report, $format, $output);
+            $rendered = $this->reportRenderer->render($result->report, $format, $output);
 
             $outputPath = $input->getOption(self::OPTION_OUTPUT);
             if (is_string($outputPath) && $outputPath !== '') {
