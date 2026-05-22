@@ -37,10 +37,27 @@
 # file just stitches services together. The bind-mount is read-write so
 # `bin/magento setup:upgrade` can write generated/, var/, pub/static/.
 #
-# Sidecar services match Magento 2 system requirements:
-#   - MariaDB 10.6 (Magento 2.4.4–2.4.6) / 10.6+ (2.4.7)
+# Sidecar services match Magento 2 system requirements. The defaults here
+# target the 2.4.7 smoke + Hyvä baseline; the 2.4.8 cells override the
+# three sidecar images via MARIADB_IMAGE / OPENSEARCH_IMAGE / REDIS_IMAGE
+# env vars set by the workflow's "Select sidecar versions for Magento ..."
+# step. See `.github/workflows/ci.yml` for the per-matrix mapping. Pinning
+# the bumps at the workflow layer (not here) keeps the defaults useful for
+# local 2.4.7 sandbox runs and avoids forking the compose file per cell.
+#
+# Default sidecars (2.4.7):
+#   - MariaDB 10.6 (Magento 2.4.7 supported floor)
 #   - OpenSearch 2.x (Magento 2.4.6+ default catalog engine)
 #   - Redis 7 (cache + session)
+#
+# 2.4.8 sidecars (set via env overrides in the workflow):
+#   - MariaDB 11.4 (Magento 2.4.8 supports 10.6 and 11.4; 11.4 is the
+#     current LTS branch and Adobe-documented for 2.4.8)
+#   - OpenSearch 2.19 (2.4.8 raised the supported floor above 2.11.x; the
+#     2.19 LTS keeps us inside the 2.x plugin/wire shape until OpenSearch
+#     3.x has a longer track record on Magento)
+#   - Valkey 8 (BSD-licensed Redis 7-compatible fork; Magento 2.4.8
+#     officially supports Valkey 8 as a Redis replacement)
 #
 # All services bind to localhost-only; no public ports are exposed in CI.
 #
@@ -52,12 +69,17 @@
 #                         ../../.magento relative to this file when
 #                         running locally.
 #
+# Optional sidecar overrides (defaulted for 2.4.7; bumped per-cell for 2.4.8):
+#   - MARIADB_IMAGE       defaults to mariadb:10.6
+#   - OPENSEARCH_IMAGE    defaults to opensearchproject/opensearch:2.11.1
+#   - REDIS_IMAGE         defaults to redis:7-alpine
+#
 # Note: the top-level `version` key has been intentionally removed —
 # docker compose v2 treats it as obsolete and emits a warning.
 
 services:
   mariadb:
-    image: mariadb:10.6
+    image: ${MARIADB_IMAGE:-mariadb:10.6}
     environment:
       MARIADB_ROOT_PASSWORD: magento
       MARIADB_DATABASE: magento
@@ -72,7 +94,7 @@ services:
       - /var/lib/mysql
 
   opensearch:
-    image: opensearchproject/opensearch:2.11.1
+    image: ${OPENSEARCH_IMAGE:-opensearchproject/opensearch:2.11.1}
     environment:
       discovery.type: single-node
       DISABLE_SECURITY_PLUGIN: 'true'
@@ -89,7 +111,7 @@ services:
         hard: -1
 
   redis:
-    image: redis:7-alpine
+    image: ${REDIS_IMAGE:-redis:7-alpine}
     healthcheck:
       test: ['CMD', 'redis-cli', 'ping']
       interval: 5s
