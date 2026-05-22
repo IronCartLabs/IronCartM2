@@ -235,7 +235,15 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        php: ['8.1', '8.2', '8.3']
+        # 8.4 added in #176 ahead of the composer.json `require.php`
+        # widening tracked separately in #154. The "Generate vendor
+        # autoloader" step below also strips `require.php` from the
+        # rewritten composer.json so the existing
+        # `~8.1.0||~8.2.0||~8.3.0` floor does not refuse to install
+        # the dev deps on the 8.4 cell. The strip is CI-only and never
+        # touches the published composer.json — the rewrite happens to
+        # a copy and is restored before the job ends.
+        php: ['8.1', '8.2', '8.3', '8.4']
     steps:
       - name: Checkout
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
@@ -255,6 +263,10 @@ jobs:
         #   - drop autoload.files (registration.php executes
         #     ComponentRegistrar::register() at autoload time, which would
         #     blow up without magento/framework)
+        #   - drop require.php so the current
+        #     `~8.1.0||~8.2.0||~8.3.0` floor does not refuse to install on
+        #     PHP 8.4 (the 8.4 cell is allowed in CI ahead of #154's
+        #     composer widening).
         # symfony/console is declared as require-dev in composer.json so
         # it satisfies the ReportRenderer tests' BufferedOutput import
         # without any further CI surgery.
@@ -265,6 +277,7 @@ jobs:
           php -r '
             $j = json_decode(file_get_contents("composer.json"), true);
             unset($j["require"]["magento/framework"]);
+            unset($j["require"]["php"]);
             unset($j["autoload"]["files"]);
             file_put_contents("composer.json", json_encode($j, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
           '
@@ -321,20 +334,22 @@ jobs:
         # on pushes to `main` — see the `integration-full-matrix` job
         # below. This keeps free-tier GHA minutes lean on PRs.
         #
-        # Why `2.4.7-p5` and not `2.4.7`:
-        #   - Composer's `block-insecure` policy refuses to install
-        #     `magento/product-community-edition:2.4.7` because of
-        #     advisory PKSA-db8d-773v-rd1n (CVE-2024-34102, CosmicSting
-        #     XXE → RCE, fixed in 2.4.7-p1).
-        #   - We pin to `-p5` (Adobe Security Bulletin APSB25-26)
-        #     rather than `-p1` to also pick up the cumulative security
-        #     fixes that have landed since. We deliberately stop short
-        #     of `-p8+` because those releases hit a separate composer
-        #     resolve bug on PHP 8.3 (magento/magento2#40539) — until
-        #     that's resolved upstream, `-p5` is the highest patch we
-        #     can install cleanly on the 8.3 cell.
-        magento: ['2.4.7-p5']
-        php: ['8.3']
+        # Why `2.4.8-p2` and not bare `2.4.8`:
+        #   - Adobe Security Bulletin APSB25-50 (June 2025) ships
+        #     cumulative security fixes via 2.4.8-p2; composer's
+        #     `block-insecure` policy refuses to install any earlier
+        #     2.4.8 patch level whose advisories sit above the active
+        #     security floor.
+        #   - We stop short of -p4/-p5 deliberately: those are the
+        #     newest 2.4.8 patches at PR time (5 patches available
+        #     upstream) and the 2.4.7 cell sits at -p5 for the
+        #     analogous "stop at the highest patch known to be clean
+        #     on the runner PHP" reason. Bumping later cells to -p3+
+        #     is fine once they've been confirmed clean on PHP 8.4
+        #     and composer 2.9 by a separate run — out of scope for
+        #     #176, which only adds the cell.
+        magento: ['2.4.8-p2']
+        php: ['8.4']
     steps:
       - name: Checkout module
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
@@ -345,10 +360,17 @@ jobs:
         # PHP on the runner is only used to drive composer
         # create-project. The actual Magento install runs inside the
         # docker-compose stack (markshust/magento-php:<php>-fpm).
+        #
+        # composer:v2.9 (not the generic v2) is pinned because Magento
+        # 2.4.8's `composer create-project` requires composer 2.9.3+ to
+        # resolve `magento/framework ^104.0` and the bundled
+        # marketplace-composer-installer correctly. The integration-hyva
+        # and integration-full-matrix jobs use the same pin for
+        # consistency across the matrix.
         uses: shivammathur/setup-php@9e72090525849c5e82e596468b86eb55e9cc5401 # v2.32.0
         with:
           php-version: ${{ matrix.php }}
-          tools: composer:v2
+          tools: composer:v2.9
           extensions: bcmath, ctype, curl, dom, gd, hash, iconv, intl, mbstring, openssl, pdo_mysql, simplexml, soap, sockets, sodium, tokenizer, xmlwriter, xsl, zip
           coverage: none
 
@@ -375,9 +397,9 @@ jobs:
         #
         # Digests are the multi-arch manifest-list digests (so the
         # image works on both amd64 and arm64 runners), captured from
-        # Docker Hub on 2026-05-15. The 8.x-fpm tags have been stable
-        # for ~13 months at the time of pin (last_pushed 2025-04-17 /
-        # 2025-04-18 across all three).
+        # Docker Hub on the dates in the trailing comments. The 8.x-fpm
+        # tags have been stable for ~13 months at the time of pin
+        # (last_pushed 2025-04-17 / 2025-04-18 / 2026-05-20).
         #
         # Bumping: re-run
         #   curl https://hub.docker.com/v2/repositories/markoshust/magento-php/tags/<php>-fpm
@@ -388,12 +410,34 @@ jobs:
             8.1) digest="sha256:66de4cc3b07014a439d80212efcbdcc8e8b461dba8fe9322e4d2ab35c6f95dcb" ;;  # last_updated 2025-04-18T18:42:33Z
             8.2) digest="sha256:c7693a6843134ea0e834f72a09b7fa0b48d864f194c3b04a1aa609fc5c45d7ec" ;;  # last_updated 2025-04-18T18:45:08Z
             8.3) digest="sha256:6905c3be235500c31d84029e1ec3e1d31d2b46959eda1ec73554a709d9f8c687" ;;  # last_updated 2025-04-17T22:58:36Z
+            8.4) digest="sha256:6a4a7a7248a8700ac85b530374ffbc21687bc8bf9436519a2832d992757fc0c6" ;;  # last_updated 2026-05-20T18:32:24Z
             *)
               echo "::error::No pinned markoshust/magento-php digest for PHP ${{ matrix.php }}. Add one to this step in .github/workflows/ci.yml."
               exit 1
               ;;
           esac
           echo "MAGENTO_PHP_IMAGE=markoshust/magento-php@${digest}" >> "${GITHUB_ENV}"
+
+      - name: Select sidecar versions for Magento ${{ matrix.magento }}
+        # Magento 2.4.8 raised the supported floor for its sidecar stack
+        # (MariaDB 11.4 LTS or 10.6, OpenSearch 2.19+ inside the 2.x LTS
+        # branch, Valkey 8 as the Redis 7 replacement). The default
+        # `tests/sandbox/docker-compose.yml` images target 2.4.7; we
+        # override per-cell via env so the compose file stays usable for
+        # local 2.4.7 sandbox debugging without modification.
+        run: |
+          case "${{ matrix.magento }}" in
+            2.4.8-*)
+              echo "MARIADB_IMAGE=mariadb:11.4" >> "${GITHUB_ENV}"
+              echo "OPENSEARCH_IMAGE=opensearchproject/opensearch:2.19.1" >> "${GITHUB_ENV}"
+              echo "REDIS_IMAGE=valkey/valkey:8-alpine" >> "${GITHUB_ENV}"
+              ;;
+            *)
+              # 2.4.7 (and prior cells, if any are reintroduced) keep
+              # the compose defaults: mariadb:10.6 / opensearch:2.11.1
+              # / redis:7-alpine. No env exports needed.
+              ;;
+          esac
 
       - name: Prepare Magento source (composer create-project)
         env:
@@ -590,8 +634,13 @@ jobs:
         # smoke. The point of this cell is to confirm the scanner does
         # not regress when the Hyvä theme module is present in the
         # Magento source tree; we don't need the full compat fan-out.
-        magento: ['2.4.7-p5']
-        php: ['8.3']
+        # Hyvä's `hyva-themes/magento2-theme-module` composer constraint
+        # supports Magento 2.4.4 through 2.4.8 inclusive (verified at
+        # PR time against the public hyva-themes-base composer.json), so
+        # bumping the cell to 2.4.8 × 8.4 in lock-step with the default
+        # `integration` cell does not require a theme-module bump.
+        magento: ['2.4.8-p2']
+        php: ['8.4']
     # Job-level COMPOSER_AUTH carries both registries so every composer
     # call in the job (create-project, install, require) can talk to
     # repo.magento.com AND hyva-themes.repo.packagist.com.
@@ -616,10 +665,12 @@ jobs:
           path: module
 
       - name: Setup PHP ${{ matrix.php }}
+        # composer:v2.9 pinned for Magento 2.4.8 compatibility — see the
+        # matching step on the `integration` job for the rationale.
         uses: shivammathur/setup-php@9e72090525849c5e82e596468b86eb55e9cc5401 # v2.32.0
         with:
           php-version: ${{ matrix.php }}
-          tools: composer:v2
+          tools: composer:v2.9
           extensions: bcmath, ctype, curl, dom, gd, hash, iconv, intl, mbstring, openssl, pdo_mysql, simplexml, soap, sockets, sodium, tokenizer, xmlwriter, xsl, zip
           coverage: none
 
@@ -657,12 +708,26 @@ jobs:
             8.1) digest="sha256:66de4cc3b07014a439d80212efcbdcc8e8b461dba8fe9322e4d2ab35c6f95dcb" ;;  # last_updated 2025-04-18T18:42:33Z
             8.2) digest="sha256:c7693a6843134ea0e834f72a09b7fa0b48d864f194c3b04a1aa609fc5c45d7ec" ;;  # last_updated 2025-04-18T18:45:08Z
             8.3) digest="sha256:6905c3be235500c31d84029e1ec3e1d31d2b46959eda1ec73554a709d9f8c687" ;;  # last_updated 2025-04-17T22:58:36Z
+            8.4) digest="sha256:6a4a7a7248a8700ac85b530374ffbc21687bc8bf9436519a2832d992757fc0c6" ;;  # last_updated 2026-05-20T18:32:24Z
             *)
               echo "::error::No pinned markoshust/magento-php digest for PHP ${{ matrix.php }}. Add one to this step in .github/workflows/ci.yml."
               exit 1
               ;;
           esac
           echo "MAGENTO_PHP_IMAGE=markoshust/magento-php@${digest}" >> "${GITHUB_ENV}"
+
+      - name: Select sidecar versions for Magento ${{ matrix.magento }}
+        # See the matching step on the `integration` job for rationale.
+        run: |
+          case "${{ matrix.magento }}" in
+            2.4.8-*)
+              echo "MARIADB_IMAGE=mariadb:11.4" >> "${GITHUB_ENV}"
+              echo "OPENSEARCH_IMAGE=opensearchproject/opensearch:2.19.1" >> "${GITHUB_ENV}"
+              echo "REDIS_IMAGE=valkey/valkey:8-alpine" >> "${GITHUB_ENV}"
+              ;;
+            *)
+              ;;
+          esac
 
       - name: Prepare Magento source (composer create-project)
         env:
@@ -817,8 +882,10 @@ jobs:
         # Pruned to supported intersections per Magento system requirements
         # AND Adobe's lifecycle policy. The supported floor is 2.4.7:
         #   2.4.7 → PHP 8.2, 8.3
-        # The 2.4.7 × 8.3 cell is already covered by the default `integration`
-        # job, so it is omitted here to avoid double-spending minutes.
+        #   2.4.8 → PHP 8.3, 8.4
+        # The 2.4.7 × 8.3 cell is already covered by the default
+        # `integration` job; same for 2.4.8 × 8.4. Both are omitted here
+        # to avoid double-spending minutes.
         #
         # Legacy 2.4.4 / 2.4.5 / 2.4.6 cells were dropped in #178 (re-files
         # #175 after #177 over-edited). Adobe's lifecycle policy
@@ -828,17 +895,26 @@ jobs:
         # — community-supported only from here on; the published compat
         # table in README.md reflects the same.
         #
-        # Why this specific patch version (not bare `2.4.7`):
+        # Why these specific patch versions (not bare `2.4.7` / `2.4.8`):
         #   Advisory PKSA-db8d-773v-rd1n (CVE-2024-34102, CosmicSting
         #   XXE → RCE) affects every unpatched 2.4.x branch. Composer's
         #   `block-insecure` policy refuses to install any version
-        #   below the per-branch fix floor (2.4.7 → fixed in -p1).
-        #   We pin to `-p5` to also pick up the cumulative fixes
-        #   since, while staying below the 2.4.7-p8+ resolve bug from
-        #   magento/magento2#40539.
+        #   below the per-branch fix floor (2.4.7 → fixed in -p1;
+        #   2.4.8 → cumulative fixes via APSB25-50 → -p2 floor).
+        #   - 2.4.7-p5 picks up cumulative fixes since -p1 while
+        #     staying below the 2.4.7-p8+ resolve bug from
+        #     magento/magento2#40539.
+        #   - 2.4.8-p2 / -p3 match the highest 2.4.8 patches known
+        #     clean on the runner PHP at PR time; staying at -p2 (in
+        #     parallel with the default `integration` cell) keeps the
+        #     two cells comparable until #154 widens further.
         include:
           - magento: '2.4.7-p5'
             php: '8.2'
+          - magento: '2.4.8-p2'
+            php: '8.3'
+          - magento: '2.4.8-p2'
+            php: '8.4'
     steps:
       - name: Checkout module
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
@@ -846,10 +922,15 @@ jobs:
           path: module
 
       - name: Setup PHP ${{ matrix.php }}
+        # composer:v2.9 pinned for Magento 2.4.8 compatibility (see the
+        # matching step on the `integration` job). 2.4.7 cells run fine
+        # on 2.9 too — 2.9 is composer's current stable line, so pinning
+        # is forward-compatible for the existing matrix and required for
+        # the new 2.4.8 cells.
         uses: shivammathur/setup-php@9e72090525849c5e82e596468b86eb55e9cc5401 # v2.32.0
         with:
           php-version: ${{ matrix.php }}
-          tools: composer:v2
+          tools: composer:v2.9
           extensions: bcmath, ctype, curl, dom, gd, hash, iconv, intl, mbstring, openssl, pdo_mysql, simplexml, soap, sockets, sodium, tokenizer, xmlwriter, xsl, zip
           coverage: none
 
@@ -867,18 +948,32 @@ jobs:
       - name: Resolve markoshust/magento-php digest for PHP ${{ matrix.php }}
         # See the matching step on the `integration` job for the rationale
         # and the bump procedure. Digests must be kept in sync between
-        # both jobs.
+        # all integration jobs.
         run: |
           case "${{ matrix.php }}" in
             8.1) digest="sha256:66de4cc3b07014a439d80212efcbdcc8e8b461dba8fe9322e4d2ab35c6f95dcb" ;;  # last_updated 2025-04-18T18:42:33Z
             8.2) digest="sha256:c7693a6843134ea0e834f72a09b7fa0b48d864f194c3b04a1aa609fc5c45d7ec" ;;  # last_updated 2025-04-18T18:45:08Z
             8.3) digest="sha256:6905c3be235500c31d84029e1ec3e1d31d2b46959eda1ec73554a709d9f8c687" ;;  # last_updated 2025-04-17T22:58:36Z
+            8.4) digest="sha256:6a4a7a7248a8700ac85b530374ffbc21687bc8bf9436519a2832d992757fc0c6" ;;  # last_updated 2026-05-20T18:32:24Z
             *)
               echo "::error::No pinned markoshust/magento-php digest for PHP ${{ matrix.php }}. Add one to this step in .github/workflows/ci.yml."
               exit 1
               ;;
           esac
           echo "MAGENTO_PHP_IMAGE=markoshust/magento-php@${digest}" >> "${GITHUB_ENV}"
+
+      - name: Select sidecar versions for Magento ${{ matrix.magento }}
+        # See the matching step on the `integration` job for rationale.
+        run: |
+          case "${{ matrix.magento }}" in
+            2.4.8-*)
+              echo "MARIADB_IMAGE=mariadb:11.4" >> "${GITHUB_ENV}"
+              echo "OPENSEARCH_IMAGE=opensearchproject/opensearch:2.19.1" >> "${GITHUB_ENV}"
+              echo "REDIS_IMAGE=valkey/valkey:8-alpine" >> "${GITHUB_ENV}"
+              ;;
+            *)
+              ;;
+          esac
 
       - name: Prepare Magento source (composer create-project)
         env:
