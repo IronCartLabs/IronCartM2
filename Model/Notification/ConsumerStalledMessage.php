@@ -4,10 +4,12 @@
  * IronCart_Scan — admin notice for a stalled scan-run consumer.
  *
  * Issue #92: Run-Scan-Now leaves rows permanently in `queued` on installs
- * where `bin/magento queue:consumers:start ironcartScanRunConsumer` is not
- * running AND Magento's `cron_consumers_runner` cron isn't picking the
- * consumer up. The queue pipeline itself is correct — this is an
- * operator-detection notice that fires from Magento's admin notice list.
+ * where neither a long-running `bin/magento queue:consumers:start
+ * ironcartScanRunConsumer` supervisor nor Magento's own cron (which drives
+ * the module's `ironcart_scan_consumer_drain` job, see {@see
+ * \IronCart\Scan\Cron\DrainScanConsumer}) is actually picking the consumer
+ * up. The queue pipeline itself is correct — this is an operator-detection
+ * notice that fires from Magento's admin notice list.
  *
  * The message:
  *   - is read-only (queries `ironcart_scan_run` via the standard
@@ -132,25 +134,28 @@ class ConsumerStalledMessage implements MessageInterface
     public function getText(): string
     {
         // Plain string. Magento wraps the value in its own escaping
-        // before rendering. The text intentionally names the consumer
-        // and the two supported operator setups so the operator does
-        // not need to round-trip to the README to act on it — though
-        // the README link is included for the full setup walkthrough.
+        // before rendering. The text names the consumer and the two
+        // remediation paths an operator can take — verify Magento's
+        // own cron is healthy (which drives the module's own drain
+        // job, `ironcart_scan_consumer_drain`, every minute), or run
+        // a dedicated foreground supervisor — so the operator does
+        // not need to round-trip to the README to act on it. The
+        // README link is included for the full walkthrough.
         //
-        // Per IronCartLabs/IronCartM2#155 we no longer recommend
-        // enabling the `consumers_runner` cron group as a remediation.
-        // The module ships its own `ironcart_scan_consumer_drain` cron
-        // job (declared in `etc/crontab.xml`) that drives the consumer
-        // every minute as long as Magento's own cron is installed, so
-        // `bin/magento cron:install` is the canonical fix.
+        // The legacy `cron_consumers_runner` env.php edit is
+        // intentionally not mentioned: post-#143 the module owns its
+        // own drain via cron, and the README at "Running scans
+        // asynchronously" explicitly retires that recommendation.
+        // See issue #158.
         return sprintf(
             'IronCart_Scan: scans are being enqueued but the message-queue consumer "%s" is not draining them. '
             . 'Until the consumer is running, every "Run Scan Now" click leaves a row stuck at QUEUED. '
-            . 'Install Magento\'s own cron so the module-owned drain job picks up queued scans every minute '
-            . '(bin/magento cron:install), '
-            . 'or run a long-lived worker '
+            . 'Verify Magento\'s cron is running (bin/magento cron:install) — the module ships its own cron job '
+            . '"ironcart_scan_consumer_drain" that drives %s every minute when cron is healthy. '
+            . 'If you prefer a dedicated supervisor, start it as a long-running worker instead '
             . '(bin/magento queue:consumers:start %s). '
             . 'See https://github.com/IronCartLabs/IronCartM2#running-scans-asynchronously for the operator walkthrough.',
+            self::CONSUMER_NAME,
             self::CONSUMER_NAME,
             self::CONSUMER_NAME
         );

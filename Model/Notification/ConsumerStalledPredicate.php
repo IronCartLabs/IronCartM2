@@ -54,14 +54,13 @@ final class ConsumerStalledPredicate
      * Default threshold in seconds, mirrored to the `<default>` block in
      * `etc/config.xml` under
      * `ironcart_scan/runtime/consumer_alert_threshold_seconds`. 60s is
-     * long enough that a freshly-enqueued row has time to flip to
-     * `running` under the module-owned `ironcart_scan_consumer_drain`
-     * cron job (every-minute schedule, see
-     * IronCartLabs/IronCartM2#143 for the drain lifecycle and #155 for
-     * the in-handler lock that prevents core's `consumers_runner` from
-     * racing the same consumer), but short enough that the notice
-     * fires within one admin-refresh cycle on a truly stuck install
-     * (Magento's own cron not running at all).
+     * long enough that a freshly-enqueued row (which the consumer picks
+     * up within a single tick of the module's own
+     * `ironcart_scan_consumer_drain` cron job — see {@see
+     * \IronCart\Scan\Cron\DrainScanConsumer}, which runs every minute
+     * when Magento's cron is healthy) has time to flip to `running`,
+     * but short enough that the notice fires within one admin-refresh
+     * cycle on a truly stuck install.
      */
     public const DEFAULT_THRESHOLD_SECONDS = 60;
 
