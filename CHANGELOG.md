@@ -10,6 +10,38 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 - **Concurrent-drain race between Magento core's `consumers_runner` and the module-owned `ironcart_scan_consumer_drain` cron** ([#155](https://github.com/IronCartLabs/IronCartM2/issues/155)). `IronCart\Scan\Model\ScanRunConsumer::process()` now try-locks the same `ironcart_scan_consumer_drain` named lock that the cron job uses (0s timeout). If a competing consumer process holds the lock, the handler re-publishes its message back to the `ironcart.scan.run` topic and ACKs cleanly so the queue framework does not mark it failed; only one process executes `checkRegistry->runAll()` at a time across all drivers. The stuck-QUEUED admin notice (`Model/Notification/ConsumerStalledMessage::getText()`) no longer recommends enabling the `consumers_runner` cron group as a remediation — `bin/magento cron:install` is the canonical fix because the module-owned drain job is now race-safe regardless of operator-side `consumers_runner` config.
 
+## [1.5.0] - 2026-05-23
+
+Platform-widening release. Strictly additive over `1.4.0` from the
+merchant install perspective: no removed or renamed CLI / class /
+config / DI surface, no behavioural changes, no new outbound network
+surface. Adds PHP 8.4 and Magento 2.4.8 (framework 104.x) to the
+supported platform matrix so merchants on the latest Adobe-supported
+stack can `composer require ironcartlabs/magento-scan` without the
+platform-check rejection.
+
+### Changed
+
+- **`composer.json` `require.php`** widened from `~8.1.0||~8.2.0||~8.3.0` to `~8.1.0||~8.2.0||~8.3.0||~8.4.0` ([#154](https://github.com/IronCartLabs/IronCartM2/issues/154)). PHP 8.1 / 8.2 / 8.3 remain supported; attrition off the older lines is a separate decision once merchant telemetry justifies it.
+- **`composer.json` `require.magento/framework`** widened from `^103.0` to `^103.0 || ^104.0` ([#154](https://github.com/IronCartLabs/IronCartM2/issues/154)). Magento 2.4.8 ships `magento/framework` on the 104.x major; 103.x (Magento 2.4.4 – 2.4.7) stays supported.
+- **`etc/module.xml` `setup_version`** bumped from `1.4.0` to `1.5.0`. Read at runtime to construct the `IronCart-Scan/<version>` User-Agent on outbound HTTP surfaces.
+- **`composer.json` `extra.module-version`** bumped from `1.4.0` to `1.5.0`. Kept in sync with `etc/module.xml`.
+- **`README.md`** install requirement line now lists PHP 8.4; Compatibility section adds the Magento 2.4.8 / PHP 8.4 CI row and a per-version support matrix table.
+
+### Notes
+
+- No `Check/`, `Console/`, `Controller/`, `Model/`, or `etc/di.xml` source touched. The runtime is unchanged: every check class, ACL resource, DI binding, cron job, and CLI command behaves byte-identically to `1.4.0`.
+- The 2.4.8 × PHP 8.4 cell is already green on the `integration` matrix in `.github/workflows/ci.yml` against the v0 report shape and the IC-072 composer-lock baseline; this release only changes the published platform-version constraints.
+- Tracking epic: [IronCartLabs/IronCartWeb#884](https://github.com/IronCartLabs/IronCartWeb/issues/884).
+
+### Install
+
+```
+composer require ironcartlabs/magento-scan:^1.5
+bin/magento module:enable IronCart_Scan
+bin/magento setup:upgrade
+```
+
 ## [1.4.0] - 2026-05-19
 
 The v6 + Recon Phase 7 module wave. Folds the Hyvä-specific check pack,
@@ -242,7 +274,8 @@ bin/magento module:enable IronCart_Scan
 bin/magento setup:upgrade
 ```
 
-[Unreleased]: https://github.com/IronCartLabs/IronCartM2/compare/v1.4.0...HEAD
+[Unreleased]: https://github.com/IronCartLabs/IronCartM2/compare/v1.5.0...HEAD
+[1.5.0]: https://github.com/IronCartLabs/IronCartM2/compare/v1.4.0...v1.5.0
 [1.4.0]: https://github.com/IronCartLabs/IronCartM2/releases/tag/v1.4.0
 [1.3.0]: https://github.com/IronCartLabs/IronCartM2/releases/tag/v1.3.0
 [1.2.0]: https://github.com/IronCartLabs/IronCartM2/releases/tag/v1.2.0

@@ -113,7 +113,7 @@ bin/magento module:enable IronCart_Scan
 bin/magento setup:upgrade
 ```
 
-Requires Magento 2.4.4 or later and PHP 8.1 / 8.2 / 8.3. Works on Adobe Commerce and Magento Open Source.
+Requires Magento 2.4.4 or later and PHP 8.1 / 8.2 / 8.3 / 8.4. Works on Adobe Commerce and Magento Open Source.
 
 ## Run
 
@@ -221,10 +221,19 @@ The notice clears automatically the next time the queued rows drain to a termina
 
 ## Compatibility
 
-- **CI-tested:** Magento 2.4.7 (on PHP 8.2 and 8.3)
+- **CI-tested:** Magento 2.4.7 (on PHP 8.2 and 8.3) and Magento 2.4.8 (on PHP 8.4)
 - **Community-supported only (no CI):** Magento 2.4.4, 2.4.5, 2.4.6 — Adobe's [lifecycle policy](https://experienceleague.adobe.com/en/docs/commerce-operations/release/planning/lifecycle-policy) marks these end-of-life, and their composer metapackages now carry an unresolvable `sebastian/comparator` constraint conflict with current PHPUnit 9.6 patch releases (see [#178](https://github.com/IronCartLabs/IronCartM2/issues/178)). The module's runtime code still targets Magento 2.4.4+ — installs may still work on legacy versions, but we no longer gate releases on them
-- PHP 8.1, 8.2, 8.3
+- PHP 8.1, 8.2, 8.3, 8.4
 - Adobe Commerce and Magento Open Source
+
+### Magento / PHP support matrix
+
+| Magento  | PHP 8.1 | PHP 8.2 | PHP 8.3 | PHP 8.4 |
+|----------|---------|---------|---------|---------|
+| 2.4.7    | yes     | CI      | CI      | n/a     |
+| 2.4.8    | n/a     | yes     | yes     | CI      |
+
+Legend: **CI** = exercised in `.github/workflows/ci.yml` on every PR; **yes** = `composer install` resolves cleanly per the widened `composer.json` constraints; **n/a** = combination not supported by Adobe for the given Magento minor.
 
 ## Translations
 
