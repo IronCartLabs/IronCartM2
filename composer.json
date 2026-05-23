@@ -1,1 +1,44 @@
-@c:/tmp/ic-154-composer.json
+{
+    "name": "ironcartlabs/magento-scan",
+    "description": "Magento 2 security scanner: read-only whitebox checks for Adobe Commerce and Magento Open Source with JSON reporting.",
+    "type": "magento2-module",
+    "license": "MIT",
+    "keywords": [
+        "magento",
+        "magento2",
+        "magento-2",
+        "adobe-commerce",
+        "security",
+        "security-scanner",
+        "security-audit",
+        "pci",
+        "ecommerce",
+        "module"
+    ],
+    "homepage": "https://ironcart.dev",
+    "support": {
+        "issues": "https://github.com/IronCartLabs/IronCartM2/issues",
+        "source": "https://github.com/IronCartLabs/IronCartM2",
+        "security": "https://github.com/IronCartLabs/IronCartM2/security/policy"
+    },
+    "require": {
+        "php": "~8.1.0||~8.2.0||~8.3.0||~8.4.0",
+        "ext-sodium": "*",
+        "magento/framework": "^103.0 || ^104.0"
+    },
+    "require-dev": {
+        "symfony/console": "^6.4 || ^7.0"
+    },
+    "autoload": {
+        "files": ["registration.php"],
+        "psr-4": {
+            "IronCart\\Scan\\": ""
+        }
+    },
+    "extra": {
+        "module-version": "1.5.0",
+        "map": [
+            ["*", "IronCart/Scan"]
+        ]
+    }
+}
