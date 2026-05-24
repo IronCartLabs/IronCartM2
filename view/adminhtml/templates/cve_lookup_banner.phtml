@@ -1,0 +1,52 @@
+<?php
+
+/**
+ * IronCart_Scan — dismissible CVE-lookup recommendation banner template.
+ *
+ * Renders Magento's standard admin `messages message message-notice`
+ * markup so the banner inherits the existing admin theme styling — no
+ * bespoke CSS. The `data-mage-init` attribute on the root element wires
+ * the RequireJS dismissal handler (`IronCart_Scan/js/cve-lookup-banner`)
+ * declaratively; zero inline JS, per the strict-CSP invariant pinned in
+ * `etc/csp_whitelist.xml`.
+ *
+ * The empty `_toHtml()` short-circuit in the Block class already gates
+ * the rendering path on `ironcart_scan/cve/enabled` being off — by the
+ * time we reach this template we know the flag is off and the banner
+ * is allowed to render.
+ *
+ * @copyright Copyright (c) Ironcart (https://ironcart.dev)
+ * @license   MIT
+ *
+ * @var \IronCart\Scan\Block\Adminhtml\CveLookupBanner $block
+ * @var \Magento\Framework\Escaper $escaper
+ */
+?>
+<div class="ironcart-scan-cve-banner"
+     data-role="ironcart-scan-cve-banner"
+     data-mage-init="<?= $escaper->escapeHtmlAttr($block->getMageInitJson()) ?>">
+    <div class="messages">
+        <div class="message message-notice">
+            <div class="message-content">
+                <strong><?= $escaper->escapeHtml(__('Enable CVE cross-reference for richer scan findings')) ?></strong>
+                <span>
+                    <?= $escaper->escapeHtml(__(
+                        'The IC-060 check can cross-reference your composer.lock against'
+                        . ' the OSV.dev vulnerability database to surface known CVEs in'
+                        . ' your installed packages. It is off by default because it'
+                        . ' makes an outbound HTTP call — opt in to enable it.'
+                    )) ?>
+                </span>
+                <a href="<?= $escaper->escapeUrl($block->getConfigUrl()) ?>">
+                    <?= $escaper->escapeHtml(__('Open CVE cross-reference settings')) ?>
+                </a>
+            </div>
+            <button type="button"
+                    class="action-close"
+                    data-role="ironcart-scan-cve-banner-dismiss"
+                    aria-label="<?= $escaper->escapeHtmlAttr(__('Dismiss banner')) ?>">
+                <span><?= $escaper->escapeHtml(__('Close')) ?></span>
+            </button>
+        </div>
+    </div>
+</div>

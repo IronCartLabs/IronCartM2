@@ -6,6 +6,12 @@
  / Layout handle for the admin "Security Scans" landing page rendered by
  / IronCart\Scan\Controller\Adminhtml\Scans\Index. Hangs the scan-run
  / listing UI Component (`ironcartscan_run_listing`) off the page body.
+ /
+ / The `ironcart_scan_cve_banner` block above the listing is the
+ / dismissible IC-060 opt-in advert (#183). The block class
+ / short-circuits to empty output when the merchant has already enabled
+ / `ironcart_scan/cve/enabled`, so the layout always declares it
+ / regardless of flag state.
 -->
 <page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
       layout="admin-1column"
@@ -15,6 +21,10 @@
     </head>
     <body>
         <referenceContainer name="content">
+            <block class="IronCart\Scan\Block\Adminhtml\CveLookupBanner"
+                   name="ironcart_scan_cve_banner"
+                   template="IronCart_Scan::cve_lookup_banner.phtml"
+                   before="-"/>
             <uiComponent name="ironcartscan_run_listing"/>
         </referenceContainer>
     </body>
