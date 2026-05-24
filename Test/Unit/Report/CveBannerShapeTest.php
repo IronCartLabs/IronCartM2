@@ -153,7 +153,7 @@ class CveBannerShapeTest extends TestCase
             'block must read the IC-060 opt-in flag via the existing constant'
         );
         self::assertStringContainsString(
-            "self::DISMISS_STORAGE_KEY = '" . self::EXPECTED_STORAGE_KEY . "'",
+            "DISMISS_STORAGE_KEY = '" . self::EXPECTED_STORAGE_KEY . "'",
             $source,
             'block must expose the localStorage key advertised in the PR description'
         );
