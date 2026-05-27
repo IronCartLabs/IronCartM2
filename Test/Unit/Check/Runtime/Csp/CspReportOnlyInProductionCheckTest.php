@@ -12,6 +12,7 @@ declare(strict_types=1);
 namespace IronCart\Scan\Test\Unit\Check\Runtime\Csp;
 
 use IronCart\Scan\Check\Runtime\Csp\CspReportOnlyInProductionCheck;
+use IronCart\Scan\Check\Runtime\MagentoModeReader;
 use IronCart\Scan\Report\Severity;
 use Magento\Framework\App\State;
 use PHPUnit\Framework\TestCase;
@@ -31,7 +32,7 @@ class CspReportOnlyInProductionCheckTest extends TestCase
             $this->helper->runnerWithHeaders([
                 'content-security-policy-report-only' => "default-src 'self'",
             ]),
-            $this->stateInMode(State::MODE_PRODUCTION)
+            $this->readerInMode(State::MODE_PRODUCTION)
         );
 
         $findings = $check->run();
@@ -48,7 +49,7 @@ class CspReportOnlyInProductionCheckTest extends TestCase
             $this->helper->runnerWithHeaders([
                 'content-security-policy-report-only' => "default-src 'self'",
             ]),
-            $this->stateInMode(State::MODE_DEVELOPER)
+            $this->readerInMode(State::MODE_DEVELOPER)
         );
 
         $this->assertSame([], $check->run());
@@ -60,7 +61,7 @@ class CspReportOnlyInProductionCheckTest extends TestCase
             $this->helper->runnerWithHeaders([
                 'content-security-policy-report-only' => "default-src 'self'",
             ]),
-            $this->stateInMode(State::MODE_DEFAULT)
+            $this->readerInMode(State::MODE_DEFAULT)
         );
 
         $this->assertSame([], $check->run());
@@ -75,7 +76,7 @@ class CspReportOnlyInProductionCheckTest extends TestCase
                 'content-security-policy' => "default-src 'self'",
                 'content-security-policy-report-only' => "default-src 'self'",
             ]),
-            $this->stateInMode(State::MODE_PRODUCTION)
+            $this->readerInMode(State::MODE_PRODUCTION)
         );
 
         $this->assertSame([], $check->run());
@@ -85,7 +86,7 @@ class CspReportOnlyInProductionCheckTest extends TestCase
     {
         $check = new CspReportOnlyInProductionCheck(
             $this->helper->runnerWithHeaders([]),
-            $this->stateInMode(State::MODE_PRODUCTION)
+            $this->readerInMode(State::MODE_PRODUCTION)
         );
 
         $this->assertSame([], $check->run(), 'IC-080 owns the "no CSP at all" case');
@@ -95,17 +96,17 @@ class CspReportOnlyInProductionCheckTest extends TestCase
     {
         $check = new CspReportOnlyInProductionCheck(
             $this->helper->unconfiguredRunner(),
-            $this->stateInMode(State::MODE_PRODUCTION)
+            $this->readerInMode(State::MODE_PRODUCTION)
         );
 
         $this->assertSame([], $check->run());
     }
 
-    private function stateInMode(string $mode): State
+    private function readerInMode(string $mode): MagentoModeReader
     {
-        $state = $this->createMock(State::class);
-        $state->method('getMode')->willReturn($mode);
+        $reader = $this->createMock(MagentoModeReader::class);
+        $reader->method('mode')->willReturn($mode);
 
-        return $state;
+        return $reader;
     }
 }

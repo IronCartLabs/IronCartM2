@@ -34,7 +34,7 @@ class ProfilerCheck implements CheckInterface
     private const CONFIG_PROFILER = 'dev/debug/profiler';
 
     public function __construct(
-        private readonly State $appState,
+        private readonly MagentoModeReader $modeReader,
         private readonly ScopeConfigInterface $scopeConfig
     ) {
     }
@@ -44,7 +44,7 @@ class ProfilerCheck implements CheckInterface
      */
     public function run(): array
     {
-        if ($this->resolveMode() !== State::MODE_PRODUCTION) {
+        if ($this->modeReader->mode() !== State::MODE_PRODUCTION) {
             return [];
         }
 
@@ -67,14 +67,5 @@ class ProfilerCheck implements CheckInterface
             ],
             'remediation_url' => self::REMEDIATION_URL,
         ]];
-    }
-
-    private function resolveMode(): string
-    {
-        try {
-            return $this->appState->getMode();
-        } catch (\Throwable) {
-            return State::MODE_DEFAULT;
-        }
     }
 }
