@@ -40,6 +40,7 @@ declare(strict_types=1);
 namespace IronCart\Scan\Check\PwaStudio;
 
 use IronCart\Scan\Check\PatchLevel\ComposerLockReader;
+use IronCart\Scan\Check\Support\MagentoRootLocator;
 use JsonException;
 use Throwable;
 
@@ -244,17 +245,6 @@ class PwaStudioDetector
         if ($this->magentoRoot !== null) {
             return is_dir($this->magentoRoot) ? $this->magentoRoot : null;
         }
-        $dir = __DIR__;
-        for ($i = 0; $i < 10; $i++) {
-            if (is_file($dir . DIRECTORY_SEPARATOR . 'composer.lock')) {
-                return $dir;
-            }
-            $parent = dirname($dir);
-            if ($parent === $dir) {
-                break;
-            }
-            $dir = $parent;
-        }
-        return null;
+        return MagentoRootLocator::locate(__DIR__);
     }
 }
