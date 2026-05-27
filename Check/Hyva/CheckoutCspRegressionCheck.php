@@ -42,6 +42,7 @@ namespace IronCart\Scan\Check\Hyva;
 
 use IronCart\Scan\Check\CheckInterface;
 use IronCart\Scan\Check\Finding;
+use IronCart\Scan\Check\Support\MagentoRootLocator;
 use IronCart\Scan\Report\Severity;
 use JsonException;
 
@@ -251,17 +252,6 @@ class CheckoutCspRegressionCheck implements CheckInterface
         if ($this->magentoRoot !== null) {
             return is_dir($this->magentoRoot) ? $this->magentoRoot : null;
         }
-        $dir = __DIR__;
-        for ($i = 0; $i < 10; $i++) {
-            if (is_file($dir . DIRECTORY_SEPARATOR . 'composer.lock')) {
-                return $dir;
-            }
-            $parent = dirname($dir);
-            if ($parent === $dir) {
-                break;
-            }
-            $dir = $parent;
-        }
-        return null;
+        return MagentoRootLocator::locate(__DIR__);
     }
 }

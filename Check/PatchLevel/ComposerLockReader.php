@@ -16,6 +16,7 @@ declare(strict_types=1);
 
 namespace IronCart\Scan\Check\PatchLevel;
 
+use IronCart\Scan\Check\Support\MagentoRootLocator;
 use JsonException;
 use RuntimeException;
 
@@ -161,20 +162,12 @@ class ComposerLockReader
             return is_file($this->lockPath) ? $this->lockPath : null;
         }
 
-        $dir = __DIR__;
-        for ($i = 0; $i < 10; $i++) {
-            $candidate = $dir . DIRECTORY_SEPARATOR . 'composer.lock';
-            if (is_file($candidate)) {
-                return $candidate;
-            }
-            $parent = dirname($dir);
-            if ($parent === $dir) {
-                break;
-            }
-            $dir = $parent;
+        $root = MagentoRootLocator::locate(__DIR__);
+        if ($root === null) {
+            return null;
         }
 
-        return null;
+        return $root . DIRECTORY_SEPARATOR . MagentoRootLocator::DEFAULT_MARKER;
     }
 
     /**
