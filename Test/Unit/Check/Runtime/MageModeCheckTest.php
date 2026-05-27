@@ -12,6 +12,7 @@ declare(strict_types=1);
 namespace IronCart\Scan\Test\Unit\Check\Runtime;
 
 use IronCart\Scan\Check\Runtime\MageModeCheck;
+use IronCart\Scan\Check\Runtime\MagentoModeReader;
 use IronCart\Scan\Report\Severity;
 use Magento\Framework\App\Config\ScopeConfigInterface;
 use Magento\Framework\App\State;
@@ -21,20 +22,18 @@ class MageModeCheckTest extends TestCase
 {
     public function testNoFindingWhenModeIsProduction(): void
     {
-        $state = $this->createMock(State::class);
-        $state->method('getMode')->willReturn(State::MODE_PRODUCTION);
+        $reader = $this->readerReturning(State::MODE_PRODUCTION);
 
         $config = $this->createMock(ScopeConfigInterface::class);
 
-        $check = new MageModeCheck($state, $config);
+        $check = new MageModeCheck($reader, $config);
 
         $this->assertSame([], $check->run());
     }
 
     public function testNoFindingWhenDeveloperModeOnLocalhost(): void
     {
-        $state = $this->createMock(State::class);
-        $state->method('getMode')->willReturn(State::MODE_DEVELOPER);
+        $reader = $this->readerReturning(State::MODE_DEVELOPER);
 
         $config = $this->createMock(ScopeConfigInterface::class);
         $config->method('getValue')->willReturnMap([
@@ -42,15 +41,14 @@ class MageModeCheckTest extends TestCase
             ['web/secure/base_url', 'store', null, 'http://magento.test/'],
         ]);
 
-        $check = new MageModeCheck($state, $config);
+        $check = new MageModeCheck($reader, $config);
 
         $this->assertSame([], $check->run());
     }
 
     public function testCriticalFindingWhenDeveloperModeOnPublicHost(): void
     {
-        $state = $this->createMock(State::class);
-        $state->method('getMode')->willReturn(State::MODE_DEVELOPER);
+        $reader = $this->readerReturning(State::MODE_DEVELOPER);
 
         $config = $this->createMock(ScopeConfigInterface::class);
         $config->method('getValue')->willReturnMap([
@@ -58,7 +56,7 @@ class MageModeCheckTest extends TestCase
             ['web/secure/base_url', 'store', null, 'https://shop.example.com/'],
         ]);
 
-        $check = new MageModeCheck($state, $config);
+        $check = new MageModeCheck($reader, $config);
 
         $findings = $check->run();
 
@@ -68,15 +66,26 @@ class MageModeCheckTest extends TestCase
         $this->assertSame(State::MODE_DEVELOPER, $findings[0]['evidence']['mage_mode']);
     }
 
-    public function testStateExceptionFallsBackToDefaultMode(): void
+    public function testDefaultModeFromReaderSkipsCheck(): void
     {
-        $state = $this->createMock(State::class);
-        $state->method('getMode')->willThrowException(new \LogicException('not ready'));
+        // When the underlying State::getMode() throws, MagentoModeReader
+        // resolves to MODE_DEFAULT (pinned in MagentoModeReaderTest). The
+        // IC-020 check only fires for MODE_DEVELOPER, so MODE_DEFAULT
+        // must short-circuit to zero findings here.
+        $reader = $this->readerReturning(State::MODE_DEFAULT);
 
         $config = $this->createMock(ScopeConfigInterface::class);
 
-        $check = new MageModeCheck($state, $config);
+        $check = new MageModeCheck($reader, $config);
 
         $this->assertSame([], $check->run());
+    }
+
+    private function readerReturning(string $mode): MagentoModeReader
+    {
+        $reader = $this->createMock(MagentoModeReader::class);
+        $reader->method('mode')->willReturn($mode);
+
+        return $reader;
     }
 }

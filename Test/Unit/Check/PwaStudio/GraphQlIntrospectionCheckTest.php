@@ -14,6 +14,7 @@ namespace IronCart\Scan\Test\Unit\Check\PwaStudio;
 use IronCart\Scan\Check\PatchLevel\ComposerLockReader;
 use IronCart\Scan\Check\PwaStudio\GraphQlIntrospectionCheck;
 use IronCart\Scan\Check\PwaStudio\PwaStudioDetector;
+use IronCart\Scan\Check\Runtime\MagentoModeReader;
 use IronCart\Scan\Report\Severity;
 use Magento\Framework\App\Config\ScopeConfigInterface;
 use Magento\Framework\App\State;
@@ -26,7 +27,7 @@ final class GraphQlIntrospectionCheckTest extends TestCase
         $check = new GraphQlIntrospectionCheck(
             $this->detectorReturning(false),
             $this->createMock(ScopeConfigInterface::class),
-            $this->stateReturning(State::MODE_PRODUCTION)
+            $this->readerReturning(State::MODE_PRODUCTION)
         );
         self::assertSame([], $check->run());
     }
@@ -37,7 +38,7 @@ final class GraphQlIntrospectionCheckTest extends TestCase
         $check = new GraphQlIntrospectionCheck(
             $this->detectorReturning(true),
             $config,
-            $this->stateReturning(State::MODE_DEVELOPER)
+            $this->readerReturning(State::MODE_DEVELOPER)
         );
         self::assertSame([], $check->run());
     }
@@ -52,7 +53,7 @@ final class GraphQlIntrospectionCheckTest extends TestCase
         $check = new GraphQlIntrospectionCheck(
             $this->detectorReturning(true),
             $config,
-            $this->stateReturning(State::MODE_PRODUCTION)
+            $this->readerReturning(State::MODE_PRODUCTION)
         );
         self::assertSame([], $check->run());
     }
@@ -67,7 +68,7 @@ final class GraphQlIntrospectionCheckTest extends TestCase
         $check = new GraphQlIntrospectionCheck(
             $this->detectorReturning(true),
             $config,
-            $this->stateReturning(State::MODE_PRODUCTION)
+            $this->readerReturning(State::MODE_PRODUCTION)
         );
         $findings = $check->run();
         self::assertCount(1, $findings);
@@ -84,21 +85,23 @@ final class GraphQlIntrospectionCheckTest extends TestCase
         $check = new GraphQlIntrospectionCheck(
             $this->detectorReturning(true),
             $config,
-            $this->stateReturning(State::MODE_PRODUCTION)
+            $this->readerReturning(State::MODE_PRODUCTION)
         );
         self::assertCount(1, $check->run());
     }
 
-    public function testStateExceptionFallsBackToDefaultModeWhichSkips(): void
+    public function testReaderFallbackToDefaultModeSkipsCheck(): void
     {
+        // The Throwable -> MODE_DEFAULT fallback now lives in
+        // MagentoModeReader (pinned by MagentoModeReaderTest). IC-921
+        // only fires for MODE_PRODUCTION, so a fallback to MODE_DEFAULT
+        // must short-circuit to zero findings here.
         $config = $this->createMock(ScopeConfigInterface::class);
-        $state = $this->createMock(State::class);
-        $state->method('getMode')->willThrowException(new \LogicException('not ready'));
 
         $check = new GraphQlIntrospectionCheck(
             $this->detectorReturning(true),
             $config,
-            $state
+            $this->readerReturning(State::MODE_DEFAULT)
         );
         self::assertSame([], $check->run());
     }
@@ -130,10 +133,10 @@ final class GraphQlIntrospectionCheckTest extends TestCase
         };
     }
 
-    private function stateReturning(string $mode): State
+    private function readerReturning(string $mode): MagentoModeReader
     {
-        $state = $this->createMock(State::class);
-        $state->method('getMode')->willReturn($mode);
-        return $state;
+        $reader = $this->createMock(MagentoModeReader::class);
+        $reader->method('mode')->willReturn($mode);
+        return $reader;
     }
 }

@@ -27,6 +27,7 @@ declare(strict_types=1);
 namespace IronCart\Scan\Check\Runtime\Csp;
 
 use IronCart\Scan\Check\CheckInterface;
+use IronCart\Scan\Check\Runtime\MagentoModeReader;
 use IronCart\Scan\Report\Severity;
 use Magento\Framework\App\State;
 
@@ -42,7 +43,7 @@ class CspReportOnlyInProductionCheck implements CheckInterface
 
     public function __construct(
         private readonly CspProbeRunner $probeRunner,
-        private readonly State $appState
+        private readonly MagentoModeReader $modeReader
     ) {
     }
 
@@ -66,7 +67,7 @@ class CspReportOnlyInProductionCheck implements CheckInterface
             return [];
         }
 
-        $mode = $this->resolveMode();
+        $mode = $this->modeReader->mode();
         if ($mode !== State::MODE_PRODUCTION) {
             return [];
         }
@@ -83,18 +84,5 @@ class CspReportOnlyInProductionCheck implements CheckInterface
             ],
             'remediation_url' => self::REMEDIATION_URL,
         ]];
-    }
-
-    /**
-     * Read `MAGE_MODE` defensively so a bootstrap-phase failure does not
-     * blow up the whole scan.
-     */
-    private function resolveMode(): string
-    {
-        try {
-            return $this->appState->getMode();
-        } catch (\Throwable) {
-            return State::MODE_DEFAULT;
-        }
     }
 }

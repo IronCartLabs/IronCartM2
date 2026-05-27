@@ -35,7 +35,7 @@ class MageModeCheck implements CheckInterface
     private const CONFIG_ADMIN_BASE_URL = 'web/secure/base_url';
 
     public function __construct(
-        private readonly State $appState,
+        private readonly MagentoModeReader $modeReader,
         private readonly ScopeConfigInterface $scopeConfig
     ) {
     }
@@ -45,7 +45,7 @@ class MageModeCheck implements CheckInterface
      */
     public function run(): array
     {
-        $mode = $this->resolveMode();
+        $mode = $this->modeReader->mode();
         if ($mode !== State::MODE_DEVELOPER) {
             return [];
         }
@@ -74,19 +74,6 @@ class MageModeCheck implements CheckInterface
             ],
             'remediation_url' => self::REMEDIATION_URL,
         ]];
-    }
-
-    /**
-     * Resolve MAGE_MODE without throwing if the state has not been
-     * initialised yet (e.g. in CLI bootstrap edge cases).
-     */
-    private function resolveMode(): string
-    {
-        try {
-            return $this->appState->getMode();
-        } catch (\Throwable) {
-            return State::MODE_DEFAULT;
-        }
     }
 
     /**

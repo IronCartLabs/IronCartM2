@@ -33,10 +33,10 @@ namespace IronCart\Scan\Check\PwaStudio;
 
 use IronCart\Scan\Check\CheckInterface;
 use IronCart\Scan\Check\Finding;
+use IronCart\Scan\Check\Runtime\MagentoModeReader;
 use IronCart\Scan\Report\Severity;
 use Magento\Framework\App\Config\ScopeConfigInterface;
 use Magento\Framework\App\State;
-use Throwable;
 
 /**
  * IC-921 — GraphQL introspection allowed in production.
@@ -56,7 +56,7 @@ class GraphQlIntrospectionCheck implements CheckInterface
     public function __construct(
         private readonly PwaStudioDetector $detector,
         private readonly ScopeConfigInterface $scopeConfig,
-        private readonly State $appState
+        private readonly MagentoModeReader $modeReader
     ) {
     }
 
@@ -66,7 +66,7 @@ class GraphQlIntrospectionCheck implements CheckInterface
             return [];
         }
 
-        $mode = $this->resolveMode();
+        $mode = $this->modeReader->mode();
         if ($mode !== State::MODE_PRODUCTION) {
             // Introspection is fine (and arguably desirable) in
             // developer / default modes — the risk is only the
@@ -97,14 +97,5 @@ class GraphQlIntrospectionCheck implements CheckInterface
                 remediationUrl: self::REMEDIATION_URL
             ),
         ];
-    }
-
-    private function resolveMode(): string
-    {
-        try {
-            return $this->appState->getMode();
-        } catch (Throwable) {
-            return State::MODE_DEFAULT;
-        }
     }
 }
