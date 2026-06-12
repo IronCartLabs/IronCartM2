@@ -36,9 +36,6 @@
         }
     },
     "extra": {
-        "module-version": "1.5.0",
-        "map": [
-            ["*", "IronCart/Scan"]
-        ]
+        "module-version": "1.5.1"
     }
 }

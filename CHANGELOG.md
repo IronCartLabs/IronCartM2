@@ -6,9 +6,45 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [1.5.1] - 2026-06-12
+
+Critical packaging fix. `composer require ironcartlabs/magento-scan` on
+a standard Magento 2 project (all releases `v1.0.0`–`v1.5.0`) could
+crash the site and CLI with `Component 'IronCart_Scan' has been already
+defined`. **All merchants should upgrade to `>=1.5.1`** — see the
+remediation steps below.
+
 ### Fixed
 
+- **Duplicate `IronCart_Scan` registration breaks composer installs — legacy `extra.map` removed from `composer.json`** ([#192](https://github.com/IronCartLabs/IronCartM2/issues/192)). Since the bootstrap commit, `composer.json` shipped two registration mechanisms at once: the standard vendor autoload (`autoload.files: ["registration.php"]` + PSR-4) **and** a legacy `extra.map: [["*", "IronCart/Scan"]]`. Magento projects ship the composer plugin `magento/magento-composer-installer`, which acts on `type: magento2-module` packages carrying a `map` and copies the whole package into `app/code/IronCart/Scan` during `composer install`. Magento then registers the module from `vendor/` (composer autoload) *and* from `app/code/` (`NonComposerComponentRegistration`), and `ComponentRegistrar` throws `Component 'IronCart_Scan' has been already defined` — site and CLI both down. Field-confirmed on a production merchant site. The `extra.map` entry is removed; a composer install now registers the module exactly once, from `vendor/ironcartlabs/magento-scan`.
+
+  **Merchant remediation:**
+
+  1. Upgrade to `>=1.5.1`: `composer require ironcartlabs/magento-scan:^1.5.1` (or `composer update ironcartlabs/magento-scan`).
+  2. Delete any stale copy left behind by earlier versions: `rm -rf app/code/IronCart/Scan`.
+  3. Redeploy / `bin/magento setup:upgrade`.
+
+  Note: on `<=1.5.0`, deleting `app/code/IronCart/Scan` alone is **not** a durable fix — `composer install` re-creates the copy on every fresh build/release directory. The upgrade to `>=1.5.1` is required.
+
 - **Concurrent-drain race between Magento core's `consumers_runner` and the module-owned `ironcart_scan_consumer_drain` cron** ([#155](https://github.com/IronCartLabs/IronCartM2/issues/155)). `IronCart\Scan\Model\ScanRunConsumer::process()` now try-locks the same `ironcart_scan_consumer_drain` named lock that the cron job uses (0s timeout). If a competing consumer process holds the lock, the handler re-publishes its message back to the `ironcart.scan.run` topic and ACKs cleanly so the queue framework does not mark it failed; only one process executes `checkRegistry->runAll()` at a time across all drivers. The stuck-QUEUED admin notice (`Model/Notification/ConsumerStalledMessage::getText()`) no longer recommends enabling the `consumers_runner` cron group as a remediation — `bin/magento cron:install` is the canonical fix because the module-owned drain job is now race-safe regardless of operator-side `consumers_runner` config.
+
+### Changed
+
+- **`etc/module.xml` `setup_version`** bumped from `1.5.0` to `1.5.1`. Read at runtime to construct the `IronCart-Scan/<version>` User-Agent on outbound HTTP surfaces.
+- **`composer.json` `extra.module-version`** bumped from `1.5.0` to `1.5.1`. Kept in sync with `etc/module.xml`.
+
+### Notes
+
+- The packaging fix is composer-manifest-only; the #155 consumer-drain fix is the only PHP source change since `1.5.0`. No removed or renamed CLI / class / config / DI surface, no new outbound network surface.
+- Why CI never caught the duplicate registration: the docker sandbox installs the module by copying source straight into `app/code`, so the vendor-vs-`app/code` collision cannot occur there. A regression guard is tracked as follow-up on [#192](https://github.com/IronCartLabs/IronCartM2/issues/192).
+
+### Install
+
+```
+composer require ironcartlabs/magento-scan:^1.5.1
+bin/magento module:enable IronCart_Scan
+bin/magento setup:upgrade
+```
 
 ## [1.5.0] - 2026-05-23
 
@@ -274,7 +310,8 @@ bin/magento module:enable IronCart_Scan
 bin/magento setup:upgrade
 ```
 
-[Unreleased]: https://github.com/IronCartLabs/IronCartM2/compare/v1.5.0...HEAD
+[Unreleased]: https://github.com/IronCartLabs/IronCartM2/compare/v1.5.1...HEAD
+[1.5.1]: https://github.com/IronCartLabs/IronCartM2/compare/v1.5.0...v1.5.1
 [1.5.0]: https://github.com/IronCartLabs/IronCartM2/compare/v1.4.0...v1.5.0
 [1.4.0]: https://github.com/IronCartLabs/IronCartM2/releases/tag/v1.4.0
 [1.3.0]: https://github.com/IronCartLabs/IronCartM2/releases/tag/v1.3.0
