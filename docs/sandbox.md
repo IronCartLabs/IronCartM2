@@ -128,7 +128,7 @@ make sandbox-nuke                                # destroy current sandbox
 make sandbox M2_VERSION=2.4.6 PHP_VERSION=8.2    # rebuild against the matrix cell
 ```
 
-Supported combinations (mirrors the CI matrix in [#8][ci-issue]):
+Supported combinations:
 
 | Magento | PHP versions       |
 |---------|--------------------|
@@ -136,6 +136,14 @@ Supported combinations (mirrors the CI matrix in [#8][ci-issue]):
 | 2.4.5   | 8.1                |
 | 2.4.6   | 8.1, 8.2           |
 | 2.4.7   | 8.2, 8.3           |
+| 2.4.8   | 8.3, 8.4           |
+| 2.4.9   | 8.4, 8.5           |
+
+Note: 2.4.4–2.4.6 are local-sandbox combinations only — their CI cells were
+dropped in [#178](https://github.com/IronCartLabs/IronCartM2/issues/178)
+(Adobe end-of-life). The CI-gated cells today cover 2.4.7 / 2.4.8 / 2.4.9 —
+see the support matrix in the
+[README](../README.md#magento--php-support-matrix).
 
 `M2_VERSION` and `PHP_VERSION` are accepted on every target (`make sandbox-up
 PHP_VERSION=8.2` etc.), but only `make sandbox` actually rebuilds against

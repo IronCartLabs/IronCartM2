@@ -33,7 +33,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Setup PHP
-        uses: shivammathur/setup-php@9e72090525849c5e82e596468b86eb55e9cc5401 # v2.32.0
+        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2.37.2
         with:
           php-version: '8.2'
           coverage: none
@@ -69,7 +69,7 @@ jobs:
         # PSR-12 violations across the whole tree regardless of the PHP
         # version that runs the linter — the constraint only affects the
         # phpcs binary's own runtime.
-        uses: shivammathur/setup-php@9e72090525849c5e82e596468b86eb55e9cc5401 # v2.32.0
+        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2.37.2
         with:
           php-version: '8.2'
           tools: composer:v2, cs2pr
@@ -156,6 +156,92 @@ jobs:
       - name: PHPStan level 6
         run: phpstan analyse --no-progress --error-format=github
 
+  php85-validation:
+    name: PHP 8.5 surface validation (php -l + phpcs Magento2)
+    runs-on: ubuntu-latest
+    # Per-PR PHP 8.5 runtime coverage for the Magento 2.4.9 / PHP 8.5
+    # uplift (#196). composer.json already admits ~8.5.0 (widened in
+    # #194), but the unit matrix tops out at PHP 8.4 and the
+    # 2.4.9 × 8.5 integration cell only runs on `main` pushes /
+    # v0-labelled PRs — this job is the cheap every-PR gate that
+    # surfaces 8.5 parse errors and runtime deprecations immediately.
+    #
+    # Precedent: the php84-validation job added in #161 and retired in
+    # #189 once PHP 8.4 was covered by the unit matrix and every
+    # integration cell. The same retirement criteria apply here: when
+    # 8.5 joins the unit matrix and the default integration smoke
+    # cell, drop this job.
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Setup PHP 8.5
+        # setup-php 2.36.0 is the first release with PHP 8.5 stable
+        # support — the file-wide pin was bumped from v2.32.0 to
+        # v2.37.2 in the PR that added this job (#196).
+        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2.37.2
+        with:
+          php-version: '8.5'
+          tools: composer:v2, cs2pr
+          coverage: none
+
+      - name: php -l recursive parse check
+        # `php -l` is the only way to surface hard parse errors caused
+        # by 8.5-incompatible syntax. Scope: every .php file in the
+        # module tree except vendor/ and sandbox scratch dirs. The
+        # prune-based find covers new top-level dirs automatically —
+        # the dir-enumeration list used by the retired php84-validation
+        # job would have silently skipped Block/ when it was added.
+        # bin/ is included here even though phpcs ignores it: the
+        # build-time CLI scripts must still parse under 8.5.
+        run: |
+          set -euo pipefail
+          PARSE_FAILED=0
+          while IFS= read -r -d '' file; do
+            if ! php -l "${file}" > /dev/null 2>&1; then
+              echo "::error file=${file}::php -l failed under PHP 8.5"
+              php -l "${file}" || true
+              PARSE_FAILED=1
+            fi
+          done < <(find . \
+            \( -path ./vendor -o -path ./_m2-workspace -o -path ./tests/_sandbox \) -prune \
+            -o -type f -name '*.php' -print0)
+          if [ "${PARSE_FAILED}" -ne 0 ]; then
+            echo "::error::One or more files failed php -l under PHP 8.5."
+            exit 1
+          fi
+          echo "All PHP files parsed cleanly under PHP 8.5."
+
+      - name: Install phpcs + magento-coding-standard ^39 (PHP 8.5 capable)
+        # magento/magento-coding-standard 39 is the first major to
+        # declare `~8.5.0` in its `require.php` (verified against the
+        # Packagist p2 feed at PR time, 2026-06-13). The main lint
+        # job's ^32 pin would refuse to composer-install under an 8.5
+        # runtime with an unsatisfied platform constraint.
+        run: |
+          composer global config --no-plugins allow-plugins.dealerdirect/phpcodesniffer-composer-installer true
+          composer global require --no-interaction --no-progress \
+            squizlabs/php_codesniffer:^3.10 \
+            magento/magento-coding-standard:^39
+          echo "$HOME/.composer/vendor/bin" >> "$GITHUB_PATH"
+
+      - name: phpcs Magento2 under PHP 8.5
+        # Same sniff exclusions as the main lint job — they are
+        # documented design exemptions, not 8.x-specific (see the lint
+        # job for the full justification list). The value of this run
+        # is the PHP 8.5 runtime executing the sniffs: anything that
+        # emits an 8.5 deprecation surfaces on the PR.
+        run: |
+          phpcs -n \
+            --standard=Magento2 \
+            --extensions=php,phtml \
+            --ignore=vendor,_m2-workspace,tests/_sandbox,bin \
+            --exclude=Magento2.PHP.FinalImplementation,Magento2.Classes.FinalImplementation,Generic.PHP.NoSilencedErrors,Magento2.Functions.DiscouragedFunction,Magento2.Security.IncludeFile \
+            --report=full \
+            --report-checkstyle=phpcs-report.xml \
+            .
+          cs2pr --graceful-warnings phpcs-report.xml
+
   unit:
     name: Unit (PHPUnit / PHP ${{ matrix.php }})
     runs-on: ubuntu-latest
@@ -176,7 +262,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Setup PHP ${{ matrix.php }}
-        uses: shivammathur/setup-php@9e72090525849c5e82e596468b86eb55e9cc5401 # v2.32.0
+        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2.37.2
         with:
           php-version: ${{ matrix.php }}
           tools: composer:v2, phpunit:10
@@ -261,6 +347,13 @@ jobs:
         # on pushes to `main` — see the `integration-full-matrix` job
         # below. This keeps free-tier GHA minutes lean on PRs.
         #
+        # Deliberately NOT bumped to 2.4.9 × 8.5 yet (#196): the 2.4.9
+        # cells are brand-new in `integration-full-matrix` and prove
+        # themselves on `main` pushes first. Promote 2.4.9 × 8.5 to
+        # this smoke cell once those cells have a green streak — the
+        # php85-validation job retires at the same time (see its
+        # comment block).
+        #
         # Why `2.4.8-p2` and not bare `2.4.8`:
         #   - Adobe Security Bulletin APSB25-50 (June 2025) ships
         #     cumulative security fixes via 2.4.8-p2; composer's
@@ -294,7 +387,7 @@ jobs:
         # marketplace-composer-installer correctly. The integration-hyva
         # and integration-full-matrix jobs use the same pin for
         # consistency across the matrix.
-        uses: shivammathur/setup-php@9e72090525849c5e82e596468b86eb55e9cc5401 # v2.32.0
+        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2.37.2
         with:
           php-version: ${{ matrix.php }}
           tools: composer:v2.9
@@ -948,7 +1041,7 @@ jobs:
       - name: Setup PHP ${{ matrix.php }}
         # composer:v2.9 pinned for Magento 2.4.8 compatibility — see the
         # matching step on the `integration` job for the rationale.
-        uses: shivammathur/setup-php@9e72090525849c5e82e596468b86eb55e9cc5401 # v2.32.0
+        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2.37.2
         with:
           php-version: ${{ matrix.php }}
           tools: composer:v2.9
@@ -1163,9 +1256,14 @@ jobs:
         # AND Adobe's lifecycle policy. The supported floor is 2.4.7:
         #   2.4.7 → PHP 8.2, 8.3
         #   2.4.8 → PHP 8.3, 8.4
+        #   2.4.9 → PHP 8.3, 8.4, 8.5 (platform constraint
+        #           `~8.3.0||~8.4.0||~8.5.0`, verified against the
+        #           magento/magento2 `2.4.9` tag — see #196)
         # The 2.4.7 × 8.3 cell is already covered by the default
         # `integration` job; same for 2.4.8 × 8.4. Both are omitted here
-        # to avoid double-spending minutes.
+        # to avoid double-spending minutes. 2.4.9 × 8.3 is deliberately
+        # not a cell — two cells per Magento line keeps the matrix lean
+        # (#178); 8.4/8.5 are the forward-looking pair for 2.4.9.
         #
         # Legacy 2.4.4 / 2.4.5 / 2.4.6 cells were dropped in #178 (re-files
         # #175 after #177 over-edited). Adobe's lifecycle policy
@@ -1195,6 +1293,16 @@ jobs:
             php: '8.3'
           - magento: '2.4.8-p2'
             php: '8.4'
+          # Bare `2.4.9` (no -pN suffix): GA is the only release on the
+          # 2.4.9 line at PR time (verified against the public composer
+          # metadata, 2026-06-13). As the GA of a new minor it carries
+          # all cumulative security fixes, so composer's block-insecure
+          # policy has no higher patch floor to enforce yet. Bump to the
+          # patch level once 2.4.9-p1 ships, mirroring the older cells.
+          - magento: '2.4.9'
+            php: '8.4'
+          - magento: '2.4.9'
+            php: '8.5'
     steps:
       - name: Checkout module
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
@@ -1207,7 +1315,7 @@ jobs:
         # on 2.9 too — 2.9 is composer's current stable line, so pinning
         # is forward-compatible for the existing matrix and required for
         # the new 2.4.8 cells.
-        uses: shivammathur/setup-php@9e72090525849c5e82e596468b86eb55e9cc5401 # v2.32.0
+        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2.37.2
         with:
           php-version: ${{ matrix.php }}
           tools: composer:v2.9
@@ -1228,12 +1336,15 @@ jobs:
       - name: Resolve markoshust/magento-php digest for PHP ${{ matrix.php }}
         # See the matching step on the `integration` job for the rationale
         # and the bump procedure. Digests must be kept in sync between
-        # all integration jobs.
+        # all integration jobs. The 8.5 arm exists only here — no other
+        # integration job has a PHP 8.5 cell yet, and #189 established
+        # that unreachable digest arms are dead branches to be avoided.
         run: |
           case "${{ matrix.php }}" in
             8.2) digest="sha256:c7693a6843134ea0e834f72a09b7fa0b48d864f194c3b04a1aa609fc5c45d7ec" ;;  # last_updated 2025-04-18T18:45:08Z
             8.3) digest="sha256:6905c3be235500c31d84029e1ec3e1d31d2b46959eda1ec73554a709d9f8c687" ;;  # last_updated 2025-04-17T22:58:36Z
             8.4) digest="sha256:6a4a7a7248a8700ac85b530374ffbc21687bc8bf9436519a2832d992757fc0c6" ;;  # last_updated 2026-05-20T18:32:24Z
+            8.5) digest="sha256:7cb195814b3d0329ac3a9b0e92d077a874bcdcde99e102abd00f6e04dda5de67" ;;  # last_updated 2026-05-20T18:22:32Z
             *)
               echo "::error::No pinned markoshust/magento-php digest for PHP ${{ matrix.php }}. Add one to this step in .github/workflows/ci.yml."
               exit 1
@@ -1243,9 +1354,13 @@ jobs:
 
       - name: Select sidecar versions for Magento ${{ matrix.magento }}
         # See the matching step on the `integration` job for rationale.
+        # 2.4.9 reuses the 2.4.8 sidecar set: its composer.json (the
+        # `2.4.9` tag) keeps opensearch-project/opensearch-php at ^2.3,
+        # so OpenSearch 2.19.x stays in range, and the MariaDB 11.4 LTS
+        # / Valkey 8 floors are unchanged from 2.4.8 (#196).
         run: |
           case "${{ matrix.magento }}" in
-            2.4.8-*)
+            2.4.8-*|2.4.9*)
               echo "MARIADB_IMAGE=mariadb:11.4" >> "${GITHUB_ENV}"
               echo "OPENSEARCH_IMAGE=opensearchproject/opensearch:2.19.1" >> "${GITHUB_ENV}"
               echo "REDIS_IMAGE=valkey/valkey:8-alpine" >> "${GITHUB_ENV}"
