@@ -596,11 +596,19 @@ jobs:
           PHP_VERSION: ${{ matrix.php }}
           MAGENTO_SRC_HOST: ${{ github.workspace }}/.magento
         run: |
+          # On failure, ScanCommand writes "Ironcart scan failed: <msg>"
+          # to stdout — which the redirect below swallows into
+          # /tmp/scan.json inside the container. Surface it on the job
+          # log before failing, or the cell is undiagnosable (#196).
           docker compose -f tests/sandbox/docker-compose.yml exec -T magento bash -lc '
             set -euo pipefail
             cd /var/www/html
             bin/magento ironcart:scan --format=json > /tmp/scan.json
-          '
+          ' || {
+            echo "::error::ironcart:scan exited non-zero — captured stdout follows."
+            docker compose -f tests/sandbox/docker-compose.yml exec -T magento cat /tmp/scan.json || true
+            exit 1
+          }
           docker compose -f tests/sandbox/docker-compose.yml cp magento:/tmp/scan.json ./scan.json
           python3 - <<'PY'
           import json
@@ -951,11 +959,19 @@ jobs:
           PHP_VERSION: ${{ matrix.php }}
           MAGENTO_SRC_HOST: ${{ github.workspace }}/.magento
         run: |
+          # On failure, ScanCommand writes "Ironcart scan failed: <msg>"
+          # to stdout — which the redirect below swallows into
+          # /tmp/scan.json inside the container. Surface it on the job
+          # log before failing, or the cell is undiagnosable (#196).
           docker compose -f tests/sandbox/docker-compose.yml exec -T magento bash -lc '
             set -euo pipefail
             cd /var/www/html
             bin/magento ironcart:scan --format=json > /tmp/scan.json
-          '
+          ' || {
+            echo "::error::ironcart:scan exited non-zero — captured stdout follows."
+            docker compose -f tests/sandbox/docker-compose.yml exec -T magento cat /tmp/scan.json || true
+            exit 1
+          }
           docker compose -f tests/sandbox/docker-compose.yml cp magento:/tmp/scan.json ./scan.json
           python3 - <<'PY'
           import json
@@ -1199,11 +1215,19 @@ jobs:
           PHP_VERSION: ${{ matrix.php }}
           MAGENTO_SRC_HOST: ${{ github.workspace }}/.magento
         run: |
+          # On failure, ScanCommand writes "Ironcart scan failed: <msg>"
+          # to stdout — which the redirect below swallows into
+          # /tmp/scan.json inside the container. Surface it on the job
+          # log before failing, or the cell is undiagnosable (#196).
           docker compose -f tests/sandbox/docker-compose.yml exec -T magento bash -lc '
             set -euo pipefail
             cd /var/www/html
             bin/magento ironcart:scan --format=json > /tmp/scan.json
-          '
+          ' || {
+            echo "::error::ironcart:scan exited non-zero — captured stdout follows."
+            docker compose -f tests/sandbox/docker-compose.yml exec -T magento cat /tmp/scan.json || true
+            exit 1
+          }
           docker compose -f tests/sandbox/docker-compose.yml cp magento:/tmp/scan.json ./scan.json
           python3 - <<'PY'
           import json
@@ -1465,11 +1489,19 @@ jobs:
           PHP_VERSION: ${{ matrix.php }}
           MAGENTO_SRC_HOST: ${{ github.workspace }}/.magento
         run: |
+          # On failure, ScanCommand writes "Ironcart scan failed: <msg>"
+          # to stdout — which the redirect below swallows into
+          # /tmp/scan.json inside the container. Surface it on the job
+          # log before failing, or the cell is undiagnosable (#196).
           docker compose -f tests/sandbox/docker-compose.yml exec -T magento bash -lc '
             set -euo pipefail
             cd /var/www/html
             bin/magento ironcart:scan --format=json > /tmp/scan.json
-          '
+          ' || {
+            echo "::error::ironcart:scan exited non-zero — captured stdout follows."
+            docker compose -f tests/sandbox/docker-compose.yml exec -T magento cat /tmp/scan.json || true
+            exit 1
+          }
           docker compose -f tests/sandbox/docker-compose.yml cp magento:/tmp/scan.json ./scan.json
           python3 - <<'PY'
           import json
