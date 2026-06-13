@@ -6,6 +6,36 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [1.6.1] - 2026-06-13
+
+Patch release fixing a PHP 8.5 runtime regression that aborted
+`ironcart:scan` on the platform `1.6.0` had just advertised support for.
+No constraint arms, check classes, CLI surface, or config changed — the
+only source change since `1.6.0` is the removal of three no-op
+`curl_close()` calls. Every previously supported cell (Magento 2.4.4 –
+2.4.9 × PHP 8.1 – 8.5) stays installable and behaviourally identical.
+
+### Fixed
+
+- **`ironcart:scan` aborts on PHP 8.5 — removed deprecated `curl_close()` calls from the three cURL clients** ([#196](https://github.com/IronCartLabs/IronCartM2/issues/196), [#201](https://github.com/IronCartLabs/IronCartM2/pull/201)). PHP 8.5 deprecates `curl_close()` (a no-op since PHP 8.0, when cURL handles became `\CurlHandle` objects that free on GC). Magento's error handler escalates the call-time `E_DEPRECATED` to a thrown exception, so on a PHP 8.5 runtime any scan that exercised an outbound cURL surface — IC-060 OSV CVE proxy (`Check/Cve/CurlCveProxyClient`), IC-080..IC-085 CSP probe (`Check/Runtime/Csp/CurlCspProbeClient`), or `--upload` (`Check/Upload/CurlUploadClient`) — aborted mid-run. `1.6.0` advertised PHP 8.5 support (composer constraint, README, GitHub Release, ironcart.dev announce post) but shipped the broken call, so every merchant installing `1.6.0` on Magento 2.4.9 × PHP 8.5 hit the abort. The three clients now drop the explicit `curl_close()` and let the handle free on scope exit; an inline comment at each former call site records why. The failure was invisible to `php -l` / phpcs because it is call-time only — the PHP 8.5 CI cell added in #201 (run 27453062637) caught it deterministically.
+
+### Notes
+
+- Constraint arms (`require.php`, `require.magento/framework`) are unchanged from `1.6.0`. This is a release-only follow-up to `1.6.0` carrying a single source fix.
+- No `Check/` logic, ACL resource, DI binding, cron job, CLI command, or report-schema field changed beyond the `curl_close()` removals. Findings output is byte-identical to `1.6.0` on any runtime where `1.6.0` did not abort.
+- Tracking epic: [IronCartLabs/IronCartWeb#884](https://github.com/IronCartLabs/IronCartWeb/issues/884).
+
+### Install
+
+```
+composer require ironcartlabs/magento-scan:^1.6
+bin/magento module:enable IronCart_Scan
+bin/magento setup:upgrade
+```
+
+PHP 8.5 runtimes must install `>=1.6.1` — `1.6.0` aborts mid-scan on the
+first outbound cURL surface.
+
 ## [1.6.0] - 2026-06-13
 
 Platform-widening release for Magento 2.4.9 (GA 2026-05-12) and PHP
@@ -342,7 +372,8 @@ bin/magento module:enable IronCart_Scan
 bin/magento setup:upgrade
 ```
 
-[Unreleased]: https://github.com/IronCartLabs/IronCartM2/compare/v1.6.0...HEAD
+[Unreleased]: https://github.com/IronCartLabs/IronCartM2/compare/v1.6.1...HEAD
+[1.6.1]: https://github.com/IronCartLabs/IronCartM2/compare/v1.6.0...v1.6.1
 [1.6.0]: https://github.com/IronCartLabs/IronCartM2/compare/v1.5.1...v1.6.0
 [1.5.1]: https://github.com/IronCartLabs/IronCartM2/compare/v1.5.0...v1.5.1
 [1.5.0]: https://github.com/IronCartLabs/IronCartM2/compare/v1.4.0...v1.5.0
