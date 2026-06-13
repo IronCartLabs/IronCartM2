@@ -178,7 +178,7 @@ class HardenedCurlClientTraitTest extends TestCase
             CURLOPT_USERAGENT => 'test',
         ]);
 
-        curl_close($ch);
+        // No curl_close() — deprecated in PHP 8.5, no-op since PHP 8.0.
         $this->expectNotToPerformAssertions();
     }
 
@@ -209,7 +209,7 @@ class HardenedCurlClientTraitTest extends TestCase
             CURLOPT_COOKIE => 'sessionid=leaked',
         ]);
 
-        curl_close($ch);
+        // No curl_close() — deprecated in PHP 8.5, no-op since PHP 8.0.
         $this->expectNotToPerformAssertions();
     }
 
