@@ -6,6 +6,38 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [1.6.0] - 2026-06-13
+
+Platform-widening release for Magento 2.4.9 (GA 2026-05-12) and PHP
+8.5. Strictly additive over `1.5.1` from the merchant install
+perspective: no removed or renamed CLI / class / config / DI surface,
+no behavioural changes, no new outbound network surface. Every
+previously supported cell (Magento 2.4.4 – 2.4.8 × PHP 8.1 – 8.4)
+stays installable.
+
+### Changed
+
+- **`composer.json` `require.php`** widened from `~8.1.0||~8.2.0||~8.3.0||~8.4.0` to `~8.1.0||~8.2.0||~8.3.0||~8.4.0||~8.5.0` ([#194](https://github.com/IronCartLabs/IronCartM2/issues/194)). Magento 2.4.9 dropped PHP 8.1 / 8.2 from its own platform constraint; the module keeps both arms for the older Magento lines.
+- **`etc/module.xml` `setup_version`** bumped from `1.5.1` to `1.6.0`. Read at runtime to construct the `IronCart-Scan/<version>` User-Agent on outbound HTTP surfaces.
+- **`composer.json` `extra.module-version`** bumped from `1.5.1` to `1.6.0`. Kept in sync with `etc/module.xml`.
+- **`README.md`** install requirement line now lists PHP 8.5; Compatibility section adds the Magento 2.4.9 row (PHP 8.3 / 8.4 / 8.5) and the PHP 8.5 matrix column.
+
+### Notes
+
+- **`require.magento/framework` is intentionally unchanged.** Verified against the [`magento/magento2` `2.4.9` tag](https://github.com/magento/magento2/blob/2.4.9/composer.json): Magento 2.4.9 ships `magento/framework` **103.0.9** (not a new major), which the existing `^103.0` arm already satisfies. The PHP constraint was the only installation blocker for 2.4.9.
+- No `Check/`, `Console/`, `Controller/`, `Model/`, or `etc/di.xml` source touched. The runtime is unchanged: every check class, ACL resource, DI binding, cron job, and CLI command behaves byte-identically to `1.5.1`.
+- The whole module PHP surface (`php -l` recursive parse check + phpcs Magento2 via `magento/magento-coding-standard` ^39, the first major to declare PHP 8.5) was validated under a PHP 8.5 runtime, mirroring the PHP 8.4 validation contract from [#151](https://github.com/IronCartLabs/IronCartM2/issues/151) / [#161](https://github.com/IronCartLabs/IronCartM2/issues/161). No PHP 8.5 deprecations or parse errors found.
+- Magento 2.4.9 CI matrix cells (PHP 8.4 / 8.5) land separately via [#196](https://github.com/IronCartLabs/IronCartM2/issues/196), unblocked by this release's constraint widening.
+- Tracking epic: [IronCartLabs/IronCartWeb#884](https://github.com/IronCartLabs/IronCartWeb/issues/884).
+
+### Install
+
+```
+composer require ironcartlabs/magento-scan:^1.6
+bin/magento module:enable IronCart_Scan
+bin/magento setup:upgrade
+```
+
 ## [1.5.1] - 2026-06-12
 
 Critical packaging fix. `composer require ironcartlabs/magento-scan` on
@@ -310,7 +342,8 @@ bin/magento module:enable IronCart_Scan
 bin/magento setup:upgrade
 ```
 
-[Unreleased]: https://github.com/IronCartLabs/IronCartM2/compare/v1.5.1...HEAD
+[Unreleased]: https://github.com/IronCartLabs/IronCartM2/compare/v1.6.0...HEAD
+[1.6.0]: https://github.com/IronCartLabs/IronCartM2/compare/v1.5.1...v1.6.0
 [1.5.1]: https://github.com/IronCartLabs/IronCartM2/compare/v1.5.0...v1.5.1
 [1.5.0]: https://github.com/IronCartLabs/IronCartM2/compare/v1.4.0...v1.5.0
 [1.4.0]: https://github.com/IronCartLabs/IronCartM2/releases/tag/v1.4.0
