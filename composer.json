@@ -22,7 +22,7 @@
         "security": "https://github.com/IronCartLabs/IronCartM2/security/policy"
     },
     "require": {
-        "php": "~8.1.0||~8.2.0||~8.3.0||~8.4.0",
+        "php": "~8.1.0||~8.2.0||~8.3.0||~8.4.0||~8.5.0",
         "ext-sodium": "*",
         "magento/framework": "^103.0 || ^104.0"
     },
@@ -36,6 +36,6 @@
         }
     },
     "extra": {
-        "module-version": "1.5.1"
+        "module-version": "1.6.0"
     }
 }
