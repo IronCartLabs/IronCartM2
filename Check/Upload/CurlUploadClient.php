@@ -173,7 +173,11 @@ class CurlUploadClient implements UploadClient
         $ok = curl_exec($ch);
         $errno = curl_errno($ch);
         $httpCode = (int) curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
-        curl_close($ch);
+        // No curl_close(): deprecated in PHP 8.5 and a no-op since PHP
+        // 8.0 — $ch is a CurlHandle object, freed when it leaves scope.
+        // Under Magento's error handler the E_DEPRECATED becomes a
+        // thrown exception, aborting the scan (caught by the 2.4.9 ×
+        // PHP 8.5 CI cell, #196).
 
         if ($ok === false || $errno !== 0) {
             $category = ($errno === CURLE_OPERATION_TIMEDOUT)
