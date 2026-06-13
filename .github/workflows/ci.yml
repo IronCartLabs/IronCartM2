@@ -683,7 +683,7 @@ jobs:
       - name: Setup PHP ${{ matrix.php }}
         # composer:v2.9 pinned for Magento 2.4.8 compatibility — see the
         # matching step on the `integration` job for the rationale.
-        uses: shivammathur/setup-php@9e72090525849c5e82e596468b86eb55e9cc5401 # v2.32.0
+        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2.37.2
         with:
           php-version: ${{ matrix.php }}
           tools: composer:v2.9
