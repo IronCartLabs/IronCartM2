@@ -542,6 +542,361 @@ jobs:
           MAGENTO_SRC_HOST: ${{ github.workspace }}/.magento
         run: docker compose -f tests/sandbox/docker-compose.yml down --volumes --remove-orphans
 
+  integration-composer:
+    name: Integration (composer install) — Magento ${{ matrix.magento }} / PHP ${{ matrix.php }}
+    runs-on: ubuntu-latest
+    needs: [lint, unit]
+    # Structural guard for the #192 bug class (issue #197). The other
+    # integration cells copy the module straight into app/code/ — the
+    # canonical fast path adopted in #34 — which means CI never exercises
+    # the install path merchants actually use: `composer require
+    # ironcartlabs/magento-scan`, acted on by Magento's bundled
+    # `magento/magento-composer-installer` plugin. #192 (duplicate
+    # IronCart_Scan registration from a legacy `extra.map`) shipped in
+    # every release v1.0.0–v1.5.0 precisely because the sandbox never ran
+    # that flow. This cell installs the module via `composer require` from
+    # a path repository inside the container (no Packagist round-trip) and
+    # asserts single component registration at `bin/magento` bootstrap.
+    #
+    # The #34 failure modes that killed the original composer-based
+    # install path are each engineered out rather than re-tripped — see
+    # the design comment on #197 for the full table:
+    #   bug 1 (COMPOSER_AUTH not forwarded)  → step env + explicit
+    #          `docker compose exec -e COMPOSER_AUTH=…` forwarding
+    #   bug 2 (git dubious ownership)        → staged source has no .git;
+    #          version pinned via the path repo's `options.versions`, so
+    #          composer never shells out to git at all
+    #   bug 3 (chmod ownership failure)      → composer runs in-container
+    #          as uid 1000 against a tree chowned 1000:1000 pre-boot
+    #   bug 4 (duplicate registration)       → no longer a failure mode to
+    #          dodge: it is the regression this cell exists to detect
+    # Same INTEGRATION_ENABLED gate as the other integration cells.
+    if: ${{ vars.INTEGRATION_ENABLED == 'true' }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        # Mirrors the default `integration` smoke cell — latest patched
+        # Magento × latest PHP. One cell only: the point is install-path
+        # fidelity, not compat fan-out (the full matrix covers that).
+        magento: ['2.4.8-p2']
+        php: ['8.4']
+    steps:
+      - name: Checkout module
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          path: module
+
+      - name: Setup PHP ${{ matrix.php }}
+        # composer:v2.9 pinned for Magento 2.4.8 compatibility — see the
+        # matching step on the `integration` job for the rationale.
+        uses: shivammathur/setup-php@9e72090525849c5e82e596468b86eb55e9cc5401 # v2.32.0
+        with:
+          php-version: ${{ matrix.php }}
+          tools: composer:v2.9
+          extensions: bcmath, ctype, curl, dom, gd, hash, iconv, intl, mbstring, openssl, pdo_mysql, simplexml, soap, sockets, sodium, tokenizer, xmlwriter, xsl, zip
+          coverage: none
+
+      - name: Verify Magento Composer credentials are present
+        env:
+          MAGENTO_PUBLIC_KEY: ${{ secrets.MAGENTO_PUBLIC_KEY }}
+          MAGENTO_PRIVATE_KEY: ${{ secrets.MAGENTO_PRIVATE_KEY }}
+        run: |
+          if [ -z "${MAGENTO_PUBLIC_KEY}" ] || [ -z "${MAGENTO_PRIVATE_KEY}" ]; then
+            echo "::error::MAGENTO_PUBLIC_KEY and/or MAGENTO_PRIVATE_KEY repo secrets are not configured."
+            echo "See https://github.com/IronCartLabs/IronCartM2/issues/18 for the wiring steps."
+            exit 1
+          fi
+
+      - name: Resolve markoshust/magento-php digest for PHP ${{ matrix.php }}
+        # See the matching step on the `integration` job for the rationale
+        # and the bump procedure. Digests must stay in sync across all
+        # integration jobs.
+        run: |
+          case "${{ matrix.php }}" in
+            8.2) digest="sha256:c7693a6843134ea0e834f72a09b7fa0b48d864f194c3b04a1aa609fc5c45d7ec" ;;  # last_updated 2025-04-18T18:45:08Z
+            8.3) digest="sha256:6905c3be235500c31d84029e1ec3e1d31d2b46959eda1ec73554a709d9f8c687" ;;  # last_updated 2025-04-17T22:58:36Z
+            8.4) digest="sha256:6a4a7a7248a8700ac85b530374ffbc21687bc8bf9436519a2832d992757fc0c6" ;;  # last_updated 2026-05-20T18:32:24Z
+            *)
+              echo "::error::No pinned markoshust/magento-php digest for PHP ${{ matrix.php }}. Add one to this step in .github/workflows/ci.yml."
+              exit 1
+              ;;
+          esac
+          echo "MAGENTO_PHP_IMAGE=markoshust/magento-php@${digest}" >> "${GITHUB_ENV}"
+
+      - name: Select sidecar versions for Magento ${{ matrix.magento }}
+        # See the matching step on the `integration` job for rationale.
+        run: |
+          case "${{ matrix.magento }}" in
+            2.4.8-*)
+              echo "MARIADB_IMAGE=mariadb:11.4" >> "${GITHUB_ENV}"
+              echo "OPENSEARCH_IMAGE=opensearchproject/opensearch:2.19.1" >> "${GITHUB_ENV}"
+              echo "REDIS_IMAGE=valkey/valkey:8-alpine" >> "${GITHUB_ENV}"
+              ;;
+            *)
+              ;;
+          esac
+
+      - name: Prepare Magento source (composer create-project)
+        env:
+          MAGENTO_VERSION: ${{ matrix.magento }}
+          COMPOSER_AUTH: |
+            {
+              "http-basic": {
+                "repo.magento.com": {
+                  "username": "${{ secrets.MAGENTO_PUBLIC_KEY }}",
+                  "password": "${{ secrets.MAGENTO_PRIVATE_KEY }}"
+                }
+              }
+            }
+        run: |
+          set -euo pipefail
+          composer create-project \
+            --no-interaction \
+            --no-progress \
+            --no-install \
+            --repository-url=https://repo.magento.com/ \
+            magento/project-community-edition:${MAGENTO_VERSION} \
+            "${GITHUB_WORKSPACE}/.magento"
+          (
+            cd "${GITHUB_WORKSPACE}/.magento"
+            composer install --no-interaction --no-progress
+          )
+
+      - name: Stage module as path-repo source (no app/code drop)
+        # Unlike the other integration cells, the module is NOT copied
+        # into app/code/IronCart/Scan. It is staged as a pristine source
+        # dir inside the bind-mounted Magento tree so the container can
+        # install it the way merchants do: `composer require`, acted on
+        # by magento/magento-composer-installer.
+        #
+        # `.git` is deliberately excluded: with no VCS metadata in the
+        # source dir, composer never shells out to git, so the "dubious
+        # ownership" failure (#34 bug 2) is structurally impossible. The
+        # package version comes from the path repository's
+        # `options.versions` instead (see the install step below).
+        env:
+          MODULE_SRC: ${{ github.workspace }}/.magento/ironcart-src
+        run: |
+          set -euo pipefail
+          mkdir -p "${MODULE_SRC}"
+          rsync -a --delete --exclude='.git' --exclude='_m2-workspace' \
+            "${GITHUB_WORKSPACE}/module/" "${MODULE_SRC}/"
+
+      - name: Align bind-mount ownership with container uid 1000
+        # Bug 3 fix from #34 — see the matching step on the `integration`
+        # job. Container runs as uid 1000; runner writes as uid 1001. In
+        # this cell the chown also covers ironcart-src/, so the in-
+        # container `composer require` (running as `app`, uid 1000) owns
+        # every file magento-composer-installer's chmod hook may touch.
+        run: |
+          sudo chown -R 1000:1000 "${GITHUB_WORKSPACE}/.magento"
+
+      - name: Boot Magento sandbox (MariaDB + OpenSearch + Redis)
+        working-directory: module
+        env:
+          PHP_VERSION: ${{ matrix.php }}
+          MAGENTO_SRC_HOST: ${{ github.workspace }}/.magento
+        run: |
+          docker compose -f tests/sandbox/docker-compose.yml up -d --wait
+          docker compose -f tests/sandbox/docker-compose.yml ps
+
+      - name: Install Magento (no module yet)
+        # Plain `setup:install` on a module-free tree. Merchants run
+        # `composer require ironcartlabs/magento-scan` against an already
+        # installed store, so this cell installs Magento first and adds
+        # the module via composer afterwards.
+        working-directory: module
+        env:
+          PHP_VERSION: ${{ matrix.php }}
+          MAGENTO_SRC_HOST: ${{ github.workspace }}/.magento
+        run: |
+          set -euo pipefail
+          docker compose -f tests/sandbox/docker-compose.yml exec -T magento bash -lc '
+            set -euo pipefail
+            cd /var/www/html
+            bin/magento setup:install \
+              --base-url=http://magento.test/ \
+              --db-host=mariadb \
+              --db-name=magento \
+              --db-user=magento \
+              --db-password=magento \
+              --admin-firstname=ci \
+              --admin-lastname=ci \
+              --admin-email=ci@ironcart.dev \
+              --admin-user=admin \
+              --admin-password=magento-ci-123! \
+              --language=en_US \
+              --currency=USD \
+              --timezone=UTC \
+              --use-rewrites=1 \
+              --search-engine=opensearch \
+              --opensearch-host=opensearch \
+              --opensearch-port=9200 \
+              --session-save=redis \
+              --session-save-redis-host=redis \
+              --cache-backend=redis \
+              --cache-backend-redis-server=redis
+          '
+
+      - name: Install module via composer require (path repo, in-container)
+        # The merchant install path. Runs inside the container as the
+        # `app` user so Magento's bundled magento-composer-installer
+        # plugin acts on the package exactly as it does on a real store.
+        #
+        # COMPOSER_AUTH is rebuilt from the repo secrets at step level
+        # and forwarded explicitly via `docker compose exec -e` — the
+        # host→container forwarding gap was #34 bug 1. The require is a
+        # partial update against the already-locked tree, so magento/*
+        # stays pinned from composer.lock; the auth is belt-and-braces
+        # for the repo.magento.com metadata round-trip.
+        #
+        # The path repository pins the package version to 9999.9.9 via
+        # `options.versions` (no .git in the staged source → composer
+        # never invokes git → #34 bug 2 cannot occur) and forces
+        # `symlink: false` so vendor/ gets a real copy — a symlink would
+        # dangle outside the project tree and was half of #34 bug 4.
+        # 9999.9.9 can never resolve from Packagist (public ceiling is
+        # 1.x), so the cell always installs the PR's code with no
+        # Packagist round-trip.
+        working-directory: module
+        env:
+          PHP_VERSION: ${{ matrix.php }}
+          MAGENTO_SRC_HOST: ${{ github.workspace }}/.magento
+          COMPOSER_AUTH: |
+            {
+              "http-basic": {
+                "repo.magento.com": {
+                  "username": "${{ secrets.MAGENTO_PUBLIC_KEY }}",
+                  "password": "${{ secrets.MAGENTO_PRIVATE_KEY }}"
+                }
+              }
+            }
+        run: |
+          set -euo pipefail
+          repo_json='{"type": "path", "url": "ironcart-src", "options": {"symlink": false, "versions": {"ironcartlabs/magento-scan": "9999.9.9"}}}'
+          docker compose -f tests/sandbox/docker-compose.yml exec -T \
+            -e COMPOSER_AUTH="${COMPOSER_AUTH}" \
+            -e IRONCART_REPO_JSON="${repo_json}" \
+            magento bash -lc '
+              set -euo pipefail
+              cd /var/www/html
+              composer config repositories.ironcart "${IRONCART_REPO_JSON}"
+              composer require --no-interaction --no-progress ironcartlabs/magento-scan:9999.9.9
+            '
+
+      - name: "Assert single component registration (the #192 guard)"
+        # This is the assertion #192 proved was missing: a composer
+        # install must register IronCart_Scan exactly once, from vendor/.
+        # On the #192 bug class (legacy `extra.map` → magento-composer-
+        # installer copies the package into app/code/ alongside the
+        # vendor autoload registration), every bin/magento invocation
+        # aborts at bootstrap with "Module 'IronCart_Scan' from '…' has
+        # been already defined in '…'".
+        #
+        # Note: `bin/magento module:status <name>` exits 0 regardless of
+        # the per-module result (ModuleStatusCommand::execute() discards
+        # showSpecificModule()'s return code), so the exit code is not a
+        # valid oracle — the assertions grep the output instead.
+        working-directory: module
+        env:
+          PHP_VERSION: ${{ matrix.php }}
+          MAGENTO_SRC_HOST: ${{ github.workspace }}/.magento
+        run: |
+          set -euo pipefail
+          docker compose -f tests/sandbox/docker-compose.yml exec -T magento bash -lc '
+            set -euo pipefail
+            cd /var/www/html
+            # 1. composer installed a real copy into vendor/ (not a symlink).
+            test -f vendor/ironcartlabs/magento-scan/registration.php
+            test ! -L vendor/ironcartlabs/magento-scan
+            # 2. magento-composer-installer made no app/code copy — the
+            #    on-disk signature of the #192 bug class.
+            if [ -e app/code/IronCart/Scan ]; then
+              echo "::error::app/code/IronCart/Scan exists after composer require — duplicate on-disk registration, the #192 bug class (see issues #192 / #197)."
+              exit 1
+            fi
+            # 3. bin/magento bootstraps and answers module:status. A
+            #    duplicate registration aborts before command dispatch.
+            rc=0
+            out=$(bin/magento module:status IronCart_Scan 2>&1) || rc=$?
+            printf "%s\n" "${out}"
+            if printf "%s" "${out}" | grep -qi "has been already defined"; then
+              echo "::error::Duplicate IronCart_Scan registration at bin/magento bootstrap — the #192 bug class (see issues #192 / #197)."
+              exit 1
+            fi
+            if [ "${rc}" -ne 0 ]; then
+              echo "::error::bin/magento module:status failed (exit ${rc}) — bootstrap broken after composer install."
+              exit 1
+            fi
+            printf "%s" "${out}" | grep -Eq "Module is (enabled|disabled)"
+          '
+
+      - name: Enable module + setup:upgrade
+        # Both commands bootstrap bin/magento again, so they double as
+        # registration guards on top of the dedicated assertion step.
+        working-directory: module
+        env:
+          PHP_VERSION: ${{ matrix.php }}
+          MAGENTO_SRC_HOST: ${{ github.workspace }}/.magento
+        run: |
+          set -euo pipefail
+          docker compose -f tests/sandbox/docker-compose.yml exec -T magento bash -lc '
+            set -euo pipefail
+            cd /var/www/html
+            bin/magento module:enable IronCart_Scan
+            bin/magento setup:upgrade
+          '
+
+      - name: Run ironcart:scan and assert exit 0 + valid JSON
+        # Same assertion as the other integration cells. The composer-
+        # installed package lands in the sandbox composer.lock, but
+        # IC-072 ignores packages absent from the bundled reference
+        # manifest, so the zero-IC-072 assertion stays valid here.
+        working-directory: module
+        env:
+          PHP_VERSION: ${{ matrix.php }}
+          MAGENTO_SRC_HOST: ${{ github.workspace }}/.magento
+        run: |
+          docker compose -f tests/sandbox/docker-compose.yml exec -T magento bash -lc '
+            set -euo pipefail
+            cd /var/www/html
+            bin/magento ironcart:scan --format=json > /tmp/scan.json
+          '
+          docker compose -f tests/sandbox/docker-compose.yml cp magento:/tmp/scan.json ./scan.json
+          python3 - <<'PY'
+          import json
+          with open('scan.json') as f:
+              data = json.load(f)
+          assert isinstance(data, dict), 'top-level must be object'
+          assert data.get('schema_version') == 'v0', f'schema_version: {data.get("schema_version")}'
+          assert 'findings' in data and isinstance(data['findings'], list)
+          assert 'summary' in data and isinstance(data['summary'], dict)
+          # IC-072 — composer-lock integrity. A clean sandbox install must
+          # produce zero IC-072 HIGH findings; if it does, either the
+          # bundled manifest is wrong for the cell's Magento version, or
+          # the sandbox composer cache served a tampered package.
+          ic072 = [f for f in data['findings'] if f.get('id') == 'IC-072']
+          assert ic072 == [], f'unexpected IC-072 findings on clean install: {ic072}'
+          print('scan.json OK:', json.dumps(data['summary']))
+          PY
+
+      - name: Surface sandbox logs on failure
+        if: failure()
+        working-directory: module
+        env:
+          PHP_VERSION: ${{ matrix.php }}
+          MAGENTO_SRC_HOST: ${{ github.workspace }}/.magento
+        run: docker compose -f tests/sandbox/docker-compose.yml logs --no-color --tail=200
+
+      - name: Tear down sandbox
+        if: always()
+        working-directory: module
+        env:
+          PHP_VERSION: ${{ matrix.php }}
+          MAGENTO_SRC_HOST: ${{ github.workspace }}/.magento
+        run: docker compose -f tests/sandbox/docker-compose.yml down --volumes --remove-orphans
+
   integration-hyva:
     name: Integration (Hyvä) — Magento ${{ matrix.magento }} / PHP ${{ matrix.php }}
     runs-on: ubuntu-latest
