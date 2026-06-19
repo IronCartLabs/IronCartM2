@@ -6,6 +6,47 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [1.6.2] - 2026-06-19
+
+Critical admin-recovery patch. On every release that shipped the admin UI
+(`v1.0.0-alpha.1` through `v1.6.1`), enabling the module **breaks the entire
+Magento admin** — every core UI grid (CMS Pages, CMS Blocks, Customers, Sales
+Orders, …) fails to render with `The "<name>_data_source" data source isn't
+registered`, not just the module's own Scan pages. **All merchants on any
+prior version should upgrade to `>=1.6.2`** — see the remediation steps below.
+No `Check/`, CLI, config, or report-schema surface changed; the only change is
+a DI-scope move plus the version bump.
+
+### Fixed
+
+- **Module wipes all 43 core admin-grid data sources — `CollectionFactory.collections` moved from adminhtml scope to global `etc/di.xml`** ([#204](https://github.com/IronCartLabs/IronCartM2/issues/204)). The module declared its two grid data sources (`ironcartscan_run_listing_data_source`, `ironcartscan_finding_listing_data_source`) on `Magento\Framework\View\Element\UiComponent\DataProvider\CollectionFactory`'s `collections` array argument **in the `adminhtml` scope** (`etc/adminhtml/di.xml`). Magento core registers all 43 of its grid data sources on that **same** argument in the **global** scope (`vendor/magento/module-ui/etc/di.xml`). At runtime the ObjectManager layers the area config over global via `array_replace` keyed by argument name — at the `collections` argument level, **not** a deep merge of the array's items. So the adminhtml-scope `collections` array (our 2 entries) wholesale-replaced the global array (core's 43 entries), and every core admin grid lost its data source. Field-confirmed on a production merchant site: the entire admin became unusable. Introduced in #28 (commit `92b20ec`) and present in **every published release with the admin UI, `v1.0.0-alpha.1` through `v1.6.1`** — the `v1.5.1` packaging fix (#192) and the `v1.6.x` platform-widening did not address it. The fix is a pure DI-scope move: the `<type ...CollectionFactory>` block relocates verbatim (same data-source names, same collection classes) from `etc/adminhtml/di.xml` to global `etc/di.xml`, where its two entries merge alongside core's instead of replacing them. The items are lazy `name → classname` string mappings, never instantiated outside an admin grid render, so global scope is harmless for storefront / frontend / API DI graphs — which is exactly why core registers every admin grid collection in global `di.xml`. The `MessageList` block stays in `etc/adminhtml/di.xml` (correctly scoped — core registers MessageList messages in adminhtml scope too, so it merges there).
+
+  **Merchant remediation:**
+
+  1. Upgrade to `>=1.6.2`: `composer require ironcartlabs/magento-scan:^1.6.2` (or `composer update ironcartlabs/magento-scan`).
+  2. Rebuild the DI graph and clear caches: `bin/magento setup:di:compile` then `bin/magento cache:flush`.
+  3. Reload the admin — the core grids resolve again.
+
+### Changed
+
+- **`etc/module.xml` `setup_version`** bumped from `1.6.1` to `1.6.2`. Read at runtime to construct the `IronCart-Scan/<version>` User-Agent on outbound HTTP surfaces.
+- **`composer.json` `extra.module-version`** bumped from `1.6.1` to `1.6.2`. Kept in sync with `etc/module.xml`.
+
+### Notes
+
+- DI-scope move only — no PHP source, `ui_component` XML, collection class, ACL resource, cron job, or report-schema field changed. Findings output is byte-identical to `1.6.1`.
+- Why CI never caught it: the integration suite does not boot the adminhtml DI scope and render a **core** grid (e.g. CMS Pages) with the module enabled. The module's own grids would also fail, but nothing asserts a core grid resolves post-install. An integration-test guard is tracked as follow-up on [#204](https://github.com/IronCartLabs/IronCartM2/issues/204).
+- Tracking epic: [IronCartLabs/IronCartWeb#884](https://github.com/IronCartLabs/IronCartWeb/issues/884).
+
+### Install
+
+```
+composer require ironcartlabs/magento-scan:^1.6.2
+bin/magento module:enable IronCart_Scan
+bin/magento setup:upgrade
+bin/magento setup:di:compile && bin/magento cache:flush
+```
+
 ## [1.6.1] - 2026-06-13
 
 Patch release fixing a PHP 8.5 runtime regression that aborted
@@ -372,7 +413,8 @@ bin/magento module:enable IronCart_Scan
 bin/magento setup:upgrade
 ```
 
-[Unreleased]: https://github.com/IronCartLabs/IronCartM2/compare/v1.6.1...HEAD
+[Unreleased]: https://github.com/IronCartLabs/IronCartM2/compare/v1.6.2...HEAD
+[1.6.2]: https://github.com/IronCartLabs/IronCartM2/compare/v1.6.1...v1.6.2
 [1.6.1]: https://github.com/IronCartLabs/IronCartM2/compare/v1.6.0...v1.6.1
 [1.6.0]: https://github.com/IronCartLabs/IronCartM2/compare/v1.5.1...v1.6.0
 [1.5.1]: https://github.com/IronCartLabs/IronCartM2/compare/v1.5.0...v1.5.1

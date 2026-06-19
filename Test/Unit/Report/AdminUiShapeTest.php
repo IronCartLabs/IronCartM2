@@ -48,6 +48,7 @@ class AdminUiShapeTest extends TestCase
     private const FINDING_LISTING = self::MODULE_ROOT . '/view/adminhtml/ui_component/ironcartscan_finding_listing.xml';
     private const LAYOUT_INDEX = self::MODULE_ROOT . '/view/adminhtml/layout/ironcartscan_scans_index.xml';
     private const LAYOUT_VIEW = self::MODULE_ROOT . '/view/adminhtml/layout/ironcartscan_scans_view.xml';
+    private const GLOBAL_DI = self::MODULE_ROOT . '/etc/di.xml';
     private const ADMINHTML_DI = self::MODULE_ROOT . '/etc/adminhtml/di.xml';
 
     public function testRunListingXmlIsParseable(): void
@@ -349,10 +350,18 @@ class AdminUiShapeTest extends TestCase
         }
     }
 
-    public function testAdminDiWiresCollectionsForBothDataSources(): void
+    public function testGlobalDiWiresCollectionsForBothDataSources(): void
     {
-        self::assertFileExists(self::ADMINHTML_DI);
-        $xml = simplexml_load_file(self::ADMINHTML_DI);
+        // Issue #204: the CollectionFactory.collections registration MUST
+        // live in GLOBAL etc/di.xml, not etc/adminhtml/di.xml. Core
+        // registers all 43 of its grid data sources on the same argument
+        // in global scope; the global->area merge is array_replace at the
+        // argument level, so an adminhtml-scope copy wholesale-replaces
+        // core's entries and breaks every core admin grid. This test pins
+        // the registration to global scope so a revert surfaces here in
+        // the unit cell rather than only on a real admin render.
+        self::assertFileExists(self::GLOBAL_DI);
+        $xml = simplexml_load_file(self::GLOBAL_DI);
         self::assertInstanceOf(SimpleXMLElement::class, $xml);
 
         $type = null;
@@ -362,7 +371,7 @@ class AdminUiShapeTest extends TestCase
                 break;
             }
         }
-        self::assertNotNull($type, 'etc/adminhtml/di.xml must wire CollectionFactory');
+        self::assertNotNull($type, 'etc/di.xml must wire CollectionFactory in global scope');
 
         $sources = [];
         foreach ($type->arguments->argument->item ?? [] as $item) {
@@ -379,6 +388,26 @@ class AdminUiShapeTest extends TestCase
             ScanFindingCollection::class,
             $sources['ironcartscan_finding_listing_data_source']
         );
+    }
+
+    public function testAdminhtmlDiDoesNotWireCollectionFactory(): void
+    {
+        // Issue #204 regression guard: the CollectionFactory.collections
+        // block must NOT reappear in adminhtml scope (that is the bug).
+        // The MessageList <type> block legitimately stays in this file.
+        self::assertFileExists(self::ADMINHTML_DI);
+        $xml = simplexml_load_file(self::ADMINHTML_DI);
+        self::assertInstanceOf(SimpleXMLElement::class, $xml);
+
+        foreach ($xml->type as $candidate) {
+            self::assertNotSame(
+                UiCollectionFactory::class,
+                (string)$candidate['name'],
+                'etc/adminhtml/di.xml must NOT wire CollectionFactory — '
+                . 'it belongs in global etc/di.xml (issue #204)'
+            );
+        }
+        $this->addToAssertionCount(1);
     }
 
     /**
