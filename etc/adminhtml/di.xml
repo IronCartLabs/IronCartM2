@@ -3,34 +3,25 @@
  / Copyright (c) Ironcart (https://ironcart.dev)
  / Licensed under MIT.
  /
- / Wires the two custom UI Component data providers into Magento's
- / ui_component config pool. Without these `<argument>` entries the
- / declarative XML in view/adminhtml/ui_component/* cannot resolve
- / the `class` attribute on its `<dataProvider>` node.
- /
- / Also wires the stuck-consumer admin notice (issue #92) into the
+ / Wires the stuck-consumer admin notice (issue #92) into the
  / framework MessageList so it surfaces in the admin notice bell on
  / every adminhtml render — including the Scans listing page where the
  / customer hits the bug.
  /
- / Scoped to the adminhtml area only — these classes have no business
- / loading in storefront / frontend / API DI graphs.
+ / Scoped to the adminhtml area only — the MessageList contribution has
+ / no business loading in storefront / frontend / API DI graphs, and
+ / core registers MessageList messages in adminhtml scope too, so this
+ / entry merges with core's rather than replacing them.
+ /
+ / NOTE: the module's UI-component `collections` registration
+ / (CollectionFactory.collections) lives in GLOBAL etc/di.xml, NOT here.
+ / Core registers all of its grid data sources on that same argument in
+ / global scope; the global→area merge is array_replace at the argument
+ / level, so an adminhtml-scope `collections` array wholesale-replaces
+ / core's 43 entries and breaks every core admin grid (issue #204).
 -->
 <config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         xsi:noNamespaceSchemaLocation="urn:magento:framework:ObjectManager/etc/config.xsd">
-
-    <type name="Magento\Framework\View\Element\UiComponent\DataProvider\CollectionFactory">
-        <arguments>
-            <argument name="collections" xsi:type="array">
-                <item name="ironcartscan_run_listing_data_source" xsi:type="string">
-                    IronCart\Scan\Model\ResourceModel\ScanRun\Collection
-                </item>
-                <item name="ironcartscan_finding_listing_data_source" xsi:type="string">
-                    IronCart\Scan\Model\ResourceModel\ScanFinding\Collection
-                </item>
-            </argument>
-        </arguments>
-    </type>
 
     <!--
      / Issue #92 — Run-Scan-Now stuck-QUEUED operator notice.

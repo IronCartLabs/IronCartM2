@@ -326,4 +326,33 @@
             <argument name="logger" xsi:type="object">IronCartScanCronLogger</argument>
         </arguments>
     </type>
+
+    <!--
+        IronCartLabs/IronCartM2#204 — UI-component grid data sources.
+
+        MUST stay in GLOBAL scope, not etc/adminhtml/di.xml. Magento core
+        registers all 43 of its grid data sources on this same
+        `CollectionFactory.collections` argument in global scope
+        (vendor/magento/module-ui/etc/di.xml). The ObjectManager merges the
+        area config over global via array_replace keyed by argument name —
+        at the `collections` argument level, NOT a deep merge of the items.
+        An adminhtml-scope copy of this argument therefore wholesale-replaces
+        core's entries and every core admin grid (CMS Pages, Customers, Sales
+        Orders, …) fails with "data source isn't registered". Declared here in
+        global scope, our two entries merge alongside core's. The items are
+        lazy name→classname string mappings, never instantiated outside an
+        admin grid render, so global scope is harmless for storefront / API.
+    -->
+    <type name="Magento\Framework\View\Element\UiComponent\DataProvider\CollectionFactory">
+        <arguments>
+            <argument name="collections" xsi:type="array">
+                <item name="ironcartscan_run_listing_data_source" xsi:type="string">
+                    IronCart\Scan\Model\ResourceModel\ScanRun\Collection
+                </item>
+                <item name="ironcartscan_finding_listing_data_source" xsi:type="string">
+                    IronCart\Scan\Model\ResourceModel\ScanFinding\Collection
+                </item>
+            </argument>
+        </arguments>
+    </type>
 </config>
