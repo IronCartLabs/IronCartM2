@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Unit suite for `composer test` and the CI `unit` job (#214). CI runs
+  this exact file, so local and CI scope stay identical.
+-->
+<phpunit
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
+  bootstrap="vendor/autoload.php"
+  cacheResult="false"
+  colors="true">
+  <testsuites>
+    <testsuite name="unit">
+      <directory>Test/Unit</directory>
+    </testsuite>
+  </testsuites>
+</phpunit>
