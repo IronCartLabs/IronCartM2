@@ -103,8 +103,9 @@ and `php` on the PATH; takes a few minutes per tag on a typical dev
 box, dominated by the clone.
 
 The IC-072 generator (`bin/build-composer-manifest.php`) runs
-`composer create-project --no-install` for the requested tag, parses
-the resulting `composer.lock`, harvests `dist.shasum` per package,
+`composer create-project --no-install` for the requested tag against
+repo.magento.com, then `composer update --no-install` to write
+`composer.lock`, parses it, harvests `dist.shasum` per package,
 sorts entries, and writes JSON here. Requires `composer` and `php` on
 the PATH plus repo.magento.com Composer auth; finishes in roughly a
 minute per tag (lockfile-only resolve, no vendor extraction).

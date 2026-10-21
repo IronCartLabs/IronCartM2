@@ -188,14 +188,16 @@ sandbox-nuke: ## Stop containers and delete .sandbox/ entirely. Destructive.
 # generated JSON files from disk.
 # ---------------------------------------------------------------------------
 
-# Supported tags. Update alongside Check/PatchLevel/MagentoPatchCatalog.
+# Supported tags: latest published patch of each supported 2.4.x line
+# (README → Compatibility; 2.4.4–2.4.6 are EOL). Update alongside
+# Check/PatchLevel/MagentoPatchCatalog and the default list in
+# .github/workflows/composer-manifests.yml.
 # Adobe Commerce coverage is intentionally out of scope for v2 (deferred
 # to v3 hosted backend, which can run paid-composer auth server-side).
 MANIFEST_VERSIONS ?= \
-	2.4.4-p12 \
-	2.4.5-p11 \
-	2.4.6-p10 \
-	2.4.7-p5
+	2.4.7-p10 \
+	2.4.8-p5 \
+	2.4.9
 
 MANIFEST_DIR := etc/manifests
 
