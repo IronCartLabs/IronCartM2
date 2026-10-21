@@ -6,6 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+
+- **IC-003: missing Adobe hotfix for CVE-2026-75650 (APSB26-146)** ([#207](https://github.com/IronCartLabs/IronCartM2/issues/207)). CVE-2026-75650 is an unauthenticated, CVSS 10.0 template-engine RCE that Adobe confirmed as exploited in the wild. Adobe ships the fix as the isolated patch `VULN-39341`, not as a Composer release, and APSB26-153 (`2.4.x-2026-oct`) still says to apply it separately. IC-001 and IC-002 therefore cannot see it. The new check reads four files the hotfix changes: `vendor/magento/framework/View/Element/BlockFactory.php`, `vendor/magento/module-backend/Model/Widget/Grid/Row/UrlGeneratorFactory.php`, `vendor/magento/framework/Webapi/ErrorProcessor.php` and `pub/errors/processor.php`. In each file it matches one line the hotfix removes and one line it adds. The markers come from all 10 published `VULN-39341` variants (2.4.4-p18 through 2.4.9), whose changed lines are byte-identical, so the result does not depend on the Magento line. Results:
+  - **CRITICAL** if any file still has the pre-hotfix code. This includes a `pub/errors/processor.php` reverted by a later `composer install`.
+  - **No finding** if all four files are patched.
+  - **INFO** if a file is missing, customised, or the install is not a `vendor/` layout.
+
+  The remediation text points to the Adobe KB and says Adobe also requires rotating the encryption key. The check states that it does not verify key rotation. No Adobe patch files are bundled; only single-line markers are.
+
 ## [1.6.2] - 2026-06-19
 
 Critical admin-recovery patch. On every release that shipped the admin UI

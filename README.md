@@ -35,6 +35,7 @@ The check inventory, in stable ID order:
 |----|--------------------|------|---------|
 | IC-001 | high     | PatchLevel  | Magento version vs latest security patch |
 | IC-002 | high     | PatchLevel  | Composer advisories against `composer.lock` |
+| [IC-003](https://ironcart.dev/docs/checks/IC-003) | critical | PatchLevel  | Adobe hotfix VULN-39341 for CVE-2026-75650 (APSB26-146, exploited in the wild) not applied, detected by file signature; info when the file layout is unrecognised |
 | IC-010 | high     | Admin       | Admin URL frontname is default `/admin` |
 | IC-011 | medium   | Admin       | Stale active admin accounts (no login > 90d) |
 | IC-012 | high     | Admin       | 2FA coverage across admin users |
