@@ -236,12 +236,18 @@ class LicenseVerifier
         // Parse + field-validate the JSON BEFORE the signature check so
         // a known-bad payload (missing field, wrong sigVersion) surfaces
         // the actionable reason instead of a generic `bad_signature`.
-        $parsed = json_decode($jsonBytes, true);
-        if (!is_array($parsed)) {
+        //
+        // Decode objects as stdClass (not assoc arrays) so a JSON array
+        // such as `[1,2,3]` is told apart from an object and rejected as
+        // MALFORMED, matching the `Array.isArray` guard in
+        // `lib/license/sign.ts`. With assoc decoding both shapes become a
+        // PHP array and a list payload fell through to MISSING_FIELD.
+        $parsed = json_decode($jsonBytes, false);
+        if (!$parsed instanceof \stdClass) {
             return $this->fail(self::REASON_MALFORMED, 'License payload is not a JSON object.');
         }
 
-        $typed = $this->validateAndType($parsed);
+        $typed = $this->validateAndType(get_object_vars($parsed));
         if (is_string($typed)) {
             // validateAndType returns either the typed array or a
             // reason-string when it can't.
