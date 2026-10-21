@@ -6,6 +6,46 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [1.6.3] - 2026-10-21
+
+Data refresh for the two patch-level checks. Before this release, IC-001
+graded **every Magento 2.4.8 and 2.4.9 store as INFO**, however far behind it
+was, because the bundled patch catalogue stopped at `2.4.7-p5` (2025-04-08).
+For the same reason it also read `2.4.7-p5` as current. IC-002's OSV snapshot
+was five months stale. No check logic, CLI, config or report-schema field
+changed. Only the bundled data and the version bump differ from `1.6.2`.
+**Expect more IC-001 and IC-002 findings after upgrading.** That is the fix
+working, not a regression.
+
+### Fixed
+
+- **IC-001 patch catalogue refreshed for the 2.4.7, 2.4.8 and 2.4.9 lines** ([#206](https://github.com/IronCartLabs/IronCartM2/issues/206)). `MagentoPatchCatalog::RELEASES` adds `2.4.7-p6` – `2.4.7-p10`, `2.4.8` – `2.4.8-p5` and `2.4.9`, with dates from Adobe's [Released versions](https://experienceleague.adobe.com/en/docs/commerce-operations/release/versions) page. It also corrects the `2.4.7` GA date (2024-03-12 → 2024-04-09). Effects:
+  - a 2.4.8.x store behind `2.4.8-p5` now grades HIGH or CRITICAL instead of INFO;
+  - a 2.4.9 store grades INFO with `latest_known_in_line: 2.4.9`;
+  - `2.4.7-p5` now reports `2.4.7-p10` as the latest in its line.
+
+  Adobe's monthly **isolated security patch files** (Jul–Oct 2026, labelled like `2.4.9-2026-sep` in bulletins) are intentionally **not** catalogued. They are applied as patch files and never change the installed `magento/product-community-edition` version, and the labels do not order correctly under `version_compare()`. IC-001 therefore cannot tell whether one is applied. File-level detection of the CVE-2026-75650 hotfix is tracked in [#207](https://github.com/IronCartLabs/IronCartM2/issues/207).
+- **IC-002 OSV snapshot regenerated** from the OSV.dev Packagist dump (`generated_at: 2026-10-21`, 273 advisories, ~166 KB against the 500 KB cap). The previous hand-curated file had 22 entries, and 19 of their GHSA IDs are not in OSV's Packagist data. The new file follows the `data/README.md` procedure. Its seed list is every package in `magento/magento2`'s own `composer.lock` at `2.4.7-p10`, `2.4.8-p5` and `2.4.9`, plus `magento/*` core packages. Core advisories that GHSA files under `magento/community-edition` are remapped to `magento/product-community-edition`, and ranges are clipped per release line. The rules are documented in `data/README.md`. The latest release on each supported line (2.4.4-p18 … 2.4.9) produces no core-Magento IC-002 finding. Third-party findings (Symfony, Guzzle, phpseclib, Composer, …) depend on what the merchant's own `composer.lock` resolved.
+
+### Changed
+
+- **`etc/module.xml` `setup_version`** bumped from `1.6.2` to `1.6.3`.
+- **`composer.json` `extra.module-version`** bumped from `1.6.2` to `1.6.3`. Kept in sync with `etc/module.xml`.
+
+### Notes
+
+- Adobe's APSB26-146 (CVE-2026-75650) and APSB26-153 fixes ship only as isolated patch files with no fixed Composer version, so they cannot be represented as OSV `fixed` ranges. They are also not yet in OSV's Packagist data.
+- Catalogue entries for the 2.4.4 – 2.4.6 lines were not refreshed in this release (out of scope for #206). A follow-up is noted on the issue.
+- Tracking epic: [IronCartLabs/IronCartWeb#884](https://github.com/IronCartLabs/IronCartWeb/issues/884).
+
+### Install
+
+```
+composer require ironcartlabs/magento-scan:^1.6.3
+bin/magento setup:upgrade
+bin/magento setup:di:compile && bin/magento cache:flush
+```
+
 ## [1.6.2] - 2026-06-19
 
 Critical admin-recovery patch. On every release that shipped the admin UI
@@ -413,7 +453,8 @@ bin/magento module:enable IronCart_Scan
 bin/magento setup:upgrade
 ```
 
-[Unreleased]: https://github.com/IronCartLabs/IronCartM2/compare/v1.6.2...HEAD
+[Unreleased]: https://github.com/IronCartLabs/IronCartM2/compare/v1.6.3...HEAD
+[1.6.3]: https://github.com/IronCartLabs/IronCartM2/compare/v1.6.2...v1.6.3
 [1.6.2]: https://github.com/IronCartLabs/IronCartM2/compare/v1.6.1...v1.6.2
 [1.6.1]: https://github.com/IronCartLabs/IronCartM2/compare/v1.6.0...v1.6.1
 [1.6.0]: https://github.com/IronCartLabs/IronCartM2/compare/v1.5.1...v1.6.0

@@ -36,8 +36,17 @@ final class MagentoPatchCatalog
     /**
      * Patch releases keyed by version → release date (YYYY-MM-DD, UTC).
      *
-     * Source: Magento Security Center release notes, captured 2026-05-14.
-     * Only includes minor-line patch releases that ship security fixes.
+     * Source: Adobe Commerce "Released versions" page
+     * (https://experienceleague.adobe.com/en/docs/commerce-operations/release/versions).
+     * The 2.4.7 – 2.4.9 lines were captured 2026-10-21; older lines still
+     * date from the 2026-05-14 capture. Only includes minor-line patch
+     * releases that ship security fixes.
+     *
+     * Keys must be Composer-published versions (`X.Y.Z` or `X.Y.Z-pN`).
+     * Adobe's monthly isolated security patch labels (e.g. `2.4.9-2026-sep`)
+     * are deliberately absent: they are patch files, never the installed
+     * `magento/product-community-edition` version, and they do not order
+     * correctly under {@see version_compare()} (see IronCartM2#206).
      *
      * @var array<string,string>
      */
@@ -78,12 +87,24 @@ final class MagentoPatchCatalog
         '2.4.6-p8' => '2024-08-13',
         '2.4.6-p9' => '2024-10-08',
         '2.4.6-p10' => '2025-02-11',
-        '2.4.7'    => '2024-03-12',
+        '2.4.7'    => '2024-04-09',
         '2.4.7-p1' => '2024-06-11',
         '2.4.7-p2' => '2024-08-13',
         '2.4.7-p3' => '2024-10-08',
         '2.4.7-p4' => '2025-02-11',
         '2.4.7-p5' => '2025-04-08',
+        '2.4.7-p6' => '2025-06-10',
+        '2.4.7-p7' => '2025-08-12',
+        '2.4.7-p8' => '2025-10-14',
+        '2.4.7-p9' => '2026-03-10',
+        '2.4.7-p10' => '2026-05-12',
+        '2.4.8'    => '2025-04-08',
+        '2.4.8-p1' => '2025-06-10',
+        '2.4.8-p2' => '2025-08-12',
+        '2.4.8-p3' => '2025-10-14',
+        '2.4.8-p4' => '2026-03-10',
+        '2.4.8-p5' => '2026-05-12',
+        '2.4.9'    => '2026-05-12',
     ];
 
     private function __construct()
@@ -118,7 +139,7 @@ final class MagentoPatchCatalog
 
     /**
      * Return the latest known release in the same `MAJOR.MINOR` line as
-     * the given version (e.g. `2.4.7` → `2.4.7-p5`).
+     * the given version (e.g. `2.4.7` → `2.4.7-p10`).
      *
      * Falls back to null when the minor line is not represented.
      */

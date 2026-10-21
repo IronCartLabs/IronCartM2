@@ -1,298 +1,4114 @@
 {
   "schema_version": "v0",
-  "generated_at": "2026-05-14",
+  "generated_at": "2026-10-21",
   "source": "https://osv.dev/",
   "ecosystem": "Packagist",
-  "notes": "Hand-curated snapshot of the Magento-relevant Packagist advisories from OSV.dev. Refresh procedure is documented in data/README.md. v0 is read-only and bundled — automation lands in v2.",
+  "notes": "Generated from the OSV.dev Packagist dump per data/README.md. Advisories GHSA files under magento/community-edition (the magento/magento2 root package) are remapped to magento/product-community-edition, whose versions match. Core ranges that end before 2.4.4 are dropped. Fixes Adobe ships only as isolated patch files have no fixed Composer version and are not representable here; see IC-001 / the hotfix checks. v0 is read-only and bundled.",
   "advisories": [
     {
-      "id": "GHSA-2m74-cfg5-7xqp",
-      "aliases": ["CVE-2024-34102"],
-      "summary": "Magento Open Source / Adobe Commerce improper restriction of XML external entity reference leading to arbitrary file read (CosmicSting).",
+      "id": "GHSA-27qh-8cxx-2cr5",
+      "aliases": [],
+      "summary": "AWS SDK for PHP has CloudFront Policy Document Injection via Special Characters",
+      "published": "2026-03-27",
+      "severity": "high",
+      "package": "aws/aws-sdk-php",
+      "affected": [
+        {"introduced": "3.11.7", "fixed": "3.371.4"}
+      ],
+      "reference": "https://osv.dev/vulnerability/GHSA-27qh-8cxx-2cr5"
+    },
+    {
+      "id": "GHSA-557v-xcg6-rm5m",
+      "aliases": ["CVE-2023-51651", "CVE-2025-69820"],
+      "summary": "Potential URI resolution path traversal in the AWS SDK for PHP",
+      "published": "2023-12-21",
+      "severity": "medium",
+      "package": "aws/aws-sdk-php",
+      "affected": [
+        {"introduced": "0", "fixed": "3.288.1"}
+      ],
+      "reference": "https://osv.dev/vulnerability/GHSA-557v-xcg6-rm5m"
+    },
+    {
+      "id": "GHSA-pw5c-xqf2-6xc2",
+      "aliases": ["CVE-2015-5723"],
+      "summary": "Doctrine Security Misconfiguration Vulnerability",
+      "published": "2022-05-17",
+      "severity": "high",
+      "package": "aws/aws-sdk-php",
+      "affected": [
+        {"introduced": "3.0.0", "fixed": "3.2.1"}
+      ],
+      "reference": "https://osv.dev/vulnerability/GHSA-pw5c-xqf2-6xc2"
+    },
+    {
+      "id": "GHSA-x8cp-jf6f-r4xh",
+      "aliases": ["CVE-2025-14761"],
+      "summary": "AWS SDK for PHP's S3 Encryption Client has a Key Commitment Issue",
+      "published": "2025-12-18",
+      "severity": "medium",
+      "package": "aws/aws-sdk-php",
+      "affected": [
+        {"introduced": "0", "fixed": "3.368.0"}
+      ],
+      "reference": "https://osv.dev/vulnerability/GHSA-x8cp-jf6f-r4xh"
+    },
+    {
+      "id": "GHSA-4574-qv3w-fcmg",
+      "aliases": ["CVE-2021-23420"],
+      "summary": "Deserialization of Untrusted Data in codeception/codeception",
+      "published": "2021-09-01",
+      "severity": "critical",
+      "package": "codeception/codeception",
+      "affected": [
+        {"introduced": "0", "fixed": "3.1.3"},
+        {"introduced": "4.0.0", "fixed": "4.1.22"}
+      ],
+      "reference": "https://github.com/advisories/GHSA-4574-qv3w-fcmg"
+    },
+    {
+      "id": "GHSA-47f6-5gq3-vx9c",
+      "aliases": ["CVE-2024-35241"],
+      "summary": "Composer has a command injection via malicious git branch name",
+      "published": "2024-06-10",
+      "severity": "high",
+      "package": "composer/composer",
+      "affected": [
+        {"introduced": "2.0", "fixed": "2.2.24"},
+        {"introduced": "2.3", "fixed": "2.7.7"}
+      ],
+      "reference": "https://osv.dev/vulnerability/GHSA-47f6-5gq3-vx9c"
+    },
+    {
+      "id": "GHSA-499r-g7pc-vmp9",
+      "aliases": ["CVE-2026-59948"],
+      "summary": "Composer: Arbitrary file write outside vendor via malicious transitive package name",
+      "published": "2026-07-20",
+      "severity": "high",
+      "package": "composer/composer",
+      "affected": [
+        {"introduced": "1.0.0", "fixed": "2.2.29"},
+        {"introduced": "2.3.0", "fixed": "2.10.2"}
+      ],
+      "reference": "https://osv.dev/vulnerability/GHSA-499r-g7pc-vmp9"
+    },
+    {
+      "id": "GHSA-59pp-r3rg-353g",
+      "aliases": ["CVE-2025-67746"],
+      "summary": "Composer is vulnerable to ANSI sequence injection",
+      "published": "2025-12-30",
+      "severity": "low",
+      "package": "composer/composer",
+      "affected": [
+        {"introduced": "2.0.0", "fixed": "2.2.26"},
+        {"introduced": "2.3.0", "fixed": "2.9.3"}
+      ],
+      "reference": "https://osv.dev/vulnerability/GHSA-59pp-r3rg-353g"
+    },
+    {
+      "id": "GHSA-725m-w832-q973",
+      "aliases": ["CVE-2015-8371"],
+      "summary": "Composer allows cache poisoning from other projects built on the same host",
+      "published": "2023-09-21",
+      "severity": "high",
+      "package": "composer/composer",
+      "affected": [
+        {"introduced": "0", "fixed": "1.0.0"}
+      ],
+      "reference": "https://osv.dev/vulnerability/GHSA-725m-w832-q973"
+    },
+    {
+      "id": "GHSA-7c6p-848j-wh5h",
+      "aliases": ["CVE-2024-24821"],
+      "summary": "Composer code execution and possible privilege escalation via compromised InstalledVersions.php or installed.php",
+      "published": "2024-02-08",
+      "severity": "high",
+      "package": "composer/composer",
+      "affected": [
+        {"introduced": "2.0.0-alpha1", "fixed": "2.2.23"},
+        {"introduced": "2.3.0-rc1", "fixed": "2.7.0"}
+      ],
+      "reference": "https://osv.dev/vulnerability/GHSA-7c6p-848j-wh5h"
+    },
+    {
+      "id": "GHSA-96h3-5x6v-m776",
+      "aliases": ["CVE-2026-59944"],
+      "summary": "Composer: GHSA-gjfg-22fp-rrxx fix bypass via symlinked package bin path",
+      "published": "2026-10-02",
+      "severity": "medium",
+      "package": "composer/composer",
+      "affected": [
+        {"introduced": "1.0", "fixed": "2.2.30"},
+        {"introduced": "2.3.0", "fixed": "2.10.3"}
+      ],
+      "reference": "https://osv.dev/vulnerability/GHSA-96h3-5x6v-m776"
+    },
+    {
+      "id": "GHSA-f9f8-rm49-7jv2",
+      "aliases": ["CVE-2026-45793"],
+      "summary": "Github Actions issued GITHUB_TOKEN disclosure in GitHub Actions logs",
+      "published": "2026-05-19",
+      "severity": "high",
+      "package": "composer/composer",
+      "affected": [
+        {"introduced": "1.0", "fixed": "1.10.28"},
+        {"introduced": "2.0.0", "fixed": "2.2.28"},
+        {"introduced": "2.3.0", "fixed": "2.9.8"}
+      ],
+      "reference": "https://osv.dev/vulnerability/GHSA-f9f8-rm49-7jv2"
+    },
+    {
+      "id": "GHSA-frqg-7g38-6gcf",
+      "aliases": ["CVE-2021-41116"],
+      "summary": "Improper escaping of command arguments on Windows leading to command injection",
+      "published": "2021-10-05",
+      "severity": "high",
+      "package": "composer/composer",
+      "affected": [
+        {"introduced": "0", "fixed": "1.10.23"},
+        {"introduced": "2.0.0-alpha1", "fixed": "2.1.9"}
+      ],
+      "reference": "https://osv.dev/vulnerability/GHSA-frqg-7g38-6gcf"
+    },
+    {
+      "id": "GHSA-g6xq-892h-64w3",
+      "aliases": ["CVE-2026-59947"],
+      "summary": "Composer: URL-embedded HTTP-Basic username leaks to verbose logs (GitHub PAT exposure)",
+      "published": "2026-07-20",
+      "severity": "medium",
+      "package": "composer/composer",
+      "affected": [
+        {"introduced": "1.0.0", "fixed": "2.2.29"},
+        {"introduced": "2.3.0", "fixed": "2.10.2"}
+      ],
+      "reference": "https://osv.dev/vulnerability/GHSA-g6xq-892h-64w3"
+    },
+    {
+      "id": "GHSA-gjfg-22fp-rrxx",
+      "aliases": ["CVE-2026-59946"],
+      "summary": "Composer: Path traversal in package bin field lets dependencies chmod arbitrary host files",
+      "published": "2026-07-20",
+      "severity": "medium",
+      "package": "composer/composer",
+      "affected": [
+        {"introduced": "1.0.0", "fixed": "2.2.29"},
+        {"introduced": "2.3.0", "fixed": "2.10.2"}
+      ],
+      "reference": "https://osv.dev/vulnerability/GHSA-gjfg-22fp-rrxx"
+    },
+    {
+      "id": "GHSA-gqw4-4w2p-838q",
+      "aliases": ["CVE-2026-40261"],
+      "summary": "Composer has a command injection via malicious perforce reference",
+      "published": "2026-04-14",
+      "severity": "high",
+      "package": "composer/composer",
+      "affected": [
+        {"introduced": "1.0.0", "fixed": "2.2.27"},
+        {"introduced": "2.3.0", "fixed": "2.9.6"}
+      ],
+      "reference": "https://osv.dev/vulnerability/GHSA-gqw4-4w2p-838q"
+    },
+    {
+      "id": "GHSA-h5h8-pc6h-jvvx",
+      "aliases": ["CVE-2021-29472"],
+      "summary": "Composer's missing argument delimiter can lead to code execution via VCS repository URLs or source download URLs on systems with Mercurial",
+      "published": "2021-04-29",
+      "severity": "high",
+      "package": "composer/composer",
+      "affected": [
+        {"introduced": "0", "fixed": "1.10.22"},
+        {"introduced": "2.0.0-alpha1", "fixed": "2.0.13"}
+      ],
+      "reference": "https://osv.dev/vulnerability/GHSA-h5h8-pc6h-jvvx"
+    },
+    {
+      "id": "GHSA-jm6m-4632-36hf",
+      "aliases": ["CVE-2023-43655"],
+      "summary": "Composer Remote Code Execution vulnerability via web-accessible composer.phar",
+      "published": "2023-09-29",
+      "severity": "high",
+      "package": "composer/composer",
+      "affected": [
+        {"introduced": "0", "fixed": "1.10.27"},
+        {"introduced": "2.0.0", "fixed": "2.2.22"},
+        {"introduced": "2.3.0", "fixed": "2.6.4"}
+      ],
+      "reference": "https://osv.dev/vulnerability/GHSA-jm6m-4632-36hf"
+    },
+    {
+      "id": "GHSA-rvx4-ffvw-m9q3",
+      "aliases": ["CVE-2026-84361"],
+      "summary": "Composer arbitrary command execution via a malicious package's Perforce source URL",
+      "published": "2026-09-08",
+      "severity": "high",
+      "package": "composer/composer",
+      "affected": [
+        {"introduced": "1.0", "fixed": "2.2.30"},
+        {"introduced": "2.3.0", "fixed": "2.10.3"}
+      ],
+      "reference": "https://osv.dev/vulnerability/GHSA-rvx4-ffvw-m9q3"
+    },
+    {
+      "id": "GHSA-v9qv-c7wm-wgmf",
+      "aliases": ["CVE-2024-35242"],
+      "summary": "Composer has multiple command injections via malicious git/hg branch names",
+      "published": "2024-06-10",
+      "severity": "high",
+      "package": "composer/composer",
+      "affected": [
+        {"introduced": "2.0", "fixed": "2.2.24"},
+        {"introduced": "2.3", "fixed": "2.7.7"}
+      ],
+      "reference": "https://osv.dev/vulnerability/GHSA-v9qv-c7wm-wgmf"
+    },
+    {
+      "id": "GHSA-wg36-wvj6-r67p",
+      "aliases": ["CVE-2026-40176"],
+      "summary": "Composer has a command injection via malicious perforce repository",
+      "published": "2026-04-14",
+      "severity": "high",
+      "package": "composer/composer",
+      "affected": [
+        {"introduced": "1.0.0", "fixed": "2.2.27"},
+        {"introduced": "2.3.0", "fixed": "2.9.6"}
+      ],
+      "reference": "https://osv.dev/vulnerability/GHSA-wg36-wvj6-r67p"
+    },
+    {
+      "id": "GHSA-x7cr-6qr6-2hh6",
+      "aliases": ["CVE-2022-24828"],
+      "summary": "Missing input validation can lead to command execution in composer",
+      "published": "2022-04-22",
+      "severity": "high",
+      "package": "composer/composer",
+      "affected": [
+        {"introduced": "0", "fixed": "1.10.26"},
+        {"introduced": "2.0", "fixed": "2.2.12"},
+        {"introduced": "2.3", "fixed": "2.3.5"}
+      ],
+      "reference": "https://osv.dev/vulnerability/GHSA-x7cr-6qr6-2hh6"
+    },
+    {
+      "id": "GHSA-pw5c-xqf2-6xc2",
+      "aliases": ["CVE-2015-5723"],
+      "summary": "Doctrine Security Misconfiguration Vulnerability",
+      "published": "2022-05-17",
+      "severity": "high",
+      "package": "doctrine/annotations",
+      "affected": [
+        {"introduced": "0", "fixed": "1.2.7"}
+      ],
+      "reference": "https://osv.dev/vulnerability/GHSA-pw5c-xqf2-6xc2"
+    },
+    {
+      "id": "GHSA-3p68-m5qw-9g9w",
+      "aliases": ["CVE-2010-4183"],
+      "summary": "HTML Purifier cross-site scripting (XSS) vulnerability",
+      "published": "2022-05-13",
+      "severity": "medium",
+      "package": "ezyang/htmlpurifier",
+      "affected": [
+        {"introduced": "0", "fixed": "4.1.0"}
+      ],
+      "reference": "https://osv.dev/vulnerability/GHSA-3p68-m5qw-9g9w"
+    },
+    {
+      "id": "GHSA-6fh7-fwqj-mv49",
+      "aliases": ["CVE-2007-3498"],
+      "summary": "HTML Purifier Cross-site Scripting vulnerability",
+      "published": "2022-05-01",
+      "severity": "medium",
+      "package": "ezyang/htmlpurifier",
+      "affected": [
+        {"introduced": "0", "fixed": "2.0.1"}
+      ],
+      "reference": "https://osv.dev/vulnerability/GHSA-6fh7-fwqj-mv49"
+    },
+    {
+      "id": "GHSA-6rm6-mjmh-86jq",
+      "aliases": ["CVE-2010-2479"],
+      "summary": "HTML Purifier Cross-site Scripting (XSS) vulnerability",
+      "published": "2022-05-17",
+      "severity": "medium",
+      "package": "ezyang/htmlpurifier",
+      "affected": [
+        {"introduced": "0", "fixed": "4.1.1"}
+      ],
+      "reference": "https://osv.dev/vulnerability/GHSA-6rm6-mjmh-86jq"
+    },
+    {
+      "id": "GHSA-jw86-5cjf-mv79",
+      "aliases": ["CVE-2011-3744"],
+      "summary": "HTML Purifier allows remote attackers to obtain sensitive information",
+      "published": "2022-05-17",
+      "severity": "medium",
+      "package": "ezyang/htmlpurifier",
+      "affected": [
+        {"introduced": "0", "last_affected": "4.2.0"}
+      ],
+      "reference": "https://osv.dev/vulnerability/GHSA-jw86-5cjf-mv79"
+    },
+    {
+      "id": "GHSA-2x45-7fc3-mxwq",
+      "aliases": ["CVE-2025-45769"],
+      "summary": "php-jwt contains weak encryption",
+      "published": "2025-07-31",
+      "severity": "low",
+      "package": "firebase/php-jwt",
+      "affected": [
+        {"introduced": "0", "fixed": "7.0.0"}
+      ],
+      "reference": "https://github.com/advisories/GHSA-2x45-7fc3-mxwq"
+    },
+    {
+      "id": "GHSA-8xf4-w7qw-pjjw",
+      "aliases": ["CVE-2021-46743"],
+      "summary": "Firebase PHP-JWT key/algorithm type confusion",
+      "published": "2022-03-30",
+      "severity": "critical",
+      "package": "firebase/php-jwt",
+      "affected": [
+        {"introduced": "0", "fixed": "6.0.0"}
+      ],
+      "reference": "https://osv.dev/vulnerability/GHSA-8xf4-w7qw-pjjw"
+    },
+    {
+      "id": "GHSA-h533-5v22-8vcp",
+      "aliases": [],
+      "summary": "firebase/php-jwt: \"None\" Algorithm treated as valid on tokens",
+      "published": "2024-05-15",
+      "severity": "critical",
+      "package": "firebase/php-jwt",
+      "affected": [
+        {"introduced": "0", "fixed": "2.0.0"}
+      ],
+      "reference": "https://osv.dev/vulnerability/GHSA-h533-5v22-8vcp"
+    },
+    {
+      "id": "GHSA-25mq-v84q-4j7r",
+      "aliases": ["CVE-2022-31090"],
+      "summary": "CURLOPT_HTTPAUTH option not cleared on change of origin",
+      "published": "2022-06-21",
+      "severity": "high",
+      "package": "guzzlehttp/guzzle",
+      "affected": [
+        {"introduced": "0", "fixed": "6.5.8"},
+        {"introduced": "7.0.0", "fixed": "7.4.5"}
+      ],
+      "reference": "https://osv.dev/vulnerability/GHSA-25mq-v84q-4j7r"
+    },
+    {
+      "id": "GHSA-94pj-82f3-465w",
+      "aliases": ["CVE-2026-67339"],
+      "summary": "Guzzle: Proxy-Authorization headers can be sent to origin servers",
+      "published": "2026-07-20",
+      "severity": "medium",
+      "package": "guzzlehttp/guzzle",
+      "affected": [
+        {"introduced": "0", "fixed": "7.14.2"}
+      ],
+      "reference": "https://osv.dev/vulnerability/GHSA-94pj-82f3-465w"
+    },
+    {
+      "id": "GHSA-cwmx-hcrq-mhc3",
+      "aliases": ["CVE-2022-29248"],
+      "summary": "Cross-domain cookie leakage in Guzzle",
+      "published": "2022-05-25",
+      "severity": "high",
+      "package": "guzzlehttp/guzzle",
+      "affected": [
+        {"introduced": "0", "fixed": "6.5.6"},
+        {"introduced": "7.0.0", "fixed": "7.4.3"}
+      ],
+      "reference": "https://osv.dev/vulnerability/GHSA-cwmx-hcrq-mhc3"
+    },
+    {
+      "id": "GHSA-cwxw-98qj-8qjx",
+      "aliases": ["CVE-2026-55767"],
+      "summary": "guzzlehttp/guzzle: Dot-Only Cookie Domains Match All Hosts",
+      "published": "2026-06-19",
+      "severity": "medium",
+      "package": "guzzlehttp/guzzle",
+      "affected": [
+        {"introduced": "0", "fixed": "7.12.1"}
+      ],
+      "reference": "https://osv.dev/vulnerability/GHSA-cwxw-98qj-8qjx"
+    },
+    {
+      "id": "GHSA-f283-ghqc-fg79",
+      "aliases": ["CVE-2026-67353"],
+      "summary": "Guzzle: Unbounded response cookies risk denial of service",
+      "published": "2026-07-20",
+      "severity": "medium",
+      "package": "guzzlehttp/guzzle",
+      "affected": [
+        {"introduced": "0", "fixed": "7.15.1"}
+      ],
+      "reference": "https://osv.dev/vulnerability/GHSA-f283-ghqc-fg79"
+    },
+    {
+      "id": "GHSA-f2wf-25xc-69c9",
+      "aliases": ["CVE-2022-31042", "CVE-2022-31043"],
+      "summary": "Failure to strip the Cookie header on change in host or HTTP downgrade",
+      "published": "2022-06-09",
+      "severity": "high",
+      "package": "guzzlehttp/guzzle",
+      "affected": [
+        {"introduced": "4.0.0", "fixed": "6.5.7"},
+        {"introduced": "7.0.0", "fixed": "7.4.4"}
+      ],
+      "reference": "https://osv.dev/vulnerability/GHSA-f2wf-25xc-69c9"
+    },
+    {
+      "id": "GHSA-f7vp-7xgx-4w4r",
+      "aliases": ["CVE-2026-69245"],
+      "summary": "Guzzle: Noncanonical cookie domain keeps subdomain scope",
+      "published": "2026-08-03",
+      "severity": "medium",
+      "package": "guzzlehttp/guzzle",
+      "affected": [
+        {"introduced": "0", "fixed": "7.15.2"},
+        {"introduced": "8.0.0", "fixed": "8.0.1"}
+      ],
+      "reference": "https://osv.dev/vulnerability/GHSA-f7vp-7xgx-4w4r"
+    },
+    {
+      "id": "GHSA-g446-98w2-8p5w",
+      "aliases": ["CVE-2026-59883"],
+      "summary": "Guzzle: Cookie Disclosure and Injection via IP-Address Domains",
+      "published": "2026-07-20",
+      "severity": "medium",
+      "package": "guzzlehttp/guzzle",
+      "affected": [
+        {"introduced": "0", "fixed": "7.12.3"}
+      ],
+      "reference": "https://osv.dev/vulnerability/GHSA-g446-98w2-8p5w"
+    },
+    {
+      "id": "GHSA-h95v-h523-3mw8",
+      "aliases": ["CVE-2026-67354"],
+      "summary": "Guzzle: URI fragments disclosed in redirect Referer headers",
+      "published": "2026-07-20",
+      "severity": "medium",
+      "package": "guzzlehttp/guzzle",
+      "affected": [
+        {"introduced": "0", "fixed": "7.15.1"}
+      ],
+      "reference": "https://osv.dev/vulnerability/GHSA-h95v-h523-3mw8"
+    },
+    {
+      "id": "GHSA-m6ch-gg5f-wxx3",
+      "aliases": ["CVE-2016-5385"],
+      "summary": "HTTP Proxy header vulnerability",
+      "published": "2022-04-07",
+      "severity": "high",
+      "package": "guzzlehttp/guzzle",
+      "affected": [
+        {"introduced": "4.0.0-rc2", "fixed": "4.2.4"},
+        {"introduced": "5", "fixed": "5.3.1"},
+        {"introduced": "6", "fixed": "6.2.1"}
+      ],
+      "reference": "https://osv.dev/vulnerability/GHSA-m6ch-gg5f-wxx3"
+    },
+    {
+      "id": "GHSA-q559-8m2m-g699",
+      "aliases": ["CVE-2022-31091"],
+      "summary": "Change in port should be considered a change in origin",
+      "published": "2022-06-21",
+      "severity": "high",
+      "package": "guzzlehttp/guzzle",
+      "affected": [
+        {"introduced": "0", "fixed": "6.5.8"},
+        {"introduced": "7.0.0", "fixed": "7.4.5"}
+      ],
+      "reference": "https://osv.dev/vulnerability/GHSA-q559-8m2m-g699"
+    },
+    {
+      "id": "GHSA-v5mv-p594-2x33",
+      "aliases": ["CVE-2026-69246"],
+      "summary": "Guzzle: Noncanonical host can bypass host-based checks",
+      "published": "2026-08-03",
+      "severity": "high",
+      "package": "guzzlehttp/guzzle",
+      "affected": [
+        {"introduced": "0", "fixed": "7.15.2"},
+        {"introduced": "8.0.0", "fixed": "8.0.1"}
+      ],
+      "reference": "https://osv.dev/vulnerability/GHSA-v5mv-p594-2x33"
+    },
+    {
+      "id": "GHSA-w248-ffj2-4v5q",
+      "aliases": ["CVE-2022-31042", "CVE-2022-31043"],
+      "summary": "Fix failure to strip Authorization header on HTTP downgrade",
+      "published": "2022-06-09",
+      "severity": "high",
+      "package": "guzzlehttp/guzzle",
+      "affected": [
+        {"introduced": "4.0.0", "fixed": "6.5.7"},
+        {"introduced": "7.0.0", "fixed": "7.4.4"}
+      ],
+      "reference": "https://osv.dev/vulnerability/GHSA-w248-ffj2-4v5q"
+    },
+    {
+      "id": "GHSA-wm3w-8rrp-j577",
+      "aliases": ["CVE-2026-67355"],
+      "summary": "Guzzle: Host-only cookie scope is not preserved",
+      "published": "2026-07-20",
+      "severity": "medium",
+      "package": "guzzlehttp/guzzle",
+      "affected": [
+        {"introduced": "0", "fixed": "7.15.1"}
+      ],
+      "reference": "https://osv.dev/vulnerability/GHSA-wm3w-8rrp-j577"
+    },
+    {
+      "id": "GHSA-wpwq-4j6v-78m3",
+      "aliases": ["CVE-2026-55568"],
+      "summary": "guzzlehttp/guzzle: Silent HTTPS-Proxy Downgrade to Cleartext",
+      "published": "2026-06-19",
+      "severity": "medium",
+      "package": "guzzlehttp/guzzle",
+      "affected": [
+        {"introduced": "0", "fixed": "7.12.1"}
+      ],
+      "reference": "https://osv.dev/vulnerability/GHSA-wpwq-4j6v-78m3"
+    },
+    {
+      "id": "GHSA-34xg-wgjx-8xph",
+      "aliases": ["CVE-2026-48998"],
+      "summary": "guzzlehttp/psr7 has Host Confusion via Authority Reinterpretation",
+      "published": "2026-06-11",
+      "severity": "medium",
+      "package": "guzzlehttp/psr7",
+      "affected": [
+        {"introduced": "0", "fixed": "2.10.2"}
+      ],
+      "reference": "https://osv.dev/vulnerability/GHSA-34xg-wgjx-8xph"
+    },
+    {
+      "id": "GHSA-c2w2-prh8-qm98",
+      "aliases": ["CVE-2026-59882"],
+      "summary": "guzzlehttp/psr7: Host Confusion via Weak URI Host Validation",
+      "published": "2026-07-21",
+      "severity": "medium",
+      "package": "guzzlehttp/psr7",
+      "affected": [
+        {"introduced": "0", "fixed": "2.12.3"}
+      ],
+      "reference": "https://osv.dev/vulnerability/GHSA-c2w2-prh8-qm98"
+    },
+    {
+      "id": "GHSA-hq7v-mx3g-29hw",
+      "aliases": ["CVE-2026-49214"],
+      "summary": "guzzlehttp/psr7 has CRLF Injection via URI Host Component",
+      "published": "2026-06-11",
+      "severity": "medium",
+      "package": "guzzlehttp/psr7",
+      "affected": [
+        {"introduced": "0", "fixed": "2.10.2"}
+      ],
+      "reference": "https://osv.dev/vulnerability/GHSA-hq7v-mx3g-29hw"
+    },
+    {
+      "id": "GHSA-q7rv-6hp3-vh96",
+      "aliases": ["CVE-2022-24775"],
+      "summary": "Improper Input Validation in guzzlehttp/psr7",
+      "published": "2022-03-25",
+      "severity": "medium",
+      "package": "guzzlehttp/psr7",
+      "affected": [
+        {"introduced": "0", "fixed": "1.8.4"},
+        {"introduced": "2.0.0", "fixed": "2.1.1"}
+      ],
+      "reference": "https://osv.dev/vulnerability/GHSA-q7rv-6hp3-vh96"
+    },
+    {
+      "id": "GHSA-vm85-hxw5-5432",
+      "aliases": ["CVE-2026-55766"],
+      "summary": "guzzlehttp/psr7: CRLF Injection in HTTP Start-Line Serialization",
+      "published": "2026-06-19",
+      "severity": "medium",
+      "package": "guzzlehttp/psr7",
+      "affected": [
+        {"introduced": "0", "fixed": "2.12.1"}
+      ],
+      "reference": "https://osv.dev/vulnerability/GHSA-vm85-hxw5-5432"
+    },
+    {
+      "id": "GHSA-wxmh-65f7-jcvw",
+      "aliases": ["CVE-2023-29197"],
+      "summary": "Improper header name validation in guzzlehttp/psr7",
+      "published": "2023-04-19",
+      "severity": "medium",
+      "package": "guzzlehttp/psr7",
+      "affected": [
+        {"introduced": "0", "fixed": "1.9.1"},
+        {"introduced": "2.0.0", "fixed": "2.4.5"}
+      ],
+      "reference": "https://osv.dev/vulnerability/GHSA-wxmh-65f7-jcvw"
+    },
+    {
+      "id": "GHSA-8274-h5jp-97vr",
+      "aliases": ["CVE-2022-31109"],
+      "summary": "Diactoros before 2.11.1 vulnerable to HTTP Host Header Attack",
+      "published": "2022-07-27",
+      "severity": "medium",
+      "package": "laminas/laminas-diactoros",
+      "affected": [
+        {"introduced": "0", "fixed": "2.11.1"}
+      ],
+      "reference": "https://github.com/advisories/GHSA-8274-h5jp-97vr"
+    },
+    {
+      "id": "GHSA-xv3h-4844-9h36",
+      "aliases": ["CVE-2023-29530"],
+      "summary": "HTTP Multiline Header Termination",
+      "published": "2023-04-24",
+      "severity": "high",
+      "package": "laminas/laminas-diactoros",
+      "affected": [
+        {"introduced": "0", "fixed": "2.18.1"},
+        {"introduced": "2.19.0", "fixed": "2.19.1"},
+        {"introduced": "2.20.0", "fixed": "2.20.1"},
+        {"introduced": "2.21.0", "fixed": "2.21.1"},
+        {"introduced": "2.22.0", "fixed": "2.22.1"},
+        {"introduced": "2.23.0", "fixed": "2.23.1"},
+        {"introduced": "2.24.0", "fixed": "2.24.2"},
+        {"introduced": "2.25.0", "fixed": "2.25.2"}
+      ],
+      "reference": "https://github.com/advisories/GHSA-wxmh-65f7-jcvw"
+    },
+    {
+      "id": "GHSA-xx8f-qf9f-5fgw",
+      "aliases": ["CVE-2021-3007"],
+      "summary": "Remote code execution in zendframework and laminas-http",
+      "published": "2021-06-08",
+      "severity": "critical",
+      "package": "laminas/laminas-http",
+      "affected": [
+        {"introduced": "0", "fixed": "2.14.2"}
+      ],
+      "reference": "https://osv.dev/vulnerability/GHSA-xx8f-qf9f-5fgw"
+    },
+    {
+      "id": "GHSA-9f46-5r25-5wfm",
+      "aliases": ["CVE-2021-32708"],
+      "summary": "Time-of-check Time-of-use (TOCTOU) Race Condition in league/flysystem",
+      "published": "2021-06-29",
+      "severity": "critical",
+      "package": "league/flysystem",
+      "affected": [
+        {"introduced": "0", "fixed": "1.1.4"},
+        {"introduced": "2.0.0", "fixed": "2.1.1"}
+      ],
+      "reference": "https://osv.dev/vulnerability/GHSA-9f46-5r25-5wfm"
+    },
+    {
+      "id": "GHSA-cxf4-7mrp-vvpr",
+      "aliases": ["CVE-2026-102601"],
+      "summary": "Flysystem: WhitespacePathNormalizer's control-character (CorruptedPathDetected) check is bypassed by malformed UTF-8 in the path, affecting every adapter",
+      "published": "2026-09-29",
+      "severity": "low",
+      "package": "league/flysystem",
+      "affected": [
+        {"introduced": "0", "fixed": "3.35.3"}
+      ],
+      "reference": "https://osv.dev/vulnerability/GHSA-cxf4-7mrp-vvpr"
+    },
+    {
+      "id": "GHSA-2444-8gj8-6fmx",
+      "aliases": ["CVE-2023-22247"],
+      "summary": "Magento Open Source allows XML Injection",
+      "published": "2023-03-27",
+      "severity": "high",
+      "package": "magento/product-community-edition",
+      "affected": [
+        {"introduced": "2.4.4", "last_affected": "2.4.4"},
+        {"introduced": "2.4.4-p1", "fixed": "2.4.4-p3"},
+        {"introduced": "2.4.5", "last_affected": "2.4.5"},
+        {"introduced": "2.4.5-p1", "fixed": "2.4.5-p2"}
+      ],
+      "reference": "https://helpx.adobe.com/security/products/magento/apsb23-17.html"
+    },
+    {
+      "id": "GHSA-264g-f7v8-q5qq",
+      "aliases": ["CVE-2024-20719"],
+      "summary": "Magento Open Source allows Cross-Site Scripting (XSS)",
+      "published": "2024-02-15",
+      "severity": "high",
+      "package": "magento/product-community-edition",
+      "affected": [
+        {"introduced": "2.4.4", "last_affected": "2.4.4"},
+        {"introduced": "2.4.4-p1", "fixed": "2.4.4-p7"},
+        {"introduced": "2.4.5", "last_affected": "2.4.5"},
+        {"introduced": "2.4.5-p1", "fixed": "2.4.5-p6"},
+        {"introduced": "2.4.6", "last_affected": "2.4.6"},
+        {"introduced": "2.4.6-p1", "fixed": "2.4.6-p4"}
+      ],
+      "reference": "https://helpx.adobe.com/security/products/magento/apsb24-03.html"
+    },
+    {
+      "id": "GHSA-2768-5wmv-cfff",
+      "aliases": ["CVE-2025-54264"],
+      "summary": "Magento vulnerable to stored Cross-Site Scripting (XSS)",
+      "published": "2025-10-14",
+      "severity": "high",
+      "package": "magento/product-community-edition",
+      "affected": [
+        {"introduced": "2.4.4", "fixed": "2.4.4-p16"},
+        {"introduced": "2.4.5", "fixed": "2.4.5-p15"},
+        {"introduced": "2.4.6", "fixed": "2.4.6-p13"},
+        {"introduced": "2.4.7", "fixed": "2.4.7-p8"},
+        {"introduced": "2.4.8", "fixed": "2.4.8-p3"}
+      ],
+      "reference": "https://helpx.adobe.com/security/products/magento/apsb25-94.html"
+    },
+    {
+      "id": "GHSA-28vp-39rf-3q2j",
+      "aliases": ["CVE-2023-29294"],
+      "summary": "Magento Open Source has Business Logic Errors Vulnerability",
+      "published": "2023-06-15",
+      "severity": "low",
+      "package": "magento/product-community-edition",
+      "affected": [
+        {"introduced": "2.4.4", "last_affected": "2.4.4"},
+        {"introduced": "2.4.4-p1", "fixed": "2.4.4-p4"},
+        {"introduced": "2.4.5", "last_affected": "2.4.5"},
+        {"introduced": "2.4.5-p1", "fixed": "2.4.5-p3"},
+        {"introduced": "2.4.6", "last_affected": "2.4.6"}
+      ],
+      "reference": "https://helpx.adobe.com/security/products/magento/apsb23-35.html"
+    },
+    {
+      "id": "GHSA-297f-r9w7-w492",
+      "aliases": ["CVE-2022-42344"],
+      "summary": "Magento Improper input validation vulnerability",
+      "published": "2022-10-20",
+      "severity": "high",
+      "package": "magento/product-community-edition",
+      "affected": [
+        {"introduced": "2.4.4", "fixed": "2.4.4-p1"}
+      ],
+      "reference": "https://helpx.adobe.com/security/products/magento/apsb22-38.html"
+    },
+    {
+      "id": "GHSA-2ff6-837j-hg5x",
+      "aliases": ["CVE-2024-39402"],
+      "summary": "Magento OS Command ('OS Command Injection') vulnerability",
+      "published": "2024-08-14",
+      "severity": "high",
+      "package": "magento/product-community-edition",
+      "affected": [
+        {"introduced": "2.4.4", "last_affected": "2.4.4"},
+        {"introduced": "2.4.4-p1", "fixed": "2.4.4-p10"},
+        {"introduced": "2.4.5", "last_affected": "2.4.5"},
+        {"introduced": "2.4.5-p1", "fixed": "2.4.5-p9"},
+        {"introduced": "2.4.6", "last_affected": "2.4.6"},
+        {"introduced": "2.4.6-p1", "fixed": "2.4.6-p7"},
+        {"introduced": "2.4.7", "fixed": "2.4.7-p2"}
+      ],
+      "reference": "https://helpx.adobe.com/security/products/magento/apsb24-61.html"
+    },
+    {
+      "id": "GHSA-2qhq-fw98-h6wg",
+      "aliases": ["CVE-2024-45121"],
+      "summary": "Magento Open Source Improper Access Control vulnerability",
+      "published": "2024-10-10",
+      "severity": "medium",
+      "package": "magento/product-community-edition",
+      "affected": [
+        {"introduced": "2.4.4", "fixed": "2.4.4-p11"},
+        {"introduced": "2.4.5", "last_affected": "2.4.5"},
+        {"introduced": "2.4.5-p1", "fixed": "2.4.5-p10"},
+        {"introduced": "2.4.6", "last_affected": "2.4.6"},
+        {"introduced": "2.4.6-p1", "fixed": "2.4.6-p8"},
+        {"introduced": "2.4.7", "fixed": "2.4.7-p3"}
+      ],
+      "reference": "https://helpx.adobe.com/security/products/magento/apsb24-73.html"
+    },
+    {
+      "id": "GHSA-2r94-wm5v-4prx",
+      "aliases": ["CVE-2025-27192"],
+      "summary": "Magento does not properly protect credentials",
+      "published": "2025-04-08",
+      "severity": "low",
+      "package": "magento/product-community-edition",
+      "affected": [
+        {"introduced": "2.4.4", "fixed": "2.4.4-p13"},
+        {"introduced": "2.4.5", "last_affected": "2.4.5"},
+        {"introduced": "2.4.5-p1", "fixed": "2.4.5-p12"},
+        {"introduced": "2.4.6", "last_affected": "2.4.6"},
+        {"introduced": "2.4.6-p1", "fixed": "2.4.6-p10"},
+        {"introduced": "2.4.7", "fixed": "2.4.7-p5"}
+      ],
+      "reference": "https://helpx.adobe.com/security/products/magento/apsb25-26.html"
+    },
+    {
+      "id": "GHSA-2wm7-mmgc-qxr3",
+      "aliases": ["CVE-2023-22251"],
+      "summary": "Magento Open Source allows Incorrect Authorization",
+      "published": "2023-03-27",
+      "severity": "medium",
+      "package": "magento/product-community-edition",
+      "affected": [
+        {"introduced": "2.4.4", "last_affected": "2.4.4"},
+        {"introduced": "2.4.4-p1", "fixed": "2.4.4-p3"},
+        {"introduced": "2.4.5", "last_affected": "2.4.5"},
+        {"introduced": "2.4.5-p1", "fixed": "2.4.5-p2"}
+      ],
+      "reference": "https://helpx.adobe.com/security/products/magento/apsb23-17.html"
+    },
+    {
+      "id": "GHSA-354h-fpmq-68v7",
+      "aliases": ["CVE-2023-29295"],
+      "summary": "Magento Open Source allows Incorrect Authorization",
+      "published": "2023-06-15",
+      "severity": "low",
+      "package": "magento/product-community-edition",
+      "affected": [
+        {"introduced": "2.4.4", "last_affected": "2.4.4"},
+        {"introduced": "2.4.4-p1", "fixed": "2.4.4-p4"},
+        {"introduced": "2.4.5", "last_affected": "2.4.5"},
+        {"introduced": "2.4.5-p1", "fixed": "2.4.5-p3"},
+        {"introduced": "2.4.6", "last_affected": "2.4.6"}
+      ],
+      "reference": "https://helpx.adobe.com/security/products/magento/apsb23-35.html"
+    },
+    {
+      "id": "GHSA-36hw-x3cc-m258",
+      "aliases": ["CVE-2025-24411"],
+      "summary": "Magento Improper Access Control vulnerability",
+      "published": "2025-02-11",
+      "severity": "high",
+      "package": "magento/product-community-edition",
+      "affected": [
+        {"introduced": "2.4.4", "fixed": "2.4.4-p12"},
+        {"introduced": "2.4.5", "last_affected": "2.4.5"},
+        {"introduced": "2.4.5-p1", "fixed": "2.4.5-p11"},
+        {"introduced": "2.4.6", "last_affected": "2.4.6"},
+        {"introduced": "2.4.6-p1", "fixed": "2.4.6-p9"},
+        {"introduced": "2.4.7", "fixed": "2.4.7-p4"},
+        {"introduced": "2.4.8-beta1", "last_affected": "2.4.8-beta1"}
+      ],
+      "reference": "https://helpx.adobe.com/security/products/magento/apsb25-08.html"
+    },
+    {
+      "id": "GHSA-3cfg-w257-cgf8",
+      "aliases": ["CVE-2025-24408"],
+      "summary": "Magento Information Exposure vulnerability",
+      "published": "2025-02-11",
+      "severity": "medium",
+      "package": "magento/product-community-edition",
+      "affected": [
+        {"introduced": "2.4.4", "fixed": "2.4.4-p12"},
+        {"introduced": "2.4.5", "last_affected": "2.4.5"},
+        {"introduced": "2.4.5-p1", "fixed": "2.4.5-p11"},
+        {"introduced": "2.4.6", "last_affected": "2.4.6"},
+        {"introduced": "2.4.6-p1", "fixed": "2.4.6-p9"},
+        {"introduced": "2.4.7", "fixed": "2.4.7-p4"},
+        {"introduced": "2.4.8-beta1", "last_affected": "2.4.8-beta1"}
+      ],
+      "reference": "https://helpx.adobe.com/security/products/magento/apsb25-08.html"
+    },
+    {
+      "id": "GHSA-3fr3-gcqh-3m2g",
+      "aliases": ["CVE-2024-45117"],
+      "summary": "Magento Open Source Improper Input Validation vulnerability",
+      "published": "2024-10-10",
+      "severity": "medium",
+      "package": "magento/product-community-edition",
+      "affected": [
+        {"introduced": "2.4.4", "fixed": "2.4.4-p11"},
+        {"introduced": "2.4.5", "last_affected": "2.4.5"},
+        {"introduced": "2.4.5-p1", "fixed": "2.4.5-p10"},
+        {"introduced": "2.4.6", "last_affected": "2.4.6"},
+        {"introduced": "2.4.6-p1", "fixed": "2.4.6-p8"},
+        {"introduced": "2.4.7", "fixed": "2.4.7-p3"}
+      ],
+      "reference": "https://helpx.adobe.com/security/products/magento/apsb24-73.html"
+    },
+    {
+      "id": "GHSA-3j7w-jp46-9752",
+      "aliases": ["CVE-2023-38219"],
+      "summary": "Magento Open Source allows Cross-Site Scripting (XSS)",
+      "published": "2023-10-13",
+      "severity": "low",
+      "package": "magento/product-community-edition",
+      "affected": [
+        {"introduced": "2.4.4", "last_affected": "2.4.4"},
+        {"introduced": "2.4.4-p1", "fixed": "2.4.4-p6"},
+        {"introduced": "2.4.5", "last_affected": "2.4.5"},
+        {"introduced": "2.4.5-p1", "fixed": "2.4.5-p5"},
+        {"introduced": "2.4.6", "last_affected": "2.4.6"},
+        {"introduced": "2.4.6-p1", "fixed": "2.4.6-p3"}
+      ],
+      "reference": "https://helpx.adobe.com/security/products/magento/apsb23-50.html"
+    },
+    {
+      "id": "GHSA-3qr4-w96f-672v",
+      "aliases": ["CVE-2023-29296"],
+      "summary": "Magento Open Source allows Incorrect Authorization",
+      "published": "2023-06-15",
+      "severity": "low",
+      "package": "magento/product-community-edition",
+      "affected": [
+        {"introduced": "2.4.4", "last_affected": "2.4.4"},
+        {"introduced": "2.4.4-p1", "fixed": "2.4.4-p4"},
+        {"introduced": "2.4.5", "last_affected": "2.4.5"},
+        {"introduced": "2.4.5-p1", "fixed": "2.4.5-p3"},
+        {"introduced": "2.4.6", "last_affected": "2.4.6"}
+      ],
+      "reference": "https://helpx.adobe.com/security/products/magento/apsb23-35.html"
+    },
+    {
+      "id": "GHSA-3vg2-v639-6ch9",
+      "aliases": ["CVE-2023-38209"],
+      "summary": "Magento Open Source allows Incorrect Authorization",
+      "published": "2023-08-09",
+      "severity": "medium",
+      "package": "magento/product-community-edition",
+      "affected": [
+        {"introduced": "2.4.4", "last_affected": "2.4.4"},
+        {"introduced": "2.4.4-p1", "fixed": "2.4.4-p5"},
+        {"introduced": "2.4.5", "last_affected": "2.4.5"},
+        {"introduced": "2.4.5-p1", "fixed": "2.4.5-p4"},
+        {"introduced": "2.4.6", "last_affected": "2.4.6"},
+        {"introduced": "2.4.6-p1", "fixed": "2.4.6-p2"}
+      ],
+      "reference": "https://helpx.adobe.com/security/products/magento/apsb23-42.html"
+    },
+    {
+      "id": "GHSA-4323-f82v-f6jr",
+      "aliases": ["CVE-2024-39410"],
+      "summary": "Magento Open Source Cross-Site Request Forgery (CSRF) vulnerability",
+      "published": "2024-08-14",
+      "severity": "medium",
+      "package": "magento/product-community-edition",
+      "affected": [
+        {"introduced": "2.4.4", "fixed": "2.4.4-p10"},
+        {"introduced": "2.4.5", "last_affected": "2.4.5"},
+        {"introduced": "2.4.5-p1", "fixed": "2.4.5-p9"},
+        {"introduced": "2.4.6", "last_affected": "2.4.6"},
+        {"introduced": "2.4.6-p1", "fixed": "2.4.6-p7"},
+        {"introduced": "2.4.7", "last_affected": "2.4.7"},
+        {"introduced": "2.4.7-p1", "fixed": "2.4.7-p2"}
+      ],
+      "reference": "https://helpx.adobe.com/security/products/magento/apsb24-61.html"
+    },
+    {
+      "id": "GHSA-4588-7x48-jrgj",
+      "aliases": ["CVE-2023-29292"],
+      "summary": "Magento Open Source allows Server-Side Request Forgery (SSRF)",
+      "published": "2023-06-15",
+      "severity": "medium",
+      "package": "magento/product-community-edition",
+      "affected": [
+        {"introduced": "2.4.4", "last_affected": "2.4.4"},
+        {"introduced": "2.4.4-p1", "fixed": "2.4.4-p4"},
+        {"introduced": "2.4.5", "last_affected": "2.4.5"},
+        {"introduced": "2.4.5-p1", "fixed": "2.4.5-p3"},
+        {"introduced": "2.4.6", "last_affected": "2.4.6"}
+      ],
+      "reference": "https://helpx.adobe.com/security/products/magento/apsb23-35.html"
+    },
+    {
+      "id": "GHSA-469f-wf4f-3jjv",
+      "aliases": ["CVE-2025-24437"],
+      "summary": "Magento Improper Access Control vulnerability",
+      "published": "2025-02-11",
+      "severity": "medium",
+      "package": "magento/product-community-edition",
+      "affected": [
+        {"introduced": "2.4.4", "fixed": "2.4.4-p12"},
+        {"introduced": "2.4.5", "last_affected": "2.4.5"},
+        {"introduced": "2.4.5-p1", "fixed": "2.4.5-p11"},
+        {"introduced": "2.4.6", "last_affected": "2.4.6"},
+        {"introduced": "2.4.6-p1", "fixed": "2.4.6-p9"},
+        {"introduced": "2.4.7", "fixed": "2.4.7-p4"},
+        {"introduced": "2.4.8-beta1", "last_affected": "2.4.8-beta1"}
+      ],
+      "reference": "https://helpx.adobe.com/security/products/magento/apsb25-08.html"
+    },
+    {
+      "id": "GHSA-46fm-x82m-5f74",
+      "aliases": ["CVE-2024-45122"],
+      "summary": "Magento Open Source Improper Access Control vulnerability",
+      "published": "2024-10-10",
+      "severity": "medium",
+      "package": "magento/product-community-edition",
+      "affected": [
+        {"introduced": "2.4.4", "fixed": "2.4.4-p11"},
+        {"introduced": "2.4.5", "last_affected": "2.4.5"},
+        {"introduced": "2.4.5-p1", "fixed": "2.4.5-p10"},
+        {"introduced": "2.4.6", "last_affected": "2.4.6"},
+        {"introduced": "2.4.6-p1", "fixed": "2.4.6-p8"},
+        {"introduced": "2.4.7", "fixed": "2.4.7-p3"}
+      ],
+      "reference": "https://helpx.adobe.com/security/products/magento/apsb24-73.html"
+    },
+    {
+      "id": "GHSA-47jp-46c9-25vf",
+      "aliases": ["CVE-2024-45120"],
+      "summary": "Magento Open Source Time-of-check Time-of-use (TOCTOU) Race Condition vulnerability",
+      "published": "2024-10-10",
+      "severity": "medium",
+      "package": "magento/product-community-edition",
+      "affected": [
+        {"introduced": "2.4.4", "fixed": "2.4.4-p11"},
+        {"introduced": "2.4.5", "last_affected": "2.4.5"},
+        {"introduced": "2.4.5-p1", "fixed": "2.4.5-p10"},
+        {"introduced": "2.4.6", "last_affected": "2.4.6"},
+        {"introduced": "2.4.6-p1", "fixed": "2.4.6-p8"},
+        {"introduced": "2.4.7", "fixed": "2.4.7-p3"}
+      ],
+      "reference": "https://helpx.adobe.com/security/products/magento/apsb24-73.html"
+    },
+    {
+      "id": "GHSA-4cj6-f32v-6hgx",
+      "aliases": ["CVE-2024-39408"],
+      "summary": "Magento Open Source Cross-Site Request Forgery vulnerability",
+      "published": "2024-08-14",
+      "severity": "medium",
+      "package": "magento/product-community-edition",
+      "affected": [
+        {"introduced": "2.4.4", "fixed": "2.4.4-p10"},
+        {"introduced": "2.4.5", "last_affected": "2.4.5"},
+        {"introduced": "2.4.5-p1", "fixed": "2.4.5-p9"},
+        {"introduced": "2.4.6", "last_affected": "2.4.6"},
+        {"introduced": "2.4.6-p1", "fixed": "2.4.6-p7"},
+        {"introduced": "2.4.7", "last_affected": "2.4.7"},
+        {"introduced": "2.4.7-p1", "fixed": "2.4.7-p2"}
+      ],
+      "reference": "https://helpx.adobe.com/security/products/magento/apsb24-61.html"
+    },
+    {
+      "id": "GHSA-4f89-5cwm-rm5g",
+      "aliases": ["CVE-2024-45134"],
+      "summary": "Magento Open Source Information Exposure vulnerability",
+      "published": "2024-10-10",
+      "severity": "medium",
+      "package": "magento/product-community-edition",
+      "affected": [
+        {"introduced": "2.4.4", "fixed": "2.4.4-p11"},
+        {"introduced": "2.4.5", "last_affected": "2.4.5"},
+        {"introduced": "2.4.5-p1", "fixed": "2.4.5-p10"},
+        {"introduced": "2.4.6", "last_affected": "2.4.6"},
+        {"introduced": "2.4.6-p1", "fixed": "2.4.6-p8"},
+        {"introduced": "2.4.7", "fixed": "2.4.7-p3"}
+      ],
+      "reference": "https://helpx.adobe.com/security/products/magento/apsb24-73.html"
+    },
+    {
+      "id": "GHSA-4h7p-4vq8-g2gh",
+      "aliases": ["CVE-2023-22250"],
+      "summary": "Magento Open Source allows Improper Access Control",
+      "published": "2023-03-27",
+      "severity": "medium",
+      "package": "magento/product-community-edition",
+      "affected": [
+        {"introduced": "2.4.4", "last_affected": "2.4.4"},
+        {"introduced": "2.4.4-p1", "fixed": "2.4.4-p3"},
+        {"introduced": "2.4.5", "last_affected": "2.4.5"},
+        {"introduced": "2.4.5-p1", "fixed": "2.4.5-p2"}
+      ],
+      "reference": "https://helpx.adobe.com/security/products/magento/apsb23-17.html"
+    },
+    {
+      "id": "GHSA-4vj2-426r-jm3g",
+      "aliases": ["CVE-2022-35698"],
+      "summary": "Magento Open Source allows Stored Cross-Site Scripting (Stored XSS)",
+      "published": "2022-10-15",
+      "severity": "high",
+      "package": "magento/product-community-edition",
+      "affected": [
+        {"introduced": "2.4.4", "last_affected": "2.4.4"},
+        {"introduced": "2.4.4-p1", "last_affected": "2.4.4-p1"},
+        {"introduced": "2.4.5", "last_affected": "2.4.5"}
+      ],
+      "reference": "https://helpx.adobe.com/security/products/magento/apsb22-48.html"
+    },
+    {
+      "id": "GHSA-4xgg-rw35-7mv5",
+      "aliases": ["CVE-2024-39416"],
+      "summary": "Magento Improper Authorization leads to Security feature bypass",
+      "published": "2024-08-14",
+      "severity": "medium",
+      "package": "magento/product-community-edition",
+      "affected": [
+        {"introduced": "2.4.4", "fixed": "2.4.4-p10"},
+        {"introduced": "2.4.5", "last_affected": "2.4.5"},
+        {"introduced": "2.4.5-p1", "fixed": "2.4.5-p9"},
+        {"introduced": "2.4.6", "last_affected": "2.4.6"},
+        {"introduced": "2.4.6-p1", "fixed": "2.4.6-p7"},
+        {"introduced": "2.4.7", "fixed": "2.4.7-p2"}
+      ],
+      "reference": "https://helpx.adobe.com/security/products/magento/apsb24-61.html"
+    },
+    {
+      "id": "GHSA-4xmj-f664-hv98",
+      "aliases": ["CVE-2024-39417"],
+      "summary": "Magento Improper Authorization leads to Security feature bypass",
+      "published": "2024-08-14",
+      "severity": "medium",
+      "package": "magento/product-community-edition",
+      "affected": [
+        {"introduced": "2.4.4", "fixed": "2.4.4-p10"},
+        {"introduced": "2.4.5", "last_affected": "2.4.5"},
+        {"introduced": "2.4.5-p1", "fixed": "2.4.5-p9"},
+        {"introduced": "2.4.6", "last_affected": "2.4.6"},
+        {"introduced": "2.4.6-p1", "fixed": "2.4.6-p7"},
+        {"introduced": "2.4.7", "fixed": "2.4.7-p2"}
+      ],
+      "reference": "https://helpx.adobe.com/security/products/magento/apsb24-61.html"
+    },
+    {
+      "id": "GHSA-525f-pvj5-vqmq",
+      "aliases": ["CVE-2024-20720"],
+      "summary": "Magento Open Source allows OS Command Injection",
+      "published": "2024-02-15",
+      "severity": "high",
+      "package": "magento/product-community-edition",
+      "affected": [
+        {"introduced": "2.4.4", "last_affected": "2.4.4"},
+        {"introduced": "2.4.4-p1", "fixed": "2.4.4-p7"},
+        {"introduced": "2.4.5", "last_affected": "2.4.5"},
+        {"introduced": "2.4.5-p1", "fixed": "2.4.5-p6"},
+        {"introduced": "2.4.6", "last_affected": "2.4.6"},
+        {"introduced": "2.4.6-p1", "fixed": "2.4.6-p4"}
+      ],
+      "reference": "https://helpx.adobe.com/security/products/magento/apsb24-03.html"
+    },
+    {
+      "id": "GHSA-52fg-wjxm-pp44",
+      "aliases": ["CVE-2024-39400"],
+      "summary": "Magento DOM-based Cross-Site Scripting (XSS) vulnerability",
+      "published": "2024-08-14",
+      "severity": "high",
+      "package": "magento/product-community-edition",
+      "affected": [
+        {"introduced": "2.4.4", "last_affected": "2.4.4"},
+        {"introduced": "2.4.4-p1", "fixed": "2.4.4-p10"},
+        {"introduced": "2.4.5", "last_affected": "2.4.5"},
+        {"introduced": "2.4.5-p1", "fixed": "2.4.5-p9"},
+        {"introduced": "2.4.6", "last_affected": "2.4.6"},
+        {"introduced": "2.4.6-p1", "fixed": "2.4.6-p7"},
+        {"introduced": "2.4.7", "fixed": "2.4.7-p2"}
+      ],
+      "reference": "https://helpx.adobe.com/security/products/magento/apsb24-61.html"
+    },
+    {
+      "id": "GHSA-539v-w87w-w62c",
+      "aliases": ["CVE-2025-24424"],
+      "summary": "Magento Improper Access Control vulnerability",
+      "published": "2025-02-11",
+      "severity": "medium",
+      "package": "magento/product-community-edition",
+      "affected": [
+        {"introduced": "2.4.4", "fixed": "2.4.4-p12"},
+        {"introduced": "2.4.5", "last_affected": "2.4.5"},
+        {"introduced": "2.4.5-p1", "fixed": "2.4.5-p11"},
+        {"introduced": "2.4.6", "last_affected": "2.4.6"},
+        {"introduced": "2.4.6-p1", "fixed": "2.4.6-p9"},
+        {"introduced": "2.4.7", "fixed": "2.4.7-p4"},
+        {"introduced": "2.4.8-beta1", "last_affected": "2.4.8-beta1"}
+      ],
+      "reference": "https://helpx.adobe.com/security/products/magento/apsb25-08.html"
+    },
+    {
+      "id": "GHSA-5632-wq7m-gfq9",
+      "aliases": ["CVE-2024-34105"],
+      "summary": "Magento Open Source Cross-Site Scripting (XSS) vulnerability",
+      "published": "2024-06-13",
+      "severity": "medium",
+      "package": "magento/product-community-edition",
+      "affected": [
+        {"introduced": "2.4.4", "fixed": "2.4.4-p9"},
+        {"introduced": "2.4.5", "last_affected": "2.4.5"},
+        {"introduced": "2.4.5-p1", "fixed": "2.4.5-p8"},
+        {"introduced": "2.4.6", "last_affected": "2.4.6"},
+        {"introduced": "2.4.6-p1", "fixed": "2.4.6-p6"},
+        {"introduced": "2.4.7", "last_affected": "2.4.7"}
+      ],
+      "reference": "https://helpx.adobe.com/security/products/magento/apsb24-40.html"
+    },
+    {
+      "id": "GHSA-5777-jj7p-mpqw",
+      "aliases": ["CVE-2025-49555"],
+      "summary": "Magento Cross-Site Request Forgery (CSRF) vulnerability",
+      "published": "2025-08-12",
+      "severity": "high",
+      "package": "magento/product-community-edition",
+      "affected": [
+        {"introduced": "2.4.4", "fixed": "2.4.4-p15"},
+        {"introduced": "2.4.5", "fixed": "2.4.5-p14"},
+        {"introduced": "2.4.6", "last_affected": "2.4.6"},
+        {"introduced": "2.4.6-p1", "fixed": "2.4.6-p12"},
+        {"introduced": "2.4.7", "fixed": "2.4.7-p7"},
+        {"introduced": "2.4.8", "fixed": "2.4.8-p2"}
+      ],
+      "reference": "https://helpx.adobe.com/security/products/magento/apsb25-71.html"
+    },
+    {
+      "id": "GHSA-59vf-hjxc-f9c5",
+      "aliases": ["CVE-2024-20759"],
+      "summary": "Magento Open Source allows Cross-Site Scripting (XSS)",
+      "published": "2024-04-10",
+      "severity": "medium",
+      "package": "magento/product-community-edition",
+      "affected": [
+        {"introduced": "2.4.4", "last_affected": "2.4.4"},
+        {"introduced": "2.4.4-p1", "fixed": "2.4.4-p8"},
+        {"introduced": "2.4.5", "last_affected": "2.4.5"},
+        {"introduced": "2.4.5-p1", "fixed": "2.4.5-p7"},
+        {"introduced": "2.4.6", "last_affected": "2.4.6"},
+        {"introduced": "2.4.6-p1", "fixed": "2.4.6-p5"}
+      ],
+      "reference": "https://helpx.adobe.com/security/products/magento/apsb24-18.html"
+    },
+    {
+      "id": "GHSA-5f64-ppmg-cvvm",
+      "aliases": ["CVE-2024-45132"],
+      "summary": "Magento Open Source Improper Authorization vulnerability",
+      "published": "2024-10-10",
+      "severity": "high",
+      "package": "magento/product-community-edition",
+      "affected": [
+        {"introduced": "2.4.4", "fixed": "2.4.4-p11"},
+        {"introduced": "2.4.5", "last_affected": "2.4.5"},
+        {"introduced": "2.4.5-p1", "fixed": "2.4.5-p10"},
+        {"introduced": "2.4.6", "last_affected": "2.4.6"},
+        {"introduced": "2.4.6-p1", "fixed": "2.4.6-p8"},
+        {"introduced": "2.4.7", "fixed": "2.4.7-p3"}
+      ],
+      "reference": "https://helpx.adobe.com/security/products/magento/apsb24-73.html"
+    },
+    {
+      "id": "GHSA-5f79-vhr4-vw2r",
+      "aliases": ["CVE-2023-29291"],
+      "summary": "Magento Open Source allows Server-Side Request Forgery (SSRF)",
+      "published": "2023-06-15",
+      "severity": "medium",
+      "package": "magento/product-community-edition",
+      "affected": [
+        {"introduced": "2.4.4", "last_affected": "2.4.4"},
+        {"introduced": "2.4.4-p1", "fixed": "2.4.4-p4"},
+        {"introduced": "2.4.5", "last_affected": "2.4.5"},
+        {"introduced": "2.4.5-p1", "fixed": "2.4.5-p3"},
+        {"introduced": "2.4.6", "last_affected": "2.4.6"}
+      ],
+      "reference": "https://helpx.adobe.com/security/products/magento/apsb23-35.html"
+    },
+    {
+      "id": "GHSA-5fxx-jwjm-x9hj",
+      "aliases": ["CVE-2022-35689"],
+      "summary": "Magento Open Source allows Improper Access Control",
+      "published": "2022-10-15",
+      "severity": "medium",
+      "package": "magento/product-community-edition",
+      "affected": [
+        {"introduced": "2.4.4", "last_affected": "2.4.4"},
+        {"introduced": "2.4.4-p1", "fixed": "2.4.4-p2"},
+        {"introduced": "2.4.5", "last_affected": "2.4.5"}
+      ],
+      "reference": "https://helpx.adobe.com/security/products/magento/apsb22-48.html"
+    },
+    {
+      "id": "GHSA-5g9f-7gqc-8hj4",
+      "aliases": ["CVE-2024-39405"],
+      "summary": "Magento Improper Authorization vulnerability",
+      "published": "2024-08-14",
+      "severity": "medium",
+      "package": "magento/product-community-edition",
+      "affected": [
+        {"introduced": "2.4.4", "last_affected": "2.4.4"},
+        {"introduced": "2.4.4-p1", "fixed": "2.4.4-p10"},
+        {"introduced": "2.4.5", "last_affected": "2.4.5"},
+        {"introduced": "2.4.5-p1", "fixed": "2.4.5-p9"},
+        {"introduced": "2.4.6", "last_affected": "2.4.6"},
+        {"introduced": "2.4.6-p1", "fixed": "2.4.6-p7"},
+        {"introduced": "2.4.7", "fixed": "2.4.7-p2"}
+      ],
+      "reference": "https://helpx.adobe.com/security/products/magento/apsb24-61.html"
+    },
+    {
+      "id": "GHSA-5jfg-phx7-7fxg",
+      "aliases": ["CVE-2023-22248"],
+      "summary": "Magento Open Source affected by Improper Input Validation",
+      "published": "2023-06-15",
+      "severity": "medium",
+      "package": "magento/product-community-edition",
+      "affected": [
+        {"introduced": "2.4.4", "fixed": "2.4.4-p5"},
+        {"introduced": "2.4.5", "fixed": "2.4.5-p4"},
+        {"introduced": "2.4.5-p1", "fixed": "2.4.5-p3"},
+        {"introduced": "2.4.6", "last_affected": "2.4.6"}
+      ],
+      "reference": "https://helpx.adobe.com/security/products/magento/apsb23-35.html"
+    },
+    {
+      "id": "GHSA-5m55-g8pv-x8ww",
+      "aliases": ["CVE-2022-34258"],
+      "summary": "Magento stored Cross-Site Scripting (XSS) vulnerability",
+      "published": "2022-08-17",
+      "severity": "medium",
+      "package": "magento/product-community-edition",
+      "affected": [
+        {"introduced": "2.4.4", "fixed": "2.4.4-p1"}
+      ],
+      "reference": "https://helpx.adobe.com/security/products/magento/apsb22-38.html"
+    },
+    {
+      "id": "GHSA-656q-fx2w-8ccv",
+      "aliases": ["CVE-2025-24429"],
+      "summary": "Magento Improper Access Control vulnerability",
+      "published": "2025-02-11",
+      "severity": "low",
+      "package": "magento/product-community-edition",
+      "affected": [
+        {"introduced": "2.4.4", "fixed": "2.4.4-p12"},
+        {"introduced": "2.4.5", "last_affected": "2.4.5"},
+        {"introduced": "2.4.5-p1", "fixed": "2.4.5-p11"},
+        {"introduced": "2.4.6", "last_affected": "2.4.6"},
+        {"introduced": "2.4.6-p1", "fixed": "2.4.6-p9"},
+        {"introduced": "2.4.7", "fixed": "2.4.7-p4"},
+        {"introduced": "2.4.8-beta1", "last_affected": "2.4.8-beta1"}
+      ],
+      "reference": "https://helpx.adobe.com/security/products/magento/apsb25-08.html"
+    },
+    {
+      "id": "GHSA-66c9-xrwj-9xv6",
+      "aliases": ["CVE-2023-29293"],
+      "summary": "Magento Open Source affected by Improper Input Validation",
+      "published": "2023-06-15",
+      "severity": "low",
+      "package": "magento/product-community-edition",
+      "affected": [
+        {"introduced": "2.4.4", "last_affected": "2.4.4"},
+        {"introduced": "2.4.4-p1", "fixed": "2.4.4-p4"},
+        {"introduced": "2.4.5", "last_affected": "2.4.5"},
+        {"introduced": "2.4.5-p1", "fixed": "2.4.5-p3"},
+        {"introduced": "2.4.6", "last_affected": "2.4.6"}
+      ],
+      "reference": "https://helpx.adobe.com/security/products/magento/apsb23-35.html"
+    },
+    {
+      "id": "GHSA-69x9-xp2j-w8g8",
+      "aliases": ["CVE-2025-54263"],
+      "summary": "Magento provides incorrect authorization through a security feature bypass",
+      "published": "2025-10-14",
+      "severity": "high",
+      "package": "magento/product-community-edition",
+      "affected": [
+        {"introduced": "2.4.4", "fixed": "2.4.4-p16"},
+        {"introduced": "2.4.5", "fixed": "2.4.5-p15"},
+        {"introduced": "2.4.6", "fixed": "2.4.6-p13"},
+        {"introduced": "2.4.7", "fixed": "2.4.7-p8"},
+        {"introduced": "2.4.8", "fixed": "2.4.8-p3"}
+      ],
+      "reference": "https://helpx.adobe.com/security/products/magento/apsb25-94.html"
+    },
+    {
+      "id": "GHSA-6ff8-jrfg-43hh",
+      "aliases": ["CVE-2025-24425"],
+      "summary": "Magento Business Logic Error vulnerability",
+      "published": "2025-02-11",
+      "severity": "medium",
+      "package": "magento/product-community-edition",
+      "affected": [
+        {"introduced": "2.4.4", "fixed": "2.4.4-p12"},
+        {"introduced": "2.4.5", "last_affected": "2.4.5"},
+        {"introduced": "2.4.5-p1", "fixed": "2.4.5-p11"},
+        {"introduced": "2.4.6", "last_affected": "2.4.6"},
+        {"introduced": "2.4.6-p1", "fixed": "2.4.6-p9"},
+        {"introduced": "2.4.7", "fixed": "2.4.7-p4"},
+        {"introduced": "2.4.8-beta1", "last_affected": "2.4.8-beta1"}
+      ],
+      "reference": "https://helpx.adobe.com/security/products/magento/apsb25-08.html"
+    },
+    {
+      "id": "GHSA-6pxh-2557-5cj5",
+      "aliases": ["CVE-2024-39406"],
+      "summary": "Magento Open Source Path Traversal vulnerability",
+      "published": "2024-08-14",
+      "severity": "medium",
+      "package": "magento/product-community-edition",
+      "affected": [
+        {"introduced": "2.4.4", "fixed": "2.4.4-p10"},
+        {"introduced": "2.4.5", "last_affected": "2.4.5"},
+        {"introduced": "2.4.5-p1", "fixed": "2.4.5-p9"},
+        {"introduced": "2.4.6", "last_affected": "2.4.6"},
+        {"introduced": "2.4.6-p1", "fixed": "2.4.6-p7"},
+        {"introduced": "2.4.7", "last_affected": "2.4.7"},
+        {"introduced": "2.4.7-p1", "fixed": "2.4.7-p2"}
+      ],
+      "reference": "https://helpx.adobe.com/security/products/magento/apsb24-61.html"
+    },
+    {
+      "id": "GHSA-6w27-c66f-gvhq",
+      "aliases": ["CVE-2025-24430"],
+      "summary": "Magento Time-of-check Time-of-use (TOCTOU) Race Condition vulnerability",
+      "published": "2025-02-11",
+      "severity": "low",
+      "package": "magento/product-community-edition",
+      "affected": [
+        {"introduced": "2.4.4", "fixed": "2.4.4-p12"},
+        {"introduced": "2.4.5", "last_affected": "2.4.5"},
+        {"introduced": "2.4.5-p1", "fixed": "2.4.5-p11"},
+        {"introduced": "2.4.6", "last_affected": "2.4.6"},
+        {"introduced": "2.4.6-p1", "fixed": "2.4.6-p9"},
+        {"introduced": "2.4.7", "fixed": "2.4.7-p4"},
+        {"introduced": "2.4.8-beta1", "last_affected": "2.4.8-beta1"}
+      ],
+      "reference": "https://helpx.adobe.com/security/products/magento/apsb25-08.html"
+    },
+    {
+      "id": "GHSA-6wq7-cg9h-mj6q",
+      "aliases": ["CVE-2025-27190"],
+      "summary": "Magento Improper Access Control leads to Security feature bypass",
+      "published": "2025-04-08",
+      "severity": "medium",
+      "package": "magento/product-community-edition",
+      "affected": [
+        {"introduced": "2.4.4", "fixed": "2.4.4-p13"},
+        {"introduced": "2.4.5", "last_affected": "2.4.5"},
+        {"introduced": "2.4.5-p1", "fixed": "2.4.5-p12"},
+        {"introduced": "2.4.6", "last_affected": "2.4.6"},
+        {"introduced": "2.4.6-p1", "fixed": "2.4.6-p10"},
+        {"introduced": "2.4.7", "fixed": "2.4.7-p5"}
+      ],
+      "reference": "https://helpx.adobe.com/security/products/magento/apsb25-26.html"
+    },
+    {
+      "id": "GHSA-7472-vw39-g2j3",
+      "aliases": ["CVE-2024-39412"],
+      "summary": "Magento Open Source Improper Authorization vulnerability",
+      "published": "2024-08-14",
+      "severity": "medium",
+      "package": "magento/product-community-edition",
+      "affected": [
+        {"introduced": "2.4.4", "fixed": "2.4.4-p10"},
+        {"introduced": "2.4.5", "last_affected": "2.4.5"},
+        {"introduced": "2.4.5-p1", "fixed": "2.4.5-p9"},
+        {"introduced": "2.4.6", "last_affected": "2.4.6"},
+        {"introduced": "2.4.6-p1", "fixed": "2.4.6-p7"},
+        {"introduced": "2.4.7", "last_affected": "2.4.7"},
+        {"introduced": "2.4.7-p1", "fixed": "2.4.7-p2"}
+      ],
+      "reference": "https://helpx.adobe.com/security/products/magento/apsb24-61.html"
+    },
+    {
+      "id": "GHSA-74w7-cr4v-wf2v",
+      "aliases": ["CVE-2024-39419"],
+      "summary": "Magento Improper Access Control Leads to Privilege escalation",
+      "published": "2024-08-14",
+      "severity": "medium",
+      "package": "magento/product-community-edition",
+      "affected": [
+        {"introduced": "2.4.4", "fixed": "2.4.4-p10"},
+        {"introduced": "2.4.5", "last_affected": "2.4.5"},
+        {"introduced": "2.4.5-p1", "fixed": "2.4.5-p9"},
+        {"introduced": "2.4.6", "last_affected": "2.4.6"},
+        {"introduced": "2.4.6-p1", "fixed": "2.4.6-p7"},
+        {"introduced": "2.4.7", "fixed": "2.4.7-p2"}
+      ],
+      "reference": "https://helpx.adobe.com/security/products/magento/apsb24-61.html"
+    },
+    {
+      "id": "GHSA-7hrj-3c9x-xv5h",
+      "aliases": ["CVE-2025-49556"],
+      "summary": "Magento has incorrect authorization issue that leads to arbitrary file system read",
+      "published": "2025-08-12",
+      "severity": "high",
+      "package": "magento/product-community-edition",
+      "affected": [
+        {"introduced": "2.4.4", "fixed": "2.4.4-p15"},
+        {"introduced": "2.4.5", "fixed": "2.4.5-p14"},
+        {"introduced": "2.4.6", "last_affected": "2.4.6"},
+        {"introduced": "2.4.6-p1", "fixed": "2.4.6-p12"},
+        {"introduced": "2.4.7", "fixed": "2.4.7-p7"},
+        {"introduced": "2.4.8", "fixed": "2.4.8-p2"}
+      ],
+      "reference": "https://helpx.adobe.com/security/products/magento/apsb25-71.html"
+    },
+    {
+      "id": "GHSA-7jmr-43qj-pw47",
+      "aliases": ["CVE-2025-24432"],
+      "summary": "Magento Time-of-check Time-of-use (TOCTOU) Race Condition vulnerability",
+      "published": "2025-02-11",
+      "severity": "low",
+      "package": "magento/product-community-edition",
+      "affected": [
+        {"introduced": "2.4.4", "fixed": "2.4.4-p12"},
+        {"introduced": "2.4.5", "last_affected": "2.4.5"},
+        {"introduced": "2.4.5-p1", "fixed": "2.4.5-p11"},
+        {"introduced": "2.4.6", "last_affected": "2.4.6"},
+        {"introduced": "2.4.6-p1", "fixed": "2.4.6-p9"},
+        {"introduced": "2.4.7", "fixed": "2.4.7-p4"},
+        {"introduced": "2.4.8-beta1", "last_affected": "2.4.8-beta1"}
+      ],
+      "reference": "https://helpx.adobe.com/security/products/magento/apsb25-08.html"
+    },
+    {
+      "id": "GHSA-7pfc-834q-h497",
+      "aliases": ["CVE-2023-38251"],
+      "summary": "Magento Open Source allows Uncontrolled Resource Consumption",
+      "published": "2023-10-13",
+      "severity": "medium",
+      "package": "magento/product-community-edition",
+      "affected": [
+        {"introduced": "2.4.4", "last_affected": "2.4.4"},
+        {"introduced": "2.4.4-p1", "fixed": "2.4.4-p6"},
+        {"introduced": "2.4.5", "last_affected": "2.4.5"},
+        {"introduced": "2.4.5-p1", "fixed": "2.4.5-p5"},
+        {"introduced": "2.4.6", "last_affected": "2.4.6"},
+        {"introduced": "2.4.6-p1", "fixed": "2.4.6-p3"}
+      ],
+      "reference": "https://helpx.adobe.com/security/products/magento/apsb23-50.html"
+    },
+    {
+      "id": "GHSA-7r99-8wqp-h7pc",
+      "aliases": ["CVE-2024-39399"],
+      "summary": "Magento Path Traversal vulnerability",
+      "published": "2024-08-14",
+      "severity": "high",
+      "package": "magento/product-community-edition",
+      "affected": [
+        {"introduced": "2.4.4", "last_affected": "2.4.4"},
+        {"introduced": "2.4.4-p1", "fixed": "2.4.4-p10"},
+        {"introduced": "2.4.5", "last_affected": "2.4.5"},
+        {"introduced": "2.4.5-p1", "fixed": "2.4.5-p9"},
+        {"introduced": "2.4.6", "last_affected": "2.4.6"},
+        {"introduced": "2.4.6-p1", "fixed": "2.4.6-p7"},
+        {"introduced": "2.4.7", "fixed": "2.4.7-p2"}
+      ],
+      "reference": "https://helpx.adobe.com/security/products/magento/apsb24-61.html"
+    },
+    {
+      "id": "GHSA-82p4-55gj-956p",
+      "aliases": ["CVE-2025-24435"],
+      "summary": "Magento Improper Access Control vulnerability",
+      "published": "2025-02-11",
+      "severity": "medium",
+      "package": "magento/product-community-edition",
+      "affected": [
+        {"introduced": "2.4.4", "fixed": "2.4.4-p12"},
+        {"introduced": "2.4.5", "last_affected": "2.4.5"},
+        {"introduced": "2.4.5-p1", "fixed": "2.4.5-p11"},
+        {"introduced": "2.4.6", "last_affected": "2.4.6"},
+        {"introduced": "2.4.6-p1", "fixed": "2.4.6-p9"},
+        {"introduced": "2.4.7", "fixed": "2.4.7-p4"},
+        {"introduced": "2.4.8-beta1", "last_affected": "2.4.8-beta1"}
+      ],
+      "reference": "https://helpx.adobe.com/security/products/magento/apsb25-08.html"
+    },
+    {
+      "id": "GHSA-85jx-x9r4-45m2",
+      "aliases": ["CVE-2025-49549"],
+      "summary": "Magento Authenticated Security feature bypass",
+      "published": "2025-06-26",
+      "severity": "low",
+      "package": "magento/product-community-edition",
+      "affected": [
+        {"introduced": "2.4.4", "fixed": "2.4.4-p14"},
+        {"introduced": "2.4.5", "fixed": "2.4.5-p13"},
+        {"introduced": "2.4.6", "last_affected": "2.4.6"},
+        {"introduced": "2.4.6-p1", "fixed": "2.4.6-p11"},
+        {"introduced": "2.4.7", "fixed": "2.4.7-p6"},
+        {"introduced": "2.4.8", "last_affected": "2.4.8"}
+      ],
+      "reference": "https://helpx.adobe.com/security/products/magento/apsb25-50.html"
+    },
+    {
+      "id": "GHSA-85m4-g9vq-xpxj",
+      "aliases": ["CVE-2023-29287"],
+      "summary": "Magento Open Source allows Information Exposure",
+      "published": "2023-06-15",
+      "severity": "medium",
+      "package": "magento/product-community-edition",
+      "affected": [
+        {"introduced": "2.4.4", "last_affected": "2.4.4"},
+        {"introduced": "2.4.4-p1", "fixed": "2.4.4-p4"},
+        {"introduced": "2.4.5", "last_affected": "2.4.5"},
+        {"introduced": "2.4.5-p1", "fixed": "2.4.5-p3"},
+        {"introduced": "2.4.6", "last_affected": "2.4.6"}
+      ],
+      "reference": "https://helpx.adobe.com/security/products/magento/apsb23-35.html"
+    },
+    {
+      "id": "GHSA-873m-72g6-853g",
+      "aliases": ["CVE-2024-45116"],
+      "summary": "Magento Open Source Cross-Site Scripting (XSS) vulnerability",
+      "published": "2024-10-10",
+      "severity": "medium",
+      "package": "magento/product-community-edition",
+      "affected": [
+        {"introduced": "2.4.4", "fixed": "2.4.4-p11"},
+        {"introduced": "2.4.5", "last_affected": "2.4.5"},
+        {"introduced": "2.4.5-p1", "fixed": "2.4.5-p10"},
+        {"introduced": "2.4.6", "last_affected": "2.4.6"},
+        {"introduced": "2.4.6-p1", "fixed": "2.4.6-p8"},
+        {"introduced": "2.4.7", "fixed": "2.4.7-p3"}
+      ],
+      "reference": "https://helpx.adobe.com/security/products/magento/apsb24-73.html"
+    },
+    {
+      "id": "GHSA-8884-7rm9-mrx4",
+      "aliases": ["CVE-2025-24438"],
+      "summary": "Magento stored Cross-Site Scripting (XSS) vulnerability",
+      "published": "2025-02-11",
+      "severity": "high",
+      "package": "magento/product-community-edition",
+      "affected": [
+        {"introduced": "2.4.4", "fixed": "2.4.4-p12"},
+        {"introduced": "2.4.5", "last_affected": "2.4.5"},
+        {"introduced": "2.4.5-p1", "fixed": "2.4.5-p11"},
+        {"introduced": "2.4.6", "last_affected": "2.4.6"},
+        {"introduced": "2.4.6-p1", "fixed": "2.4.6-p9"},
+        {"introduced": "2.4.7", "fixed": "2.4.7-p4"},
+        {"introduced": "2.4.8-beta1", "last_affected": "2.4.8-beta1"}
+      ],
+      "reference": "https://helpx.adobe.com/security/products/magento/apsb25-08.html"
+    },
+    {
+      "id": "GHSA-88x2-cq34-5fwc",
+      "aliases": ["CVE-2024-45123"],
+      "summary": "Magento Open Source reflected Cross-Site Scripting (XSS) vulnerability",
+      "published": "2024-10-10",
+      "severity": "medium",
+      "package": "magento/product-community-edition",
+      "affected": [
+        {"introduced": "2.4.4", "fixed": "2.4.4-p11"},
+        {"introduced": "2.4.5", "last_affected": "2.4.5"},
+        {"introduced": "2.4.5-p1", "fixed": "2.4.5-p10"},
+        {"introduced": "2.4.6", "last_affected": "2.4.6"},
+        {"introduced": "2.4.6-p1", "fixed": "2.4.6-p8"},
+        {"introduced": "2.4.7", "fixed": "2.4.7-p3"}
+      ],
+      "reference": "https://helpx.adobe.com/security/products/magento/apsb24-73.html"
+    },
+    {
+      "id": "GHSA-8frp-pxq2-3gpq",
+      "aliases": ["CVE-2024-39401"],
+      "summary": "Magento OS Command ('OS Command Injection') vulnerability",
+      "published": "2024-08-14",
+      "severity": "high",
+      "package": "magento/product-community-edition",
+      "affected": [
+        {"introduced": "2.4.4", "last_affected": "2.4.4"},
+        {"introduced": "2.4.4-p1", "fixed": "2.4.4-p10"},
+        {"introduced": "2.4.5", "last_affected": "2.4.5"},
+        {"introduced": "2.4.5-p1", "fixed": "2.4.5-p9"},
+        {"introduced": "2.4.6", "last_affected": "2.4.6"},
+        {"introduced": "2.4.6-p1", "fixed": "2.4.6-p7"},
+        {"introduced": "2.4.7", "fixed": "2.4.7-p2"}
+      ],
+      "reference": "https://helpx.adobe.com/security/products/magento/apsb24-61.html"
+    },
+    {
+      "id": "GHSA-8hcx-xvww-6c6h",
+      "aliases": ["CVE-2025-49550"],
+      "summary": "Magento Security feature bypass",
+      "published": "2025-06-26",
+      "severity": "medium",
+      "package": "magento/product-community-edition",
+      "affected": [
+        {"introduced": "2.4.4", "fixed": "2.4.4-p14"},
+        {"introduced": "2.4.5", "fixed": "2.4.5-p13"},
+        {"introduced": "2.4.6", "last_affected": "2.4.6"},
+        {"introduced": "2.4.6-p1", "fixed": "2.4.6-p11"},
+        {"introduced": "2.4.7", "fixed": "2.4.7-p6"},
+        {"introduced": "2.4.8", "last_affected": "2.4.8"}
+      ],
+      "reference": "https://helpx.adobe.com/security/products/magento/apsb25-50.html"
+    },
+    {
+      "id": "GHSA-8jxc-5f94-22vh",
+      "aliases": ["CVE-2023-26366"],
+      "summary": "Magento Open Source allows Server-Side Request Forgery (SSRF)",
+      "published": "2023-10-13",
+      "severity": "medium",
+      "package": "magento/product-community-edition",
+      "affected": [
+        {"introduced": "2.4.4", "last_affected": "2.4.4"},
+        {"introduced": "2.4.4-p1", "fixed": "2.4.4-p6"},
+        {"introduced": "2.4.5", "last_affected": "2.4.5"},
+        {"introduced": "2.4.5-p1", "fixed": "2.4.5-p5"},
+        {"introduced": "2.4.6", "last_affected": "2.4.6"},
+        {"introduced": "2.4.6-p1", "fixed": "2.4.6-p3"}
+      ],
+      "reference": "https://helpx.adobe.com/security/products/magento/apsb23-50.html"
+    },
+    {
+      "id": "GHSA-8mq8-c243-2335",
+      "aliases": ["CVE-2025-49557"],
+      "summary": "Magento Cross-site Scripting vulnerability",
+      "published": "2025-08-12",
+      "severity": "high",
+      "package": "magento/product-community-edition",
+      "affected": [
+        {"introduced": "2.4.4", "fixed": "2.4.4-p15"},
+        {"introduced": "2.4.5-p1", "fixed": "2.4.5-p14"},
+        {"introduced": "2.4.6-p1", "fixed": "2.4.6-p12"},
+        {"introduced": "2.4.7-p1", "fixed": "2.4.7-p7"},
+        {"introduced": "2.4.8", "last_affected": "2.4.8"}
+      ],
+      "reference": "https://helpx.adobe.com/security/products/magento/apsb25-71.html"
+    },
+    {
+      "id": "GHSA-8pxg-gcp4-57ww",
+      "aliases": ["CVE-2024-45135"],
+      "summary": "Magento Open Source Improper Access Control vulnerability",
+      "published": "2024-10-10",
+      "severity": "medium",
+      "package": "magento/product-community-edition",
+      "affected": [
+        {"introduced": "2.4.4", "fixed": "2.4.4-p11"},
+        {"introduced": "2.4.5", "last_affected": "2.4.5"},
+        {"introduced": "2.4.5-p1", "fixed": "2.4.5-p10"},
+        {"introduced": "2.4.6", "last_affected": "2.4.6"},
+        {"introduced": "2.4.6-p1", "fixed": "2.4.6-p8"},
+        {"introduced": "2.4.7", "fixed": "2.4.7-p3"}
+      ],
+      "reference": "https://helpx.adobe.com/security/products/magento/apsb24-73.html"
+    },
+    {
+      "id": "GHSA-8w5f-8992-g86j",
+      "aliases": ["CVE-2024-39413"],
+      "summary": "Magento Improper Authorization vulnerability",
+      "published": "2024-08-14",
+      "severity": "medium",
+      "package": "magento/product-community-edition",
+      "affected": [
+        {"introduced": "2.4.4", "last_affected": "2.4.4"},
+        {"introduced": "2.4.4-p1", "fixed": "2.4.4-p10"},
+        {"introduced": "2.4.5", "last_affected": "2.4.5"},
+        {"introduced": "2.4.5-p1", "fixed": "2.4.5-p9"},
+        {"introduced": "2.4.6", "last_affected": "2.4.6"},
+        {"introduced": "2.4.6-p1", "fixed": "2.4.6-p7"},
+        {"introduced": "2.4.7", "fixed": "2.4.7-p2"}
+      ],
+      "reference": "https://helpx.adobe.com/security/products/magento/apsb24-61.html"
+    },
+    {
+      "id": "GHSA-954p-ff72-327w",
+      "aliases": ["CVE-2025-24406"],
+      "summary": "Adobe Commerce Path Traversal",
+      "published": "2025-02-11",
+      "severity": "high",
+      "package": "magento/product-community-edition",
+      "affected": [
+        {"introduced": "2.4.4", "fixed": "2.4.4-p12"},
+        {"introduced": "2.4.5", "last_affected": "2.4.5"},
+        {"introduced": "2.4.5-p1", "fixed": "2.4.5-p11"},
+        {"introduced": "2.4.6", "last_affected": "2.4.6"},
+        {"introduced": "2.4.6-p1", "fixed": "2.4.6-p9"},
+        {"introduced": "2.4.7", "fixed": "2.4.7-p4"},
+        {"introduced": "2.4.8-beta1", "last_affected": "2.4.8-beta1"}
+      ],
+      "reference": "https://helpx.adobe.com/security/products/magento/apsb25-08.html"
+    },
+    {
+      "id": "GHSA-9mx6-4gg4-85xj",
+      "aliases": ["CVE-2023-26367"],
+      "summary": "Magento Open Source has Improper Input Validation Vulnerability",
+      "published": "2023-10-13",
+      "severity": "medium",
+      "package": "magento/product-community-edition",
+      "affected": [
+        {"introduced": "2.4.4", "last_affected": "2.4.4"},
+        {"introduced": "2.4.4-p1", "fixed": "2.4.4-p6"},
+        {"introduced": "2.4.5", "last_affected": "2.4.5"},
+        {"introduced": "2.4.5-p1", "fixed": "2.4.5-p5"},
+        {"introduced": "2.4.6", "last_affected": "2.4.6"},
+        {"introduced": "2.4.6-p1", "fixed": "2.4.6-p3"}
+      ],
+      "reference": "https://helpx.adobe.com/security/products/magento/apsb23-50.html"
+    },
+    {
+      "id": "GHSA-9wjf-94h3-r4rh",
+      "aliases": ["CVE-2022-34259"],
+      "summary": "Magento Improper Access Control vulnerability",
+      "published": "2022-08-17",
+      "severity": "medium",
+      "package": "magento/product-community-edition",
+      "affected": [
+        {"introduced": "2.4.4", "fixed": "2.4.4-p1"}
+      ],
+      "reference": "https://helpx.adobe.com/security/products/magento/apsb22-38.html"
+    },
+    {
+      "id": "GHSA-c89g-gq5r-2xw2",
+      "aliases": ["CVE-2024-45127"],
+      "summary": "Magento Open Source stored Cross-Site Scripting (XSS) vulnerability",
+      "published": "2024-10-10",
+      "severity": "medium",
+      "package": "magento/product-community-edition",
+      "affected": [
+        {"introduced": "2.4.4", "fixed": "2.4.4-p11"},
+        {"introduced": "2.4.5", "last_affected": "2.4.5"},
+        {"introduced": "2.4.5-p1", "fixed": "2.4.5-p10"},
+        {"introduced": "2.4.6", "last_affected": "2.4.6"},
+        {"introduced": "2.4.6-p1", "fixed": "2.4.6-p8"},
+        {"introduced": "2.4.7", "fixed": "2.4.7-p3"}
+      ],
+      "reference": "https://helpx.adobe.com/security/products/magento/apsb24-73.html"
+    },
+    {
+      "id": "GHSA-c9h9-h5gf-885r",
+      "aliases": ["CVE-2024-20716"],
+      "summary": "Magento Open Source allows Uncontrolled Resource Consumption",
+      "published": "2024-02-15",
+      "severity": "medium",
+      "package": "magento/product-community-edition",
+      "affected": [
+        {"introduced": "2.4.4", "last_affected": "2.4.4"},
+        {"introduced": "2.4.4-p1", "fixed": "2.4.4-p7"},
+        {"introduced": "2.4.5", "last_affected": "2.4.5"},
+        {"introduced": "2.4.5-p1", "fixed": "2.4.5-p6"},
+        {"introduced": "2.4.6", "last_affected": "2.4.6"},
+        {"introduced": "2.4.6-p1", "fixed": "2.4.6-p4"}
+      ],
+      "reference": "https://helpx.adobe.com/security/products/magento/apsb24-03.html"
+    },
+    {
+      "id": "GHSA-cg52-68fv-94qq",
+      "aliases": ["CVE-2024-45118"],
+      "summary": "Magento Open Source Improper Access Control vulnerability",
+      "published": "2024-10-10",
+      "severity": "high",
+      "package": "magento/product-community-edition",
+      "affected": [
+        {"introduced": "2.4.4", "fixed": "2.4.4-p11"},
+        {"introduced": "2.4.5", "last_affected": "2.4.5"},
+        {"introduced": "2.4.5-p1", "fixed": "2.4.5-p10"},
+        {"introduced": "2.4.6", "last_affected": "2.4.6"},
+        {"introduced": "2.4.6-p1", "fixed": "2.4.6-p8"},
+        {"introduced": "2.4.7", "fixed": "2.4.7-p3"}
+      ],
+      "reference": "https://helpx.adobe.com/security/products/magento/apsb24-73.html"
+    },
+    {
+      "id": "GHSA-cj7w-pm77-hvg6",
+      "aliases": ["CVE-2022-34253"],
+      "summary": "Magento XML Injection vulnerability in the Widgets Module",
+      "published": "2022-08-17",
+      "severity": "critical",
+      "package": "magento/product-community-edition",
+      "affected": [
+        {"introduced": "2.4.4", "fixed": "2.4.4-p1"}
+      ],
+      "reference": "https://helpx.adobe.com/security/products/magento/apsb22-38.html"
+    },
+    {
+      "id": "GHSA-cjm6-8mw8-2f8c",
+      "aliases": ["CVE-2024-39407"],
+      "summary": "Magento Improper Authorization vulnerability",
+      "published": "2024-08-14",
+      "severity": "medium",
+      "package": "magento/product-community-edition",
+      "affected": [
+        {"introduced": "2.4.4", "last_affected": "2.4.4"},
+        {"introduced": "2.4.4-p1", "fixed": "2.4.4-p10"},
+        {"introduced": "2.4.5", "last_affected": "2.4.5"},
+        {"introduced": "2.4.5-p1", "fixed": "2.4.5-p9"},
+        {"introduced": "2.4.6", "last_affected": "2.4.6"},
+        {"introduced": "2.4.6-p1", "fixed": "2.4.6-p7"},
+        {"introduced": "2.4.7", "fixed": "2.4.7-p2"}
+      ],
+      "reference": "https://helpx.adobe.com/security/products/magento/apsb24-61.html"
+    },
+    {
+      "id": "GHSA-f7q4-9gwv-6774",
+      "aliases": ["CVE-2024-34103"],
+      "summary": "Magento Open Source Improper Authentication vulnerability",
       "published": "2024-06-13",
       "severity": "critical",
       "package": "magento/product-community-edition",
       "affected": [
-        {"introduced": "2.4.4", "fixed": "2.4.4-p10"},
-        {"introduced": "2.4.5", "fixed": "2.4.5-p9"},
-        {"introduced": "2.4.6", "fixed": "2.4.6-p7"},
-        {"introduced": "2.4.7", "fixed": "2.4.7-p2"}
+        {"introduced": "2.4.4", "fixed": "2.4.4-p9"},
+        {"introduced": "2.4.5", "last_affected": "2.4.5"},
+        {"introduced": "2.4.5-p1", "fixed": "2.4.5-p8"},
+        {"introduced": "2.4.6", "last_affected": "2.4.6"},
+        {"introduced": "2.4.6-p1", "fixed": "2.4.6-p6"},
+        {"introduced": "2.4.7", "last_affected": "2.4.7"}
       ],
       "reference": "https://helpx.adobe.com/security/products/magento/apsb24-40.html"
     },
     {
-      "id": "GHSA-rxhq-mr27-r3w8",
-      "aliases": ["CVE-2024-39397"],
-      "summary": "Adobe Commerce / Magento Open Source improper input validation leading to arbitrary code execution.",
-      "published": "2024-06-11",
-      "severity": "critical",
+      "id": "GHSA-f989-3fp9-q3r2",
+      "aliases": ["CVE-2023-29288"],
+      "summary": "Magento Open Source allows Incorrect Authorization",
+      "published": "2023-06-15",
+      "severity": "medium",
       "package": "magento/product-community-edition",
       "affected": [
-        {"introduced": "2.4.4", "fixed": "2.4.4-p10"},
-        {"introduced": "2.4.5", "fixed": "2.4.5-p9"},
-        {"introduced": "2.4.6", "fixed": "2.4.6-p7"},
-        {"introduced": "2.4.7", "fixed": "2.4.7-p2"}
+        {"introduced": "2.4.4", "last_affected": "2.4.4"},
+        {"introduced": "2.4.4-p1", "fixed": "2.4.4-p4"},
+        {"introduced": "2.4.5", "last_affected": "2.4.5"},
+        {"introduced": "2.4.5-p1", "fixed": "2.4.5-p3"},
+        {"introduced": "2.4.6", "last_affected": "2.4.6"}
       ],
-      "reference": "https://helpx.adobe.com/security/products/magento/apsb24-40.html"
+      "reference": "https://helpx.adobe.com/security/products/magento/apsb23-35.html"
     },
     {
-      "id": "GHSA-x8w2-6541-xfqx",
-      "aliases": ["CVE-2024-45115"],
-      "summary": "Adobe Commerce improper authentication leading to privilege escalation.",
-      "published": "2024-09-10",
-      "severity": "critical",
-      "package": "magento/product-community-edition",
-      "affected": [
-        {"introduced": "2.4.4", "fixed": "2.4.4-p11"},
-        {"introduced": "2.4.5", "fixed": "2.4.5-p10"},
-        {"introduced": "2.4.6", "fixed": "2.4.6-p8"},
-        {"introduced": "2.4.7", "fixed": "2.4.7-p3"}
-      ],
-      "reference": "https://helpx.adobe.com/security/products/magento/apsb24-73.html"
-    },
-    {
-      "id": "GHSA-q5h5-83gc-7q67",
-      "aliases": ["CVE-2024-45116"],
-      "summary": "Adobe Commerce improper input validation leading to security feature bypass.",
-      "published": "2024-09-10",
+      "id": "GHSA-fhw6-3mj5-w9gv",
+      "aliases": ["CVE-2025-24414"],
+      "summary": "Magento Stored Cross-Site Scripting (XSS) Vulnerability",
+      "published": "2025-02-11",
       "severity": "high",
       "package": "magento/product-community-edition",
       "affected": [
-        {"introduced": "2.4.4", "fixed": "2.4.4-p11"},
-        {"introduced": "2.4.5", "fixed": "2.4.5-p10"},
-        {"introduced": "2.4.6", "fixed": "2.4.6-p8"},
-        {"introduced": "2.4.7", "fixed": "2.4.7-p3"}
+        {"introduced": "2.4.4", "fixed": "2.4.4-p12"},
+        {"introduced": "2.4.5", "last_affected": "2.4.5"},
+        {"introduced": "2.4.5-p1", "fixed": "2.4.5-p11"},
+        {"introduced": "2.4.6", "last_affected": "2.4.6"},
+        {"introduced": "2.4.6-p1", "fixed": "2.4.6-p9"},
+        {"introduced": "2.4.7", "fixed": "2.4.7-p4"},
+        {"introduced": "2.4.8-beta1", "last_affected": "2.4.8-beta1"}
       ],
-      "reference": "https://helpx.adobe.com/security/products/magento/apsb24-73.html"
+      "reference": "https://helpx.adobe.com/security/products/magento/apsb25-08.html"
     },
     {
-      "id": "GHSA-3v9p-2vqx-hc7f",
+      "id": "GHSA-fppq-f2m6-xv5c",
       "aliases": ["CVE-2025-24434"],
-      "summary": "Adobe Commerce improper authorization leading to security feature bypass.",
-      "published": "2025-02-13",
-      "severity": "high",
-      "package": "magento/product-community-edition",
-      "affected": [
-        {"introduced": "2.4.4", "fixed": "2.4.4-p12"},
-        {"introduced": "2.4.5", "fixed": "2.4.5-p11"},
-        {"introduced": "2.4.6", "fixed": "2.4.6-p10"},
-        {"introduced": "2.4.7", "fixed": "2.4.7-p4"}
-      ],
-      "reference": "https://helpx.adobe.com/security/products/magento/apsb25-08.html"
-    },
-    {
-      "id": "GHSA-9w4f-mvgp-q5cv",
-      "aliases": ["CVE-2025-24435"],
-      "summary": "Adobe Commerce stored cross-site scripting via the admin storefront preview.",
-      "published": "2025-02-13",
-      "severity": "high",
-      "package": "magento/product-community-edition",
-      "affected": [
-        {"introduced": "2.4.4", "fixed": "2.4.4-p12"},
-        {"introduced": "2.4.5", "fixed": "2.4.5-p11"},
-        {"introduced": "2.4.6", "fixed": "2.4.6-p10"},
-        {"introduced": "2.4.7", "fixed": "2.4.7-p4"}
-      ],
-      "reference": "https://helpx.adobe.com/security/products/magento/apsb25-08.html"
-    },
-    {
-      "id": "GHSA-7p8g-7hjx-frgw",
-      "aliases": ["CVE-2022-24407"],
-      "summary": "Cyrus SASL allows SQL injection via crafted authentication usernames; affects libsasl bundled with the Magento sandbox image.",
-      "published": "2022-02-24",
-      "severity": "high",
-      "package": "magento/framework",
-      "affected": [
-        {"introduced": "0", "fixed": "103.0.6"}
-      ],
-      "reference": "https://github.com/cyrusimap/cyrus-sasl/security/advisories/GHSA-7p8g-7hjx-frgw"
-    },
-    {
-      "id": "GHSA-66cv-x39m-c2fr",
-      "aliases": ["CVE-2024-3596"],
-      "summary": "Blast-RADIUS protocol-level forgery in RADIUS shared-secret authentication used by some Magento auth integrations.",
-      "published": "2024-07-09",
-      "severity": "high",
-      "package": "magento/framework",
-      "affected": [
-        {"introduced": "0", "fixed": "103.0.7"}
-      ],
-      "reference": "https://www.blastradius.fail/"
-    },
-    {
-      "id": "GHSA-7c6p-848j-wh5h",
-      "aliases": ["CVE-2024-2961"],
-      "summary": "glibc iconv ISO-2022-CN-EXT out-of-bounds write usable for RCE via Magento image-processing pipeline.",
-      "published": "2024-04-17",
+      "summary": "Improper Authorization vulnerability in Magento and Adobe Commerce",
+      "published": "2025-02-11",
       "severity": "critical",
-      "package": "magento/framework",
+      "package": "magento/product-community-edition",
       "affected": [
-        {"introduced": "0", "fixed": "103.0.7"}
+        {"introduced": "2.4.4", "fixed": "2.4.4-p12"},
+        {"introduced": "2.4.5-p1", "fixed": "2.4.5-p11"},
+        {"introduced": "2.4.6-p1", "fixed": "2.4.6-p9"},
+        {"introduced": "2.4.7", "fixed": "2.4.7-p4"}
       ],
-      "reference": "https://www.openwall.com/lists/oss-security/2024/04/17/9"
+      "reference": "https://helpx.adobe.com/security/products/magento/apsb25-08.html"
     },
     {
-      "id": "GHSA-vrcq-92fg-9wxf",
-      "aliases": ["CVE-2024-35202"],
-      "summary": "OpenSearch / Elasticsearch query DSL injection in Magento catalog search integration.",
-      "published": "2024-05-29",
-      "severity": "medium",
-      "package": "magento/module-elasticsearch",
+      "id": "GHSA-fx9g-g9q6-x3jx",
+      "aliases": ["CVE-2022-34254"],
+      "summary": "Magento Path Traversal vulnerability",
+      "published": "2022-08-17",
+      "severity": "high",
+      "package": "magento/product-community-edition",
       "affected": [
-        {"introduced": "0", "fixed": "101.0.10"}
+        {"introduced": "2.4.4", "fixed": "2.4.4-p1"}
+      ],
+      "reference": "https://helpx.adobe.com/security/products/magento/apsb22-38.html"
+    },
+    {
+      "id": "GHSA-fxcr-gvcw-hmqm",
+      "aliases": ["CVE-2023-22249"],
+      "summary": "Magento Open Source allows Cross-Site Scripting (XSS)",
+      "published": "2023-07-06",
+      "severity": "low",
+      "package": "magento/product-community-edition",
+      "affected": [
+        {"introduced": "2.4.4", "last_affected": "2.4.4"},
+        {"introduced": "2.4.4-p1", "last_affected": "2.4.4-p2"},
+        {"introduced": "2.4.5", "last_affected": "2.4.5"},
+        {"introduced": "2.4.5-p1", "last_affected": "2.4.5-p1"}
+      ],
+      "reference": "https://helpx.adobe.com/security/products/magento/apsb23-17.html"
+    },
+    {
+      "id": "GHSA-g2pj-xmxq-3r9q",
+      "aliases": ["CVE-2025-27206"],
+      "summary": "Magento Improper Access Control leads to security feature bypass",
+      "published": "2025-06-10",
+      "severity": "medium",
+      "package": "magento/product-community-edition",
+      "affected": [
+        {"introduced": "2.4.4", "fixed": "2.4.4-p14"},
+        {"introduced": "2.4.5", "fixed": "2.4.5-p13"},
+        {"introduced": "2.4.6", "last_affected": "2.4.6"},
+        {"introduced": "2.4.6-p1", "fixed": "2.4.6-p11"},
+        {"introduced": "2.4.7", "fixed": "2.4.7-p6"},
+        {"introduced": "2.4.8", "last_affected": "2.4.8"}
+      ],
+      "reference": "https://helpx.adobe.com/security/products/magento/apsb25-50.html"
+    },
+    {
+      "id": "GHSA-g3j6-9753-8mp2",
+      "aliases": ["CVE-2025-24417"],
+      "summary": "Magento Stored Cross-Site Scripting (XSS) Vulnerability",
+      "published": "2025-02-11",
+      "severity": "high",
+      "package": "magento/product-community-edition",
+      "affected": [
+        {"introduced": "2.4.4", "fixed": "2.4.4-p12"},
+        {"introduced": "2.4.5", "last_affected": "2.4.5"},
+        {"introduced": "2.4.5-p1", "fixed": "2.4.5-p11"},
+        {"introduced": "2.4.6", "last_affected": "2.4.6"},
+        {"introduced": "2.4.6-p1", "fixed": "2.4.6-p9"},
+        {"introduced": "2.4.7", "fixed": "2.4.7-p4"},
+        {"introduced": "2.4.8-beta1", "last_affected": "2.4.8-beta1"}
+      ],
+      "reference": "https://helpx.adobe.com/security/products/magento/apsb25-08.html"
+    },
+    {
+      "id": "GHSA-g9fm-wc6h-pvgj",
+      "aliases": ["CVE-2024-45119"],
+      "summary": "Magento Open Source Server-Side Request Forgery (SSRF) vulnerability",
+      "published": "2024-10-10",
+      "severity": "medium",
+      "package": "magento/product-community-edition",
+      "affected": [
+        {"introduced": "2.4.4", "fixed": "2.4.4-p11"},
+        {"introduced": "2.4.5", "last_affected": "2.4.5"},
+        {"introduced": "2.4.5-p1", "fixed": "2.4.5-p10"},
+        {"introduced": "2.4.6", "last_affected": "2.4.6"},
+        {"introduced": "2.4.6-p1", "fixed": "2.4.6-p8"},
+        {"introduced": "2.4.7", "fixed": "2.4.7-p3"}
+      ],
+      "reference": "https://helpx.adobe.com/security/products/magento/apsb24-73.html"
+    },
+    {
+      "id": "GHSA-gc27-rvvm-q77r",
+      "aliases": ["CVE-2025-24415"],
+      "summary": "Magento Stored Cross-Site Scripting (XSS) Vulnerability",
+      "published": "2025-02-11",
+      "severity": "high",
+      "package": "magento/product-community-edition",
+      "affected": [
+        {"introduced": "2.4.4", "fixed": "2.4.4-p12"},
+        {"introduced": "2.4.5", "last_affected": "2.4.5"},
+        {"introduced": "2.4.5-p1", "fixed": "2.4.5-p11"},
+        {"introduced": "2.4.6", "last_affected": "2.4.6"},
+        {"introduced": "2.4.6-p1", "fixed": "2.4.6-p9"},
+        {"introduced": "2.4.7", "fixed": "2.4.7-p4"},
+        {"introduced": "2.4.8-beta1", "last_affected": "2.4.8-beta1"}
+      ],
+      "reference": "https://helpx.adobe.com/security/products/magento/apsb25-08.html"
+    },
+    {
+      "id": "GHSA-gfmm-ww6f-5mm5",
+      "aliases": ["CVE-2023-29297"],
+      "summary": "Magento Open Source allows Improper Neutralization of Special Elements Used",
+      "published": "2023-06-15",
+      "severity": "high",
+      "package": "magento/product-community-edition",
+      "affected": [
+        {"introduced": "2.4.4", "last_affected": "2.4.4"},
+        {"introduced": "2.4.4-p1", "fixed": "2.4.4-p4"},
+        {"introduced": "2.4.5", "last_affected": "2.4.5"},
+        {"introduced": "2.4.5-p1", "fixed": "2.4.5-p3"},
+        {"introduced": "2.4.6", "last_affected": "2.4.6"}
+      ],
+      "reference": "https://helpx.adobe.com/security/products/magento/apsb23-35.html"
+    },
+    {
+      "id": "GHSA-ggr8-3hwx-4f2m",
+      "aliases": ["CVE-2023-38221"],
+      "summary": "Magento Open Source allows SQL Injection",
+      "published": "2023-10-13",
+      "severity": "medium",
+      "package": "magento/product-community-edition",
+      "affected": [
+        {"introduced": "2.4.4", "last_affected": "2.4.4"},
+        {"introduced": "2.4.4-p1", "fixed": "2.4.4-p6"},
+        {"introduced": "2.4.5", "last_affected": "2.4.5"},
+        {"introduced": "2.4.5-p1", "fixed": "2.4.5-p5"},
+        {"introduced": "2.4.6", "last_affected": "2.4.6"},
+        {"introduced": "2.4.6-p1", "fixed": "2.4.6-p3"}
+      ],
+      "reference": "https://helpx.adobe.com/security/products/magento/apsb23-50.html"
+    },
+    {
+      "id": "GHSA-ghpr-6qhr-rpp8",
+      "aliases": ["CVE-2025-24436"],
+      "summary": "Magento Improper Access Control vulnerability",
+      "published": "2025-02-11",
+      "severity": "medium",
+      "package": "magento/product-community-edition",
+      "affected": [
+        {"introduced": "2.4.4", "fixed": "2.4.4-p12"},
+        {"introduced": "2.4.5", "last_affected": "2.4.5"},
+        {"introduced": "2.4.5-p1", "fixed": "2.4.5-p11"},
+        {"introduced": "2.4.6", "last_affected": "2.4.6"},
+        {"introduced": "2.4.6-p1", "fixed": "2.4.6-p9"},
+        {"introduced": "2.4.7", "fixed": "2.4.7-p4"},
+        {"introduced": "2.4.8-beta1", "last_affected": "2.4.8-beta1"}
+      ],
+      "reference": "https://helpx.adobe.com/security/products/magento/apsb25-08.html"
+    },
+    {
+      "id": "GHSA-gj93-84g5-mcjq",
+      "aliases": ["CVE-2024-39415"],
+      "summary": "Magento Improper Authorization Leading to Security feature bypass",
+      "published": "2024-08-14",
+      "severity": "medium",
+      "package": "magento/product-community-edition",
+      "affected": [
+        {"introduced": "2.4.4", "fixed": "2.4.4-p10"},
+        {"introduced": "2.4.5", "last_affected": "2.4.5"},
+        {"introduced": "2.4.5-p1", "fixed": "2.4.5-p9"},
+        {"introduced": "2.4.6", "last_affected": "2.4.6"},
+        {"introduced": "2.4.6-p1", "fixed": "2.4.6-p7"},
+        {"introduced": "2.4.7", "fixed": "2.4.7-p2"}
+      ],
+      "reference": "https://helpx.adobe.com/security/products/magento/apsb24-61.html"
+    },
+    {
+      "id": "GHSA-gjxp-46rq-wg4q",
+      "aliases": ["CVE-2025-24410"],
+      "summary": "Magento Stored Cross-Site Scripting (XSS) Vulnerability",
+      "published": "2025-02-11",
+      "severity": "high",
+      "package": "magento/product-community-edition",
+      "affected": [
+        {"introduced": "2.4.4", "fixed": "2.4.4-p12"},
+        {"introduced": "2.4.5", "last_affected": "2.4.5"},
+        {"introduced": "2.4.5-p1", "fixed": "2.4.5-p11"},
+        {"introduced": "2.4.6", "last_affected": "2.4.6"},
+        {"introduced": "2.4.6-p1", "fixed": "2.4.6-p9"},
+        {"introduced": "2.4.7", "fixed": "2.4.7-p4"},
+        {"introduced": "2.4.8-beta1", "last_affected": "2.4.8-beta1"}
+      ],
+      "reference": "https://helpx.adobe.com/security/products/magento/apsb25-08.html"
+    },
+    {
+      "id": "GHSA-gm4m-9rm8-7rxj",
+      "aliases": ["CVE-2022-35692"],
+      "summary": "Magento Open Source has Improper Access Control vulnerability",
+      "published": "2022-08-20",
+      "severity": "medium",
+      "package": "magento/product-community-edition",
+      "affected": [
+        {"introduced": "2.4.4", "last_affected": "2.4.4"}
+      ],
+      "reference": "https://helpx.adobe.com/security/products/magento/apsb22-38.html"
+    },
+    {
+      "id": "GHSA-grc6-r6f8-xj7c",
+      "aliases": ["CVE-2023-38220"],
+      "summary": "Magento Open Source allows Improper Authorization",
+      "published": "2023-10-13",
+      "severity": "medium",
+      "package": "magento/product-community-edition",
+      "affected": [
+        {"introduced": "2.4.4", "last_affected": "2.4.4"},
+        {"introduced": "2.4.4-p1", "fixed": "2.4.4-p6"},
+        {"introduced": "2.4.5", "last_affected": "2.4.5"},
+        {"introduced": "2.4.5-p1", "fixed": "2.4.5-p5"},
+        {"introduced": "2.4.6", "last_affected": "2.4.6"},
+        {"introduced": "2.4.6-p1", "fixed": "2.4.6-p3"}
+      ],
+      "reference": "https://helpx.adobe.com/security/products/magento/apsb23-50.html"
+    },
+    {
+      "id": "GHSA-gvgf-pvh5-vjh4",
+      "aliases": ["CVE-2024-39418"],
+      "summary": "Magento Improper Authorization vulnerability",
+      "published": "2024-08-14",
+      "severity": "medium",
+      "package": "magento/product-community-edition",
+      "affected": [
+        {"introduced": "2.4.4", "last_affected": "2.4.4"},
+        {"introduced": "2.4.4-p1", "fixed": "2.4.4-p10"},
+        {"introduced": "2.4.5", "last_affected": "2.4.5"},
+        {"introduced": "2.4.5-p1", "fixed": "2.4.5-p9"},
+        {"introduced": "2.4.6", "last_affected": "2.4.6"},
+        {"introduced": "2.4.6-p1", "fixed": "2.4.6-p7"},
+        {"introduced": "2.4.7", "fixed": "2.4.7-p2"}
+      ],
+      "reference": "https://helpx.adobe.com/security/products/magento/apsb24-61.html"
+    },
+    {
+      "id": "GHSA-h3g9-cwr6-hphx",
+      "aliases": ["CVE-2023-38250"],
+      "summary": "Magento Open Source allows SQL Injection",
+      "published": "2023-10-13",
+      "severity": "medium",
+      "package": "magento/product-community-edition",
+      "affected": [
+        {"introduced": "2.4.4", "last_affected": "2.4.4"},
+        {"introduced": "2.4.4-p1", "fixed": "2.4.4-p6"},
+        {"introduced": "2.4.5", "last_affected": "2.4.5"},
+        {"introduced": "2.4.5-p1", "fixed": "2.4.5-p5"},
+        {"introduced": "2.4.6", "last_affected": "2.4.6"},
+        {"introduced": "2.4.6-p1", "fixed": "2.4.6-p3"}
+      ],
+      "reference": "https://helpx.adobe.com/security/products/magento/apsb23-50.html"
+    },
+    {
+      "id": "GHSA-h4f4-gv6h-x824",
+      "aliases": ["CVE-2025-49559"],
+      "summary": "Magento vulnerable to path traversal",
+      "published": "2025-08-12",
+      "severity": "medium",
+      "package": "magento/product-community-edition",
+      "affected": [
+        {"introduced": "2.4.4", "fixed": "2.4.4-p15"},
+        {"introduced": "2.4.5", "fixed": "2.4.5-p14"},
+        {"introduced": "2.4.6", "last_affected": "2.4.6"},
+        {"introduced": "2.4.6-p1", "fixed": "2.4.6-p12"},
+        {"introduced": "2.4.7", "fixed": "2.4.7-p7"},
+        {"introduced": "2.4.8", "fixed": "2.4.8-p2"}
+      ],
+      "reference": "https://helpx.adobe.com/security/products/magento/apsb25-71.html"
+    },
+    {
+      "id": "GHSA-hqgj-4396-hmxv",
+      "aliases": ["CVE-2024-20718"],
+      "summary": "Magento Open Source allows Cross-Site Request Forgery (CSRF)",
+      "published": "2024-02-15",
+      "severity": "medium",
+      "package": "magento/product-community-edition",
+      "affected": [
+        {"introduced": "2.4.4", "last_affected": "2.4.4"},
+        {"introduced": "2.4.4-p1", "fixed": "2.4.4-p7"},
+        {"introduced": "2.4.5", "last_affected": "2.4.5"},
+        {"introduced": "2.4.5-p1", "fixed": "2.4.5-p6"},
+        {"introduced": "2.4.6", "last_affected": "2.4.6"},
+        {"introduced": "2.4.6-p1", "fixed": "2.4.6-p4"}
+      ],
+      "reference": "https://helpx.adobe.com/security/products/magento/apsb24-03.html"
+    },
+    {
+      "id": "GHSA-j3mh-wx5f-2vhg",
+      "aliases": ["CVE-2024-45133"],
+      "summary": "Magento Open Source Information Exposure vulnerability",
+      "published": "2024-10-10",
+      "severity": "medium",
+      "package": "magento/product-community-edition",
+      "affected": [
+        {"introduced": "2.4.4", "fixed": "2.4.4-p11"},
+        {"introduced": "2.4.5", "last_affected": "2.4.5"},
+        {"introduced": "2.4.5-p1", "fixed": "2.4.5-p10"},
+        {"introduced": "2.4.6", "last_affected": "2.4.6"},
+        {"introduced": "2.4.6-p1", "fixed": "2.4.6-p8"},
+        {"introduced": "2.4.7", "fixed": "2.4.7-p3"}
+      ],
+      "reference": "https://helpx.adobe.com/security/products/magento/apsb24-73.html"
+    },
+    {
+      "id": "GHSA-j934-vjh5-vf9r",
+      "aliases": ["CVE-2025-47110"],
+      "summary": "Magneto contains stored XSS vulnerability",
+      "published": "2025-06-10",
+      "severity": "critical",
+      "package": "magento/product-community-edition",
+      "affected": [
+        {"introduced": "2.4.4", "fixed": "2.4.4-p14"},
+        {"introduced": "2.4.5", "fixed": "2.4.5-p13"},
+        {"introduced": "2.4.6", "last_affected": "2.4.6"},
+        {"introduced": "2.4.6-p1", "fixed": "2.4.6-p11"},
+        {"introduced": "2.4.7", "fixed": "2.4.7-p6"},
+        {"introduced": "2.4.8", "fixed": "2.4.8-p1"}
+      ],
+      "reference": "https://helpx.adobe.com/security/products/magento/apsb25-50.html"
+    },
+    {
+      "id": "GHSA-jmqp-r3gg-6jh3",
+      "aliases": ["CVE-2024-34111"],
+      "summary": "Magento Open Source Server-Side Request Forgery (SSRF) vulnerability",
+      "published": "2024-06-13",
+      "severity": "medium",
+      "package": "magento/product-community-edition",
+      "affected": [
+        {"introduced": "2.4.4", "fixed": "2.4.4-p9"},
+        {"introduced": "2.4.5", "last_affected": "2.4.5"},
+        {"introduced": "2.4.5-p1", "fixed": "2.4.5-p8"},
+        {"introduced": "2.4.6", "last_affected": "2.4.6"},
+        {"introduced": "2.4.6-p1", "fixed": "2.4.6-p6"},
+        {"introduced": "2.4.7", "last_affected": "2.4.7"}
       ],
       "reference": "https://helpx.adobe.com/security/products/magento/apsb24-40.html"
     },
     {
-      "id": "GHSA-q8c2-hqj4-65hh",
-      "aliases": ["CVE-2024-21412"],
-      "summary": "Symfony HttpKernel cache-poisoning via X-Forwarded headers; reachable from Magento's Symfony components.",
-      "published": "2024-03-19",
+      "id": "GHSA-m4rg-mpp2-97px",
+      "aliases": ["CVE-2025-24412"],
+      "summary": "Magento Stored Cross-Site Scripting (XSS) Vulnerability",
+      "published": "2025-02-11",
       "severity": "high",
-      "package": "symfony/http-kernel",
+      "package": "magento/product-community-edition",
       "affected": [
-        {"introduced": "0", "fixed": "5.4.21"},
-        {"introduced": "6.0.0", "fixed": "6.2.7"}
+        {"introduced": "2.4.4", "fixed": "2.4.4-p12"},
+        {"introduced": "2.4.5", "last_affected": "2.4.5"},
+        {"introduced": "2.4.5-p1", "fixed": "2.4.5-p11"},
+        {"introduced": "2.4.6", "last_affected": "2.4.6"},
+        {"introduced": "2.4.6-p1", "fixed": "2.4.6-p9"},
+        {"introduced": "2.4.7", "fixed": "2.4.7-p4"},
+        {"introduced": "2.4.8-beta1", "last_affected": "2.4.8-beta1"}
       ],
-      "reference": "https://symfony.com/blog/cve-2024-21412"
+      "reference": "https://helpx.adobe.com/security/products/magento/apsb25-08.html"
     },
     {
-      "id": "GHSA-q4cw-r764-w3hp",
-      "aliases": ["CVE-2023-46734"],
-      "summary": "Symfony Validator URL-validator regex SSRF in user-supplied URLs.",
-      "published": "2023-11-20",
+      "id": "GHSA-m58h-998x-66f3",
+      "aliases": ["CVE-2024-45129"],
+      "summary": "Magento Open Source Improper Access Control vulnerability",
+      "published": "2024-10-10",
       "severity": "medium",
-      "package": "symfony/validator",
+      "package": "magento/product-community-edition",
       "affected": [
-        {"introduced": "0", "fixed": "5.4.32"},
-        {"introduced": "6.0.0", "fixed": "6.3.8"}
+        {"introduced": "2.4.4", "fixed": "2.4.4-p11"},
+        {"introduced": "2.4.5", "last_affected": "2.4.5"},
+        {"introduced": "2.4.5-p1", "fixed": "2.4.5-p10"},
+        {"introduced": "2.4.6", "last_affected": "2.4.6"},
+        {"introduced": "2.4.6-p1", "fixed": "2.4.6-p8"},
+        {"introduced": "2.4.7", "fixed": "2.4.7-p3"}
       ],
-      "reference": "https://symfony.com/blog/cve-2023-46734"
+      "reference": "https://helpx.adobe.com/security/products/magento/apsb24-73.html"
     },
     {
-      "id": "GHSA-7pg7-jmrv-pfh7",
-      "aliases": ["CVE-2024-50340"],
-      "summary": "Symfony HttpFoundation user-controlled local environment variables override application configuration.",
-      "published": "2024-11-08",
+      "id": "GHSA-m8cj-3v68-3cxj",
+      "aliases": ["CVE-2024-34102"],
+      "summary": "Magento Open Source affected by an Improper Restriction of XML External Entity Reference ('XXE') vulnerability",
+      "published": "2024-06-13",
+      "severity": "critical",
+      "package": "magento/product-community-edition",
+      "affected": [
+        {"introduced": "2.4.4", "fixed": "2.4.4-p9"},
+        {"introduced": "2.4.5", "last_affected": "2.4.5"},
+        {"introduced": "2.4.5-p1", "fixed": "2.4.5-p8"},
+        {"introduced": "2.4.6", "last_affected": "2.4.6"},
+        {"introduced": "2.4.6-p1", "fixed": "2.4.6-p6"},
+        {"introduced": "2.4.7", "last_affected": "2.4.7"}
+      ],
+      "reference": "https://helpx.adobe.com/security/products/magento/apsb24-40.html"
+    },
+    {
+      "id": "GHSA-mm87-rrqx-94cr",
+      "aliases": ["CVE-2025-24428"],
+      "summary": "Magento stored Cross-Site Scripting (XSS) vulnerability",
+      "published": "2025-02-11",
+      "severity": "medium",
+      "package": "magento/product-community-edition",
+      "affected": [
+        {"introduced": "2.4.4", "fixed": "2.4.4-p12"},
+        {"introduced": "2.4.5", "last_affected": "2.4.5"},
+        {"introduced": "2.4.5-p1", "fixed": "2.4.5-p11"},
+        {"introduced": "2.4.6", "last_affected": "2.4.6"},
+        {"introduced": "2.4.6-p1", "fixed": "2.4.6-p9"},
+        {"introduced": "2.4.7", "fixed": "2.4.7-p4"},
+        {"introduced": "2.4.8-beta1", "last_affected": "2.4.8-beta1"}
+      ],
+      "reference": "https://helpx.adobe.com/security/products/magento/apsb25-08.html"
+    },
+    {
+      "id": "GHSA-mmp7-8cg4-9wrg",
+      "aliases": ["CVE-2024-39403"],
+      "summary": "Magento Stored Cross-Site Scripting (XSS) vulnerability",
+      "published": "2024-08-14",
       "severity": "high",
+      "package": "magento/product-community-edition",
+      "affected": [
+        {"introduced": "2.4.4", "last_affected": "2.4.4"},
+        {"introduced": "2.4.4-p1", "fixed": "2.4.4-p10"},
+        {"introduced": "2.4.5", "last_affected": "2.4.5"},
+        {"introduced": "2.4.5-p1", "fixed": "2.4.5-p9"},
+        {"introduced": "2.4.6", "last_affected": "2.4.6"},
+        {"introduced": "2.4.6-p1", "fixed": "2.4.6-p7"},
+        {"introduced": "2.4.7", "fixed": "2.4.7-p2"}
+      ],
+      "reference": "https://helpx.adobe.com/security/products/magento/apsb24-61.html"
+    },
+    {
+      "id": "GHSA-mxc9-g6m4-2v35",
+      "aliases": ["CVE-2023-38208"],
+      "summary": "Magento Open Source allows Improper Neutralization of Special Elements Used",
+      "published": "2023-08-09",
+      "severity": "high",
+      "package": "magento/product-community-edition",
+      "affected": [
+        {"introduced": "2.4.4", "last_affected": "2.4.4"},
+        {"introduced": "2.4.4-p1", "fixed": "2.4.4-p5"},
+        {"introduced": "2.4.5", "last_affected": "2.4.5"},
+        {"introduced": "2.4.5-p1", "fixed": "2.4.5-p4"},
+        {"introduced": "2.4.6", "last_affected": "2.4.6"},
+        {"introduced": "2.4.6-p1", "fixed": "2.4.6-p2"}
+      ],
+      "reference": "https://helpx.adobe.com/security/products/magento/apsb23-42.html"
+    },
+    {
+      "id": "GHSA-p6h9-gx5g-wg64",
+      "aliases": ["CVE-2024-34106"],
+      "summary": "Magento Open Source Incorrect Authorization vulnerability",
+      "published": "2024-06-13",
+      "severity": "medium",
+      "package": "magento/product-community-edition",
+      "affected": [
+        {"introduced": "2.4.4", "fixed": "2.4.4-p9"},
+        {"introduced": "2.4.5", "last_affected": "2.4.5"},
+        {"introduced": "2.4.5-p1", "fixed": "2.4.5-p8"},
+        {"introduced": "2.4.6", "last_affected": "2.4.6"},
+        {"introduced": "2.4.6-p1", "fixed": "2.4.6-p6"},
+        {"introduced": "2.4.7", "last_affected": "2.4.7"}
+      ],
+      "reference": "https://helpx.adobe.com/security/products/magento/apsb24-40.html"
+    },
+    {
+      "id": "GHSA-pcrx-r49h-x2w5",
+      "aliases": ["CVE-2025-54266"],
+      "summary": "Magento vulnerable to stored Cross-Site Scripting (XSS)",
+      "published": "2025-10-14",
+      "severity": "medium",
+      "package": "magento/product-community-edition",
+      "affected": [
+        {"introduced": "2.4.4", "fixed": "2.4.4-p16"},
+        {"introduced": "2.4.5", "fixed": "2.4.5-p15"},
+        {"introduced": "2.4.6", "fixed": "2.4.6-p13"},
+        {"introduced": "2.4.7", "fixed": "2.4.7-p8"},
+        {"introduced": "2.4.8", "fixed": "2.4.8-p3"}
+      ],
+      "reference": "https://helpx.adobe.com/security/products/magento/apsb25-94.html"
+    },
+    {
+      "id": "GHSA-q628-54wg-4r5q",
+      "aliases": ["CVE-2024-39398"],
+      "summary": "Magento does not properly restrict excessive authentication attempts",
+      "published": "2024-08-14",
+      "severity": "high",
+      "package": "magento/product-community-edition",
+      "affected": [
+        {"introduced": "2.4.4", "last_affected": "2.4.4"},
+        {"introduced": "2.4.4-p1", "fixed": "2.4.4-p10"},
+        {"introduced": "2.4.5", "last_affected": "2.4.5"},
+        {"introduced": "2.4.5-p1", "fixed": "2.4.5-p9"},
+        {"introduced": "2.4.6", "last_affected": "2.4.6"},
+        {"introduced": "2.4.6-p1", "fixed": "2.4.6-p7"},
+        {"introduced": "2.4.7", "fixed": "2.4.7-p2"}
+      ],
+      "reference": "https://helpx.adobe.com/security/products/magento/apsb24-61.html"
+    },
+    {
+      "id": "GHSA-qm77-mqf3-fmhq",
+      "aliases": ["CVE-2024-39411"],
+      "summary": "Magento Improper Authorization leads to security feature bypass",
+      "published": "2024-08-14",
+      "severity": "medium",
+      "package": "magento/product-community-edition",
+      "affected": [
+        {"introduced": "2.4.4", "fixed": "2.4.4-p10"},
+        {"introduced": "2.4.5", "last_affected": "2.4.5"},
+        {"introduced": "2.4.5-p1", "fixed": "2.4.5-p9"},
+        {"introduced": "2.4.6", "last_affected": "2.4.6"},
+        {"introduced": "2.4.6-p1", "fixed": "2.4.6-p7"},
+        {"introduced": "2.4.7", "fixed": "2.4.7-p2"}
+      ],
+      "reference": "https://helpx.adobe.com/security/products/magento/apsb24-61.html"
+    },
+    {
+      "id": "GHSA-qpp7-742q-58j3",
+      "aliases": ["CVE-2024-45128"],
+      "summary": "Magento Open Source Improper Authorization vulnerability",
+      "published": "2024-10-10",
+      "severity": "medium",
+      "package": "magento/product-community-edition",
+      "affected": [
+        {"introduced": "2.4.4", "fixed": "2.4.4-p11"},
+        {"introduced": "2.4.5", "last_affected": "2.4.5"},
+        {"introduced": "2.4.5-p1", "fixed": "2.4.5-p10"},
+        {"introduced": "2.4.6", "last_affected": "2.4.6"},
+        {"introduced": "2.4.6-p1", "fixed": "2.4.6-p8"},
+        {"introduced": "2.4.7", "fixed": "2.4.7-p3"}
+      ],
+      "reference": "https://helpx.adobe.com/security/products/magento/apsb24-73.html"
+    },
+    {
+      "id": "GHSA-qrh3-vxjg-h9h6",
+      "aliases": ["CVE-2024-39404"],
+      "summary": "Magento Improper Authorization vulnerability",
+      "published": "2024-08-14",
+      "severity": "medium",
+      "package": "magento/product-community-edition",
+      "affected": [
+        {"introduced": "2.4.4", "last_affected": "2.4.4"},
+        {"introduced": "2.4.4-p1", "fixed": "2.4.4-p10"},
+        {"introduced": "2.4.5", "last_affected": "2.4.5"},
+        {"introduced": "2.4.5-p1", "fixed": "2.4.5-p9"},
+        {"introduced": "2.4.6", "last_affected": "2.4.6"},
+        {"introduced": "2.4.6-p1", "fixed": "2.4.6-p7"},
+        {"introduced": "2.4.7", "fixed": "2.4.7-p2"}
+      ],
+      "reference": "https://helpx.adobe.com/security/products/magento/apsb24-61.html"
+    },
+    {
+      "id": "GHSA-qvwr-p3hj-j6jf",
+      "aliases": ["CVE-2025-54267"],
+      "summary": "Magento vulnerable to privilege escalation due to incorrect authorization",
+      "published": "2025-10-14",
+      "severity": "medium",
+      "package": "magento/product-community-edition",
+      "affected": [
+        {"introduced": "2.4.4", "fixed": "2.4.4-p16"},
+        {"introduced": "2.4.5", "fixed": "2.4.5-p15"},
+        {"introduced": "2.4.6", "fixed": "2.4.6-p13"},
+        {"introduced": "2.4.7", "fixed": "2.4.7-p8"},
+        {"introduced": "2.4.8", "fixed": "2.4.8-p3"}
+      ],
+      "reference": "https://helpx.adobe.com/security/products/magento/apsb25-94.html"
+    },
+    {
+      "id": "GHSA-qw5m-vmp3-f553",
+      "aliases": ["CVE-2023-29290"],
+      "summary": "Magento Open Source allows Incorrect Authorization",
+      "published": "2023-06-15",
+      "severity": "medium",
+      "package": "magento/product-community-edition",
+      "affected": [
+        {"introduced": "2.4.4", "last_affected": "2.4.4"},
+        {"introduced": "2.4.4-p1", "fixed": "2.4.4-p4"},
+        {"introduced": "2.4.5", "last_affected": "2.4.5"},
+        {"introduced": "2.4.5-p1", "fixed": "2.4.5-p3"},
+        {"introduced": "2.4.6", "last_affected": "2.4.6"}
+      ],
+      "reference": "https://helpx.adobe.com/security/products/magento/apsb23-35.html"
+    },
+    {
+      "id": "GHSA-r355-75hw-r8jf",
+      "aliases": ["CVE-2025-54265"],
+      "summary": "Magento allows incorrect authorization",
+      "published": "2025-10-14",
+      "severity": "medium",
+      "package": "magento/product-community-edition",
+      "affected": [
+        {"introduced": "2.4.4", "fixed": "2.4.4-p16"},
+        {"introduced": "2.4.5", "fixed": "2.4.5-p15"},
+        {"introduced": "2.4.6", "fixed": "2.4.6-p13"},
+        {"introduced": "2.4.7", "fixed": "2.4.7-p8"},
+        {"introduced": "2.4.8", "fixed": "2.4.8-p3"}
+      ],
+      "reference": "https://helpx.adobe.com/security/products/magento/apsb25-94.html"
+    },
+    {
+      "id": "GHSA-r487-9vv5-75gg",
+      "aliases": ["CVE-2025-43585"],
+      "summary": "Magento Improper Authorization leading to security feature bypass",
+      "published": "2025-06-10",
+      "severity": "high",
+      "package": "magento/product-community-edition",
+      "affected": [
+        {"introduced": "2.4.4", "fixed": "2.4.4-p14"},
+        {"introduced": "2.4.5", "fixed": "2.4.5-p13"},
+        {"introduced": "2.4.6", "last_affected": "2.4.6"},
+        {"introduced": "2.4.6-p1", "fixed": "2.4.6-p11"},
+        {"introduced": "2.4.7", "fixed": "2.4.7-p6"},
+        {"introduced": "2.4.8", "last_affected": "2.4.8"}
+      ],
+      "reference": "https://helpx.adobe.com/security/products/magento/apsb25-50.html"
+    },
+    {
+      "id": "GHSA-r7cm-g469-wm4g",
+      "aliases": ["CVE-2024-34107"],
+      "summary": "Magento Open Source Improper Access Control vulnerability",
+      "published": "2024-06-13",
+      "severity": "medium",
+      "package": "magento/product-community-edition",
+      "affected": [
+        {"introduced": "2.4.4", "fixed": "2.4.4-p9"},
+        {"introduced": "2.4.5", "last_affected": "2.4.5"},
+        {"introduced": "2.4.5-p1", "fixed": "2.4.5-p8"},
+        {"introduced": "2.4.6", "last_affected": "2.4.6"},
+        {"introduced": "2.4.6-p1", "fixed": "2.4.6-p6"},
+        {"introduced": "2.4.7", "last_affected": "2.4.7"}
+      ],
+      "reference": "https://helpx.adobe.com/security/products/magento/apsb24-40.html"
+    },
+    {
+      "id": "GHSA-r7mm-grf3-5fjv",
+      "aliases": ["CVE-2022-34256"],
+      "summary": "Magento Improper Authorization vulnerability",
+      "published": "2022-08-17",
+      "severity": "high",
+      "package": "magento/product-community-edition",
+      "affected": [
+        {"introduced": "2.4.4", "fixed": "2.4.4-p1"}
+      ],
+      "reference": "https://helpx.adobe.com/security/products/magento/apsb22-38.html"
+    },
+    {
+      "id": "GHSA-rf4q-m23c-7q8r",
+      "aliases": ["CVE-2024-39409"],
+      "summary": "Magento Open Source Cross-Site Request Forgery (CSRF) vulnerability",
+      "published": "2024-08-14",
+      "severity": "medium",
+      "package": "magento/product-community-edition",
+      "affected": [
+        {"introduced": "2.4.4", "fixed": "2.4.4-p10"},
+        {"introduced": "2.4.5", "last_affected": "2.4.5"},
+        {"introduced": "2.4.5-p1", "fixed": "2.4.5-p9"},
+        {"introduced": "2.4.6", "last_affected": "2.4.6"},
+        {"introduced": "2.4.6-p1", "fixed": "2.4.6-p7"},
+        {"introduced": "2.4.7", "last_affected": "2.4.7"},
+        {"introduced": "2.4.7-p1", "fixed": "2.4.7-p2"}
+      ],
+      "reference": "https://helpx.adobe.com/security/products/magento/apsb24-61.html"
+    },
+    {
+      "id": "GHSA-rg7p-wmgj-f374",
+      "aliases": ["CVE-2022-34257"],
+      "summary": "Magento stored Cross-Site Scripting (XSS) vulnerability",
+      "published": "2022-08-17",
+      "severity": "medium",
+      "package": "magento/product-community-edition",
+      "affected": [
+        {"introduced": "2.4.4", "fixed": "2.4.4-p1"}
+      ],
+      "reference": "https://helpx.adobe.com/security/products/magento/apsb22-38.html"
+    },
+    {
+      "id": "GHSA-rjjw-g6hw-7pc9",
+      "aliases": ["CVE-2025-24416"],
+      "summary": "Magento Stored Cross-Site Scripting (XSS) Vulnerability",
+      "published": "2025-02-11",
+      "severity": "high",
+      "package": "magento/product-community-edition",
+      "affected": [
+        {"introduced": "2.4.4", "fixed": "2.4.4-p12"},
+        {"introduced": "2.4.5", "last_affected": "2.4.5"},
+        {"introduced": "2.4.5-p1", "fixed": "2.4.5-p11"},
+        {"introduced": "2.4.6", "last_affected": "2.4.6"},
+        {"introduced": "2.4.6-p1", "fixed": "2.4.6-p9"},
+        {"introduced": "2.4.7", "fixed": "2.4.7-p4"},
+        {"introduced": "2.4.8-beta1", "last_affected": "2.4.8-beta1"}
+      ],
+      "reference": "https://helpx.adobe.com/security/products/magento/apsb25-08.html"
+    },
+    {
+      "id": "GHSA-rpc7-gf58-v3x2",
+      "aliases": ["CVE-2023-38218"],
+      "summary": "Magento Open Source allows Incorrect Authorization",
+      "published": "2023-10-13",
+      "severity": "medium",
+      "package": "magento/product-community-edition",
+      "affected": [
+        {"introduced": "2.4.4", "last_affected": "2.4.4"},
+        {"introduced": "2.4.4-p1", "fixed": "2.4.4-p6"},
+        {"introduced": "2.4.5", "last_affected": "2.4.5"},
+        {"introduced": "2.4.5-p1", "fixed": "2.4.5-p5"},
+        {"introduced": "2.4.6", "last_affected": "2.4.6"},
+        {"introduced": "2.4.6-p1", "fixed": "2.4.6-p3"}
+      ],
+      "reference": "https://helpx.adobe.com/security/products/magento/apsb23-50.html"
+    },
+    {
+      "id": "GHSA-rpv2-g4pc-wp72",
+      "aliases": ["CVE-2023-38207"],
+      "summary": "Magento Open Source allows XML Injection",
+      "published": "2023-08-09",
+      "severity": "low",
+      "package": "magento/product-community-edition",
+      "affected": [
+        {"introduced": "2.4.4", "last_affected": "2.4.4"},
+        {"introduced": "2.4.4-p1", "fixed": "2.4.4-p5"},
+        {"introduced": "2.4.5", "last_affected": "2.4.5"},
+        {"introduced": "2.4.5-p1", "fixed": "2.4.5-p4"},
+        {"introduced": "2.4.6", "last_affected": "2.4.6"},
+        {"introduced": "2.4.6-p1", "fixed": "2.4.6-p2"}
+      ],
+      "reference": "https://helpx.adobe.com/security/products/magento/apsb23-42.html"
+    },
+    {
+      "id": "GHSA-rq36-9f5f-2gw7",
+      "aliases": ["CVE-2023-38249"],
+      "summary": "Magento Open Source allows SQL Injection",
+      "published": "2023-10-13",
+      "severity": "medium",
+      "package": "magento/product-community-edition",
+      "affected": [
+        {"introduced": "2.4.4", "last_affected": "2.4.4"},
+        {"introduced": "2.4.4-p1", "fixed": "2.4.4-p6"},
+        {"introduced": "2.4.5", "last_affected": "2.4.5"},
+        {"introduced": "2.4.5-p1", "fixed": "2.4.5-p5"},
+        {"introduced": "2.4.6", "last_affected": "2.4.6"},
+        {"introduced": "2.4.6-p1", "fixed": "2.4.6-p3"}
+      ],
+      "reference": "https://helpx.adobe.com/security/products/magento/apsb23-50.html"
+    },
+    {
+      "id": "GHSA-rr2g-rrjj-xw86",
+      "aliases": ["CVE-2025-27188"],
+      "summary": "Magento Improper Authorization vulnerability",
+      "published": "2025-04-08",
+      "severity": "medium",
+      "package": "magento/product-community-edition",
+      "affected": [
+        {"introduced": "2.4.4", "fixed": "2.4.4-p13"},
+        {"introduced": "2.4.5", "last_affected": "2.4.5"},
+        {"introduced": "2.4.5-p1", "fixed": "2.4.5-p12"},
+        {"introduced": "2.4.6", "last_affected": "2.4.6"},
+        {"introduced": "2.4.6-p1", "fixed": "2.4.6-p10"},
+        {"introduced": "2.4.7", "last_affected": "2.4.7"},
+        {"introduced": "2.4.7-p1", "fixed": "2.4.7-p5"}
+      ],
+      "reference": "https://helpx.adobe.com/security/products/magento/apsb25-26.html"
+    },
+    {
+      "id": "GHSA-v3hq-g424-5mgg",
+      "aliases": ["CVE-2025-24427"],
+      "summary": "Magento Improper Access Control vulnerability",
+      "published": "2025-02-11",
+      "severity": "medium",
+      "package": "magento/product-community-edition",
+      "affected": [
+        {"introduced": "2.4.4", "fixed": "2.4.4-p12"},
+        {"introduced": "2.4.5", "last_affected": "2.4.5"},
+        {"introduced": "2.4.5-p1", "fixed": "2.4.5-p11"},
+        {"introduced": "2.4.6", "last_affected": "2.4.6"},
+        {"introduced": "2.4.6-p1", "fixed": "2.4.6-p9"},
+        {"introduced": "2.4.7", "fixed": "2.4.7-p4"},
+        {"introduced": "2.4.8-beta1", "last_affected": "2.4.8-beta1"}
+      ],
+      "reference": "https://helpx.adobe.com/security/products/magento/apsb25-08.html"
+    },
+    {
+      "id": "GHSA-v3v6-jfvw-m576",
+      "aliases": ["CVE-2024-45130"],
+      "summary": "Magento Open Source Improper Access Control vulnerability",
+      "published": "2024-10-10",
+      "severity": "medium",
+      "package": "magento/product-community-edition",
+      "affected": [
+        {"introduced": "2.4.4", "fixed": "2.4.4-p11"},
+        {"introduced": "2.4.5", "last_affected": "2.4.5"},
+        {"introduced": "2.4.5-p1", "fixed": "2.4.5-p10"},
+        {"introduced": "2.4.6", "last_affected": "2.4.6"},
+        {"introduced": "2.4.6-p1", "fixed": "2.4.6-p8"},
+        {"introduced": "2.4.7", "fixed": "2.4.7-p3"}
+      ],
+      "reference": "https://helpx.adobe.com/security/products/magento/apsb24-73.html"
+    },
+    {
+      "id": "GHSA-v6r2-425c-hfrr",
+      "aliases": ["CVE-2025-24421"],
+      "summary": "Magento Incorrect Authorization vulnerability",
+      "published": "2025-02-11",
+      "severity": "medium",
+      "package": "magento/product-community-edition",
+      "affected": [
+        {"introduced": "2.4.4", "fixed": "2.4.4-p12"},
+        {"introduced": "2.4.5", "last_affected": "2.4.5"},
+        {"introduced": "2.4.5-p1", "fixed": "2.4.5-p11"},
+        {"introduced": "2.4.6", "last_affected": "2.4.6"},
+        {"introduced": "2.4.6-p1", "fixed": "2.4.6-p9"},
+        {"introduced": "2.4.7", "fixed": "2.4.7-p4"},
+        {"introduced": "2.4.8-beta1", "last_affected": "2.4.8-beta1"}
+      ],
+      "reference": "https://helpx.adobe.com/security/products/magento/apsb25-08.html"
+    },
+    {
+      "id": "GHSA-vhcq-4xrm-2cr2",
+      "aliases": ["CVE-2025-27191"],
+      "summary": "Magento Improper Access Control leads to Security feature bypass",
+      "published": "2025-04-08",
+      "severity": "medium",
+      "package": "magento/product-community-edition",
+      "affected": [
+        {"introduced": "2.4.4", "fixed": "2.4.4-p13"},
+        {"introduced": "2.4.5", "last_affected": "2.4.5"},
+        {"introduced": "2.4.5-p1", "fixed": "2.4.5-p12"},
+        {"introduced": "2.4.6", "last_affected": "2.4.6"},
+        {"introduced": "2.4.6-p1", "fixed": "2.4.6-p10"},
+        {"introduced": "2.4.7", "fixed": "2.4.7-p5"}
+      ],
+      "reference": "https://helpx.adobe.com/security/products/magento/apsb25-26.html"
+    },
+    {
+      "id": "GHSA-vw47-79jv-3598",
+      "aliases": ["CVE-2025-24409"],
+      "summary": "Adobe Commerce Improper Authorization vulnerability",
+      "published": "2025-02-11",
+      "severity": "high",
+      "package": "magento/product-community-edition",
+      "affected": [
+        {"introduced": "2.4.4", "fixed": "2.4.4-p12"},
+        {"introduced": "2.4.5", "last_affected": "2.4.5"},
+        {"introduced": "2.4.5-p1", "fixed": "2.4.5-p11"},
+        {"introduced": "2.4.6", "last_affected": "2.4.6"},
+        {"introduced": "2.4.6-p1", "fixed": "2.4.6-p9"},
+        {"introduced": "2.4.7", "fixed": "2.4.7-p4"},
+        {"introduced": "2.4.8-beta1", "last_affected": "2.4.8-beta1"}
+      ],
+      "reference": "https://helpx.adobe.com/security/products/magento/apsb25-08.html"
+    },
+    {
+      "id": "GHSA-w3p2-pc3h-69wv",
+      "aliases": ["CVE-2024-45124"],
+      "summary": "Magento Open Source Improper Access Control vulnerability",
+      "published": "2024-10-10",
+      "severity": "medium",
+      "package": "magento/product-community-edition",
+      "affected": [
+        {"introduced": "2.4.4", "fixed": "2.4.4-p11"},
+        {"introduced": "2.4.5", "last_affected": "2.4.5"},
+        {"introduced": "2.4.5-p1", "fixed": "2.4.5-p10"},
+        {"introduced": "2.4.6", "last_affected": "2.4.6"},
+        {"introduced": "2.4.6-p1", "fixed": "2.4.6-p8"},
+        {"introduced": "2.4.7", "fixed": "2.4.7-p3"}
+      ],
+      "reference": "https://helpx.adobe.com/security/products/magento/apsb24-73.html"
+    },
+    {
+      "id": "GHSA-w7rg-7wq2-pjrw",
+      "aliases": ["CVE-2024-45149"],
+      "summary": "Magento Open Source Improper Access Control vulnerability",
+      "published": "2024-10-10",
+      "severity": "low",
+      "package": "magento/product-community-edition",
+      "affected": [
+        {"introduced": "2.4.4", "fixed": "2.4.4-p11"},
+        {"introduced": "2.4.5", "last_affected": "2.4.5"},
+        {"introduced": "2.4.5-p1", "fixed": "2.4.5-p10"},
+        {"introduced": "2.4.6", "last_affected": "2.4.6"},
+        {"introduced": "2.4.6-p1", "fixed": "2.4.6-p8"},
+        {"introduced": "2.4.7", "fixed": "2.4.7-p3"}
+      ],
+      "reference": "https://helpx.adobe.com/security/products/magento/apsb24-73.html"
+    },
+    {
+      "id": "GHSA-wcmw-8xpp-rwfj",
+      "aliases": ["CVE-2025-49558"],
+      "summary": "Magento Time-of-check Time-of-use (TOCTOU) Race Condition vulnerability",
+      "published": "2025-08-12",
+      "severity": "medium",
+      "package": "magento/product-community-edition",
+      "affected": [
+        {"introduced": "2.4.4", "fixed": "2.4.4-p15"},
+        {"introduced": "2.4.5", "fixed": "2.4.5-p14"},
+        {"introduced": "2.4.6", "last_affected": "2.4.6"},
+        {"introduced": "2.4.6-p1", "fixed": "2.4.6-p12"},
+        {"introduced": "2.4.7", "fixed": "2.4.7-p7"},
+        {"introduced": "2.4.8", "fixed": "2.4.8-p2"}
+      ],
+      "reference": "https://helpx.adobe.com/security/products/magento/apsb25-71.html"
+    },
+    {
+      "id": "GHSA-wh42-8r2w-873x",
+      "aliases": ["CVE-2023-29289"],
+      "summary": "Magento Open Source allows XML Injection",
+      "published": "2023-06-15",
+      "severity": "medium",
+      "package": "magento/product-community-edition",
+      "affected": [
+        {"introduced": "2.4.4", "last_affected": "2.4.4"},
+        {"introduced": "2.4.4-p1", "fixed": "2.4.4-p4"},
+        {"introduced": "2.4.5", "last_affected": "2.4.5"},
+        {"introduced": "2.4.5-p1", "fixed": "2.4.5-p3"},
+        {"introduced": "2.4.6", "last_affected": "2.4.6"}
+      ],
+      "reference": "https://helpx.adobe.com/security/products/magento/apsb23-35.html"
+    },
+    {
+      "id": "GHSA-wh4m-6rh3-p4rq",
+      "aliases": ["CVE-2024-20758"],
+      "summary": "Magento Open Source allows Improper Input Validation",
+      "published": "2024-04-10",
+      "severity": "high",
+      "package": "magento/product-community-edition",
+      "affected": [
+        {"introduced": "2.4.4", "last_affected": "2.4.4"},
+        {"introduced": "2.4.4-p1", "fixed": "2.4.4-p8"},
+        {"introduced": "2.4.5", "last_affected": "2.4.5"},
+        {"introduced": "2.4.5-p1", "fixed": "2.4.5-p7"},
+        {"introduced": "2.4.6", "last_affected": "2.4.6"},
+        {"introduced": "2.4.6-p1", "fixed": "2.4.6-p5"}
+      ],
+      "reference": "https://helpx.adobe.com/security/products/magento/apsb24-18.html"
+    },
+    {
+      "id": "GHSA-wh92-6q6g-px7j",
+      "aliases": ["CVE-2025-54236"],
+      "summary": "Magento Community Edition Improper Input Validation vulnerability",
+      "published": "2025-09-09",
+      "severity": "critical",
+      "package": "magento/product-community-edition",
+      "affected": [
+        {"introduced": "2.4.4", "last_affected": "2.4.4-p15"},
+        {"introduced": "2.4.5", "last_affected": "2.4.5-p14"},
+        {"introduced": "2.4.6", "last_affected": "2.4.6"},
+        {"introduced": "2.4.6-p1", "last_affected": "2.4.6-p12"},
+        {"introduced": "2.4.7", "last_affected": "2.4.7-p7"},
+        {"introduced": "2.4.8", "last_affected": "2.4.8-p2"}
+      ],
+      "reference": "https://helpx.adobe.com/security/products/magento/apsb25-88.html"
+    },
+    {
+      "id": "GHSA-wwj3-573j-rvvm",
+      "aliases": ["CVE-2024-34104"],
+      "summary": "Magento Open Source Improper Authorization vulnerability",
+      "published": "2024-06-13",
+      "severity": "high",
+      "package": "magento/product-community-edition",
+      "affected": [
+        {"introduced": "2.4.4", "fixed": "2.4.4-p9"},
+        {"introduced": "2.4.5", "last_affected": "2.4.5"},
+        {"introduced": "2.4.5-p1", "fixed": "2.4.5-p8"},
+        {"introduced": "2.4.6", "last_affected": "2.4.6"},
+        {"introduced": "2.4.6-p1", "fixed": "2.4.6-p6"},
+        {"introduced": "2.4.7", "last_affected": "2.4.7"}
+      ],
+      "reference": "https://helpx.adobe.com/security/products/magento/apsb24-40.html"
+    },
+    {
+      "id": "GHSA-x6f9-hv9r-fgq4",
+      "aliases": ["CVE-2024-39414"],
+      "summary": "Magento Improper Access Control Leads to Privilege escalation",
+      "published": "2024-08-14",
+      "severity": "medium",
+      "package": "magento/product-community-edition",
+      "affected": [
+        {"introduced": "2.4.4", "fixed": "2.4.4-p10"},
+        {"introduced": "2.4.5", "last_affected": "2.4.5"},
+        {"introduced": "2.4.5-p1", "fixed": "2.4.5-p9"},
+        {"introduced": "2.4.6", "last_affected": "2.4.6"},
+        {"introduced": "2.4.6-p1", "fixed": "2.4.6-p7"},
+        {"introduced": "2.4.7", "fixed": "2.4.7-p2"}
+      ],
+      "reference": "https://helpx.adobe.com/security/products/magento/apsb24-61.html"
+    },
+    {
+      "id": "GHSA-x95x-f4g9-mm85",
+      "aliases": ["CVE-2022-34255"],
+      "summary": "Magento Improper Access Control vulnerability",
+      "published": "2022-08-17",
+      "severity": "high",
+      "package": "magento/product-community-edition",
+      "affected": [
+        {"introduced": "2.4.4", "fixed": "2.4.4-p1"}
+      ],
+      "reference": "https://helpx.adobe.com/security/products/magento/apsb22-38.html"
+    },
+    {
+      "id": "GHSA-xc5p-773w-m3pm",
+      "aliases": ["CVE-2024-45131"],
+      "summary": "Magento Open Source Improper Authorization vulnerability",
+      "published": "2024-10-10",
+      "severity": "medium",
+      "package": "magento/product-community-edition",
+      "affected": [
+        {"introduced": "2.4.4", "fixed": "2.4.4-p11"},
+        {"introduced": "2.4.5", "last_affected": "2.4.5"},
+        {"introduced": "2.4.5-p1", "fixed": "2.4.5-p10"},
+        {"introduced": "2.4.6", "last_affected": "2.4.6"},
+        {"introduced": "2.4.6-p1", "fixed": "2.4.6-p8"},
+        {"introduced": "2.4.7", "fixed": "2.4.7-p3"}
+      ],
+      "reference": "https://helpx.adobe.com/security/products/magento/apsb24-73.html"
+    },
+    {
+      "id": "GHSA-xg36-8c2v-jpxh",
+      "aliases": ["CVE-2024-45125"],
+      "summary": "Magento Open Source Incorrect Authorization vulnerability",
+      "published": "2024-10-10",
+      "severity": "medium",
+      "package": "magento/product-community-edition",
+      "affected": [
+        {"introduced": "2.4.4", "fixed": "2.4.4-p11"},
+        {"introduced": "2.4.5", "last_affected": "2.4.5"},
+        {"introduced": "2.4.5-p1", "fixed": "2.4.5-p10"},
+        {"introduced": "2.4.6", "last_affected": "2.4.6"},
+        {"introduced": "2.4.6-p1", "fixed": "2.4.6-p8"},
+        {"introduced": "2.4.7", "fixed": "2.4.7-p3"}
+      ],
+      "reference": "https://helpx.adobe.com/security/products/magento/apsb24-73.html"
+    },
+    {
+      "id": "GHSA-xgfm-992v-h2hr",
+      "aliases": ["CVE-2025-49554"],
+      "summary": "Magento vulnerable to denial of service",
+      "published": "2025-08-12",
+      "severity": "high",
+      "package": "magento/product-community-edition",
+      "affected": [
+        {"introduced": "2.4.4", "fixed": "2.4.4-p15"},
+        {"introduced": "2.4.5", "fixed": "2.4.5-p14"},
+        {"introduced": "2.4.6", "last_affected": "2.4.6"},
+        {"introduced": "2.4.6-p1", "fixed": "2.4.6-p12"},
+        {"introduced": "2.4.7", "fixed": "2.4.7-p7"},
+        {"introduced": "2.4.8", "fixed": "2.4.8-p2"}
+      ],
+      "reference": "https://helpx.adobe.com/security/products/magento/apsb25-71.html"
+    },
+    {
+      "id": "GHSA-xwgx-8v72-4j5j",
+      "aliases": ["CVE-2025-24413"],
+      "summary": "Magento Stored Cross-Site Scripting (XSS) Vulnerability",
+      "published": "2025-02-11",
+      "severity": "high",
+      "package": "magento/product-community-edition",
+      "affected": [
+        {"introduced": "2.4.4", "fixed": "2.4.4-p12"},
+        {"introduced": "2.4.5", "last_affected": "2.4.5"},
+        {"introduced": "2.4.5-p1", "fixed": "2.4.5-p11"},
+        {"introduced": "2.4.6", "last_affected": "2.4.6"},
+        {"introduced": "2.4.6-p1", "fixed": "2.4.6-p9"},
+        {"introduced": "2.4.7", "fixed": "2.4.7-p4"},
+        {"introduced": "2.4.8-beta1", "last_affected": "2.4.8-beta1"}
+      ],
+      "reference": "https://helpx.adobe.com/security/products/magento/apsb25-08.html"
+    },
+    {
+      "id": "GHSA-f57v-q966-7fh6",
+      "aliases": [],
+      "summary": "Monolog Header injection in NativeMailerHandler",
+      "published": "2024-05-15",
+      "severity": "low",
+      "package": "monolog/monolog",
+      "affected": [
+        {"introduced": "1.8.0", "fixed": "1.12.0"}
+      ],
+      "reference": "https://osv.dev/vulnerability/GHSA-f57v-q966-7fh6"
+    },
+    {
+      "id": "GHSA-pcw8-m77r-2528",
+      "aliases": ["CVE-2026-54133"],
+      "summary": "jmespath.php has CompilerRuntime code injection via unescaped function names",
+      "published": "2026-08-18",
+      "severity": "critical",
+      "package": "mtdowling/jmespath.php",
+      "affected": [
+        {"introduced": "0", "fixed": "2.9.1"}
+      ],
+      "reference": "https://osv.dev/vulnerability/GHSA-pcw8-m77r-2528"
+    },
+    {
+      "id": "GHSA-4rmr-c2jx-vx27",
+      "aliases": ["CVE-2022-0323"],
+      "summary": "Mustache remote code injection vulnerability",
+      "published": "2022-01-27",
+      "severity": "high",
+      "package": "mustache/mustache",
+      "affected": [
+        {"introduced": "2.0.0", "fixed": "2.14.1"}
+      ],
+      "reference": "https://osv.dev/vulnerability/GHSA-4rmr-c2jx-vx27"
+    },
+    {
+      "id": "GHSA-3fmq-x9q6-wm39",
+      "aliases": [],
+      "summary": "random_compat Uses insecure CSPRNG",
+      "published": "2024-05-17",
+      "severity": "low",
+      "package": "paragonie/random_compat",
+      "affected": [
+        {"introduced": "0", "fixed": "2.0"}
+      ],
+      "reference": "https://osv.dev/vulnerability/GHSA-3fmq-x9q6-wm39"
+    },
+    {
+      "id": "GHSA-mrfv-m5wm-5w6w",
+      "aliases": ["CVE-2025-69277"],
+      "summary": "libsodium has Incomplete List of Disallowed Inputs",
+      "published": "2025-12-31",
+      "severity": "medium",
+      "package": "paragonie/sodium_compat",
+      "affected": [
+        {"introduced": "0", "fixed": "1.24.0"},
+        {"introduced": "2", "fixed": "2.5.0"}
+      ],
+      "reference": "https://osv.dev/vulnerability/GHSA-mrfv-m5wm-5w6w"
+    },
+    {
+      "id": "GHSA-r6hr-vr92-vv28",
+      "aliases": ["CVE-2026-65954"],
+      "summary": "PHPCSUtils: Remote code execution via eval() in AbstractArrayDeclarationSniff::getActualArrayKey()",
+      "published": "2026-09-29",
+      "severity": "high",
+      "package": "phpcsstandards/phpcsutils",
+      "affected": [
+        {"introduced": "1.0.0-alpha1", "fixed": "1.2.3"}
+      ],
+      "reference": "https://osv.dev/vulnerability/GHSA-r6hr-vr92-vv28"
+    },
+    {
+      "id": "GHSA-2528-jw5q-ww88",
+      "aliases": ["CVE-2024-27354"],
+      "summary": "phpseclib: guardrails needed on isPrime and randomPrime",
+      "published": "2026-05-06",
+      "severity": "high",
+      "package": "phpseclib/phpseclib",
+      "affected": [
+        {"introduced": "0.1.1", "fixed": "1.0.23"},
+        {"introduced": "2.0.0", "fixed": "2.0.47"},
+        {"introduced": "3.0.0", "fixed": "3.0.36"}
+      ],
+      "reference": "https://osv.dev/vulnerability/GHSA-2528-jw5q-ww88"
+    },
+    {
+      "id": "GHSA-2f25-pfq3-c7h8",
+      "aliases": ["CVE-2023-49316"],
+      "summary": "Phpseclib needs guardrails on large binaryfield integers",
+      "published": "2026-05-08",
+      "severity": "high",
+      "package": "phpseclib/phpseclib",
+      "affected": [
+        {"introduced": "3.0.0", "fixed": "3.0.34"}
+      ],
+      "reference": "https://osv.dev/vulnerability/GHSA-2f25-pfq3-c7h8"
+    },
+    {
+      "id": "GHSA-3qpq-r242-jqj7",
+      "aliases": ["CVE-2026-44167"],
+      "summary": "phpseclib has a CVE-2024-27355 mitigation bypass — OID amplification DoS in ASN1::decodeOID()",
+      "published": "2026-05-05",
+      "severity": "high",
+      "package": "phpseclib/phpseclib",
+      "affected": [
+        {"introduced": "0.1.1", "fixed": "1.0.29"},
+        {"introduced": "2.0.0", "fixed": "2.0.54"},
+        {"introduced": "3.0.0", "fixed": "3.0.52"}
+      ],
+      "reference": "https://osv.dev/vulnerability/GHSA-3qpq-r242-jqj7"
+    },
+    {
+      "id": "GHSA-94g3-g5v7-q4jg",
+      "aliases": ["CVE-2026-32935"],
+      "summary": "phpseclib's AES-CBC unpadding susceptible to padding oracle timing attack",
+      "published": "2026-03-19",
+      "severity": "high",
+      "package": "phpseclib/phpseclib",
+      "affected": [
+        {"introduced": "0.1.1", "fixed": "1.0.27"},
+        {"introduced": "2.0.0", "fixed": "2.0.52"},
+        {"introduced": "3.0.0", "fixed": "3.0.50"}
+      ],
+      "reference": "https://osv.dev/vulnerability/GHSA-94g3-g5v7-q4jg"
+    },
+    {
+      "id": "GHSA-f2qx-66wf-wvvx",
+      "aliases": ["CVE-2024-27355"],
+      "summary": "phpseclib guardrails needed on OID length",
+      "published": "2026-05-08",
+      "severity": "high",
+      "package": "phpseclib/phpseclib",
+      "affected": [
+        {"introduced": "0.1.1", "fixed": "1.0.23"},
+        {"introduced": "2.0.0", "fixed": "2.0.47"},
+        {"introduced": "3.0.0", "fixed": "3.0.36"}
+      ],
+      "reference": "https://osv.dev/vulnerability/GHSA-f2qx-66wf-wvvx"
+    },
+    {
+      "id": "GHSA-ff7q-6vwh-v9m4",
+      "aliases": ["CVE-2023-52892"],
+      "summary": "Name confusion in x509 Subject Alternative Name fields",
+      "published": "2024-06-28",
+      "severity": "high",
+      "package": "phpseclib/phpseclib",
+      "affected": [
+        {"introduced": "0", "fixed": "1.0.22"},
+        {"introduced": "2.0.0", "fixed": "2.0.46"},
+        {"introduced": "3.0.0", "fixed": "3.0.33"}
+      ],
+      "reference": "https://osv.dev/vulnerability/GHSA-ff7q-6vwh-v9m4"
+    },
+    {
+      "id": "GHSA-hm7p-r324-hhf3",
+      "aliases": ["CVE-2023-27560"],
+      "summary": "phpseclib Infinite Loop vulnerability",
+      "published": "2023-03-03",
+      "severity": "high",
+      "package": "phpseclib/phpseclib",
+      "affected": [
+        {"introduced": "3.0.0", "fixed": "3.0.19"}
+      ],
+      "reference": "https://osv.dev/vulnerability/GHSA-hm7p-r324-hhf3"
+    },
+    {
+      "id": "GHSA-m557-wrgg-6rp4",
+      "aliases": ["CVE-2026-55599"],
+      "summary": "phpseclib: X.509 certificate validation sends attacker-controlled outbound requests (server-side request forgery) via Authority Information Access",
+      "published": "2026-06-16",
+      "severity": "medium",
+      "package": "phpseclib/phpseclib",
+      "affected": [
+        {"introduced": "0.1.1", "fixed": "1.0.30"},
+        {"introduced": "2.0.0", "fixed": "2.0.55"},
+        {"introduced": "3.0.0", "fixed": "3.0.54"}
+      ],
+      "reference": "https://osv.dev/vulnerability/GHSA-m557-wrgg-6rp4"
+    },
+    {
+      "id": "GHSA-q97c-8qh3-fpc6",
+      "aliases": ["CVE-2026-84308"],
+      "summary": "phpseclib — non-constant-time X25519 scalar multiplication permits full private-key recovery",
+      "published": "2026-09-08",
+      "severity": "medium",
+      "package": "phpseclib/phpseclib",
+      "affected": [
+        {"introduced": "0", "fixed": "3.0.57"},
+        {"introduced": "4.0.0", "fixed": "4.0.1"}
+      ],
+      "reference": "https://osv.dev/vulnerability/GHSA-q97c-8qh3-fpc6"
+    },
+    {
+      "id": "GHSA-r854-jrxh-36qx",
+      "aliases": ["CVE-2026-40194"],
+      "summary": "phpseclib has a variable-time HMAC comparison in SSH2::get_binary_packet() using != instead of hash_equals()",
+      "published": "2026-04-10",
+      "severity": "low",
+      "package": "phpseclib/phpseclib",
+      "affected": [
+        {"introduced": "0.1.1", "fixed": "1.0.28"},
+        {"introduced": "2.0.0", "fixed": "2.0.53"},
+        {"introduced": "3.0.0", "fixed": "3.0.51"}
+      ],
+      "reference": "https://osv.dev/vulnerability/GHSA-r854-jrxh-36qx"
+    },
+    {
+      "id": "GHSA-vf4w-fg7r-5v94",
+      "aliases": ["CVE-2021-30130"],
+      "summary": "Improper Certificate Validation in phpseclib",
+      "published": "2021-04-07",
+      "severity": "high",
+      "package": "phpseclib/phpseclib",
+      "affected": [
+        {"introduced": "0", "fixed": "2.0.31"},
+        {"introduced": "3.0.0", "fixed": "3.0.7"}
+      ],
+      "reference": "https://osv.dev/vulnerability/GHSA-vf4w-fg7r-5v94"
+    },
+    {
+      "id": "GHSA-mh6w-vxff-9wqp",
+      "aliases": [],
+      "summary": "PHPUnit: Argument injection via newline in PHP INI values forwarded to child processes",
+      "published": "2026-04-22",
+      "severity": "high",
+      "package": "phpunit/phpunit",
+      "affected": [
+        {"introduced": "12.5.21", "fixed": "12.5.22"},
+        {"introduced": "13.1.5", "fixed": "13.1.6"}
+      ],
+      "reference": "https://osv.dev/vulnerability/GHSA-mh6w-vxff-9wqp"
+    },
+    {
+      "id": "GHSA-qrr6-mg7r-m243",
+      "aliases": ["CVE-2026-41570"],
+      "summary": "PHPUnit has Argument injection via newline in PHP INI values that are forwarded to child processes",
+      "published": "2026-04-18",
+      "severity": "high",
+      "package": "phpunit/phpunit",
+      "affected": [
+        {"introduced": "12.5.21", "fixed": "12.5.22"},
+        {"introduced": "13.1.5", "fixed": "13.1.6"}
+      ],
+      "reference": "https://osv.dev/vulnerability/GHSA-qrr6-mg7r-m243"
+    },
+    {
+      "id": "GHSA-r7c9-c69m-rph8",
+      "aliases": ["CVE-2017-9841"],
+      "summary": "Code Injection in PHPUnit",
+      "published": "2022-03-26",
+      "severity": "critical",
+      "package": "phpunit/phpunit",
+      "affected": [
+        {"introduced": "4.8.19", "fixed": "4.8.28"},
+        {"introduced": "5.0.10", "fixed": "5.6.3"}
+      ],
+      "reference": "https://osv.dev/vulnerability/GHSA-r7c9-c69m-rph8"
+    },
+    {
+      "id": "GHSA-vvj3-c3rp-c85p",
+      "aliases": ["CVE-2026-24765"],
+      "summary": "PHPUnit Vulnerable to Unsafe Deserialization in PHPT Code Coverage Handling",
+      "published": "2026-01-27",
+      "severity": "high",
+      "package": "phpunit/phpunit",
+      "affected": [
+        {"introduced": "0", "fixed": "8.5.52"},
+        {"introduced": "9.0.0", "fixed": "9.6.33"},
+        {"introduced": "10.0.0", "fixed": "10.5.62"},
+        {"introduced": "11.0.0", "fixed": "11.5.50"},
+        {"introduced": "12.0.0", "fixed": "12.5.8"}
+      ],
+      "reference": "https://osv.dev/vulnerability/GHSA-vvj3-c3rp-c85p"
+    },
+    {
+      "id": "GHSA-w6f5-v2h6-g786",
+      "aliases": ["CVE-2026-84372"],
+      "summary": "Predis: Redis command injection and denial of service via CRLF smuggling in pipelined commands on aggregate connections",
+      "published": "2026-09-08",
+      "severity": "critical",
+      "package": "predis/predis",
+      "affected": [
+        {"introduced": "3.0.0-RC1", "fixed": "3.3.0"}
+      ],
+      "reference": "https://osv.dev/vulnerability/GHSA-w6f5-v2h6-g786"
+    },
+    {
+      "id": "GHSA-4486-gxhx-5mg7",
+      "aliases": ["CVE-2026-25129"],
+      "summary": "PsySH has Local Privilege Escalation via CWD .psysh.php auto-load",
+      "published": "2026-01-30",
+      "severity": "medium",
+      "package": "psy/psysh",
+      "affected": [
+        {"introduced": "0", "fixed": "0.11.23"},
+        {"introduced": "0.12.0", "fixed": "0.12.19"}
+      ],
+      "reference": "https://osv.dev/vulnerability/GHSA-4486-gxhx-5mg7"
+    },
+    {
+      "id": "GHSA-phrq-v4q2-hmq6",
+      "aliases": ["CVE-2020-13756"],
+      "summary": "Sabberworm PHP CSS Parser Code injection vulnerability in allSelectors()",
+      "published": "2022-03-26",
+      "severity": "critical",
+      "package": "sabberworm/php-css-parser",
+      "affected": [
+        {"introduced": "1.0.0", "fixed": "1.0.1"},
+        {"introduced": "2.0.0", "fixed": "2.0.1"},
+        {"introduced": "3.0.0", "fixed": "3.0.1"},
+        {"introduced": "4.0.0", "fixed": "4.0.1"},
+        {"introduced": "5.0.0", "fixed": "5.0.9"},
+        {"introduced": "5.1.0", "fixed": "5.1.3"},
+        {"introduced": "5.2.0", "fixed": "5.2.1"},
+        {"introduced": "6.0.0", "fixed": "6.0.2"},
+        {"introduced": "7.0.0", "fixed": "7.0.4"},
+        {"introduced": "8.0.0", "fixed": "8.0.1"},
+        {"introduced": "8.1.0", "fixed": "8.1.1"},
+        {"introduced": "8.2.0", "fixed": "8.2.1"},
+        {"introduced": "8.3.0", "fixed": "8.3.1"}
+      ],
+      "reference": "https://osv.dev/vulnerability/GHSA-phrq-v4q2-hmq6"
+    },
+    {
+      "id": "GHSA-2jx3-65f3-xr8r",
+      "aliases": [],
+      "summary": "spomky-labs/otphp: Mass-assignment in Factory::loadFromProvisioningUri lets a hostile provisioning URI corrupt OTP state or leak an uncaught TypeError",
+      "published": "2026-06-18",
+      "severity": "medium",
+      "package": "spomky-labs/otphp",
+      "affected": [
+        {"introduced": "0", "fixed": "11.4.3"}
+      ],
+      "reference": "https://osv.dev/vulnerability/GHSA-2jx3-65f3-xr8r"
+    },
+    {
+      "id": "GHSA-g7m4-839x-ch6v",
+      "aliases": [],
+      "summary": "spomky-labs/otphp: Unbounded digits parameter in a provisioning URI triggers an uncaught DivisionByZeroError in OTP generation",
+      "published": "2026-06-18",
+      "severity": "high",
+      "package": "spomky-labs/otphp",
+      "affected": [
+        {"introduced": "0", "fixed": "11.4.3"}
+      ],
+      "reference": "https://osv.dev/vulnerability/GHSA-g7m4-839x-ch6v"
+    },
+    {
+      "id": "GHSA-3988-h75v-hwf6",
+      "aliases": [],
+      "summary": "Arbitrary shell execution",
+      "published": "2022-03-26",
+      "severity": "high",
+      "package": "squizlabs/php_codesniffer",
+      "affected": [
+        {"introduced": "3.0.0", "fixed": "3.0.1"}
+      ],
+      "reference": "https://osv.dev/vulnerability/GHSA-3988-h75v-hwf6"
+    },
+    {
+      "id": "GHSA-hmqg-cxww-wqhq",
+      "aliases": ["CVE-2026-67434"],
+      "summary": "PHP_CodeSniffer gitblame report command injection via crafted filename",
+      "published": "2026-08-06",
+      "severity": "high",
+      "package": "squizlabs/php_codesniffer",
+      "affected": [
+        {"introduced": "0", "fixed": "3.13.6"},
+        {"introduced": "4.0.0", "fixed": "4.0.2"}
+      ],
+      "reference": "https://osv.dev/vulnerability/GHSA-hmqg-cxww-wqhq"
+    },
+    {
+      "id": "GHSA-mhfv-8rc9-w38c",
+      "aliases": [],
+      "summary": "Arbitrary shell execution",
+      "published": "2022-03-26",
+      "severity": "high",
+      "package": "squizlabs/php_codesniffer",
+      "affected": [
+        {"introduced": "1.0.0", "fixed": "2.8.1"}
+      ],
+      "reference": "https://osv.dev/vulnerability/GHSA-mhfv-8rc9-w38c"
+    },
+    {
+      "id": "GHSA-6qh9-h6wf-jgqc",
+      "aliases": ["CVE-2026-45073"],
+      "summary": "Symfony Vulnerable to SQL Injection in PdoAdapter::doClear() via Unsanitized $prefix",
+      "published": "2026-05-27",
+      "severity": "medium",
+      "package": "symfony/cache",
+      "affected": [
+        {"introduced": "0", "fixed": "5.4.52"},
+        {"introduced": "6.0.0", "fixed": "6.4.40"},
+        {"introduced": "7.0.0", "fixed": "7.4.12"},
+        {"introduced": "8.0.0", "fixed": "8.0.12"}
+      ],
+      "reference": "https://osv.dev/vulnerability/GHSA-6qh9-h6wf-jgqc"
+    },
+    {
+      "id": "GHSA-79gr-58r3-pwm3",
+      "aliases": ["CVE-2019-18889"],
+      "summary": "Symfony Unsafe Cache Serialization Could Enable RCE",
+      "published": "2019-12-02",
+      "severity": "critical",
+      "package": "symfony/cache",
+      "affected": [
+        {"introduced": "3.1.0", "fixed": "3.4.35"},
+        {"introduced": "4.0.0", "fixed": "4.2.12"},
+        {"introduced": "4.3.0", "fixed": "4.3.8"}
+      ],
+      "reference": "https://osv.dev/vulnerability/GHSA-79gr-58r3-pwm3"
+    },
+    {
+      "id": "GHSA-w2fr-65vp-mxw3",
+      "aliases": ["CVE-2019-10912"],
+      "summary": "Deserialization of untrusted data in Symfony",
+      "published": "2020-02-12",
+      "severity": "high",
+      "package": "symfony/cache",
+      "affected": [
+        {"introduced": "3.1.0", "fixed": "3.4.26"},
+        {"introduced": "4.0.0", "fixed": "4.1.12"},
+        {"introduced": "4.2.0", "fixed": "4.2.7"}
+      ],
+      "reference": "https://osv.dev/vulnerability/GHSA-w2fr-65vp-mxw3"
+    },
+    {
+      "id": "GHSA-c636-cg5r-2498",
+      "aliases": [],
+      "summary": "Symfony XML Entity Expansion security vulnerability",
+      "published": "2024-05-29",
+      "severity": "high",
+      "package": "symfony/dependency-injection",
+      "affected": [
+        {"introduced": "2.0.0", "fixed": "2.0.17"}
+      ],
+      "reference": "https://osv.dev/vulnerability/GHSA-c636-cg5r-2498"
+    },
+    {
+      "id": "GHSA-pgwj-prpq-jpc2",
+      "aliases": ["CVE-2019-10910"],
+      "summary": "Symfony Service IDs Allow Injection",
+      "published": "2019-11-18",
+      "severity": "critical",
+      "package": "symfony/dependency-injection",
+      "affected": [
+        {"introduced": "2.7.0", "fixed": "2.7.51"},
+        {"introduced": "2.8.0", "fixed": "2.8.50"},
+        {"introduced": "3.0.0", "fixed": "3.4.26"},
+        {"introduced": "4.0.0", "fixed": "4.1.12"},
+        {"introduced": "4.2.0", "fixed": "4.2.7"}
+      ],
+      "reference": "https://osv.dev/vulnerability/GHSA-pgwj-prpq-jpc2"
+    },
+    {
+      "id": "GHSA-m884-279h-32v2",
+      "aliases": ["CVE-2020-5274"],
+      "summary": "Exceptions displayed in non-debug configurations in Symfony",
+      "published": "2020-03-30",
+      "severity": "medium",
+      "package": "symfony/error-handler",
+      "affected": [
+        {"introduced": "4.4.0", "fixed": "4.4.4"},
+        {"introduced": "5.0.0", "fixed": "5.0.4"}
+      ],
+      "reference": "https://osv.dev/vulnerability/GHSA-m884-279h-32v2"
+    },
+    {
+      "id": "GHSA-38cx-cq6f-5755",
+      "aliases": ["CVE-2026-48736"],
+      "summary": "Symfony: IpUtils::PRIVATE_SUBNETS Omits IPv6 Transition Forms (6to4, NAT64, Teredo, IPv4-compatible): SSRF Bypass in NoPrivateNetworkHttpClient",
+      "published": "2026-06-15",
+      "severity": "medium",
+      "package": "symfony/http-client",
+      "affected": [
+        {"introduced": "5.4.0", "fixed": "5.4.53"}
+      ],
+      "reference": "https://osv.dev/vulnerability/GHSA-38cx-cq6f-5755"
+    },
+    {
+      "id": "GHSA-9c3x-r3wp-mgxm",
+      "aliases": ["CVE-2024-50342"],
+      "summary": "Symfony allows internal address and port enumeration by NoPrivateNetworkHttpClient",
+      "published": "2024-11-06",
+      "severity": "low",
+      "package": "symfony/http-client",
+      "affected": [
+        {"introduced": "4.3.0", "fixed": "5.4.47"},
+        {"introduced": "6.0.0", "fixed": "6.4.15"},
+        {"introduced": "7.0.0", "fixed": "7.1.8"}
+      ],
+      "reference": "https://osv.dev/vulnerability/GHSA-9c3x-r3wp-mgxm"
+    },
+    {
+      "id": "GHSA-22pv-7v9j-hqxp",
+      "aliases": ["CVE-2013-4752"],
+      "summary": "Symfony Host Header Injection vulnerability in the HttpFoundation component",
+      "published": "2022-05-05",
+      "severity": "medium",
+      "package": "symfony/http-foundation",
+      "affected": [
+        {"introduced": "2.0.0", "fixed": "2.0.24"},
+        {"introduced": "2.1.0", "fixed": "2.1.12"},
+        {"introduced": "2.2.0", "fixed": "2.2.5"},
+        {"introduced": "2.3.0", "fixed": "2.3.3"}
+      ],
+      "reference": "https://osv.dev/vulnerability/GHSA-22pv-7v9j-hqxp"
+    },
+    {
+      "id": "GHSA-38cx-cq6f-5755",
+      "aliases": ["CVE-2026-48736"],
+      "summary": "Symfony: IpUtils::PRIVATE_SUBNETS Omits IPv6 Transition Forms (6to4, NAT64, Teredo, IPv4-compatible): SSRF Bypass in NoPrivateNetworkHttpClient",
+      "published": "2026-06-15",
+      "severity": "medium",
+      "package": "symfony/http-foundation",
+      "affected": [
+        {"introduced": "6.4.0", "fixed": "6.4.41"},
+        {"introduced": "7.0.0", "fixed": "7.4.13"},
+        {"introduced": "8.0.0", "fixed": "8.0.13"}
+      ],
+      "reference": "https://osv.dev/vulnerability/GHSA-38cx-cq6f-5755"
+    },
+    {
+      "id": "GHSA-3rg7-wf37-54rm",
+      "aliases": ["CVE-2025-64500"],
+      "summary": "Symfony's incorrect parsing of PATH_INFO can lead to limited authorization bypass",
+      "published": "2025-11-12",
+      "severity": "high",
+      "package": "symfony/http-foundation",
+      "affected": [
+        {"introduced": "0", "fixed": "5.4.50"},
+        {"introduced": "6.0.0", "fixed": "6.4.29"},
+        {"introduced": "7.0.0", "fixed": "7.3.7"}
+      ],
+      "reference": "https://osv.dev/vulnerability/GHSA-3rg7-wf37-54rm"
+    },
+    {
+      "id": "GHSA-83c3-qx27-2rwr",
+      "aliases": ["CVE-2012-6431"],
+      "summary": "Symfony Allows URI Restrictions Bypass Via Double-Encoded String",
+      "published": "2022-05-17",
+      "severity": "medium",
+      "package": "symfony/http-foundation",
+      "affected": [
+        {"introduced": "2.0.0", "fixed": "2.0.19"}
+      ],
+      "reference": "https://osv.dev/vulnerability/GHSA-83c3-qx27-2rwr"
+    },
+    {
+      "id": "GHSA-8wgj-6wx8-h5hq",
+      "aliases": ["CVE-2018-14773"],
+      "summary": "Symfony HTTP Foundation web cache poisoning",
+      "published": "2022-05-13",
+      "severity": "medium",
+      "package": "symfony/http-foundation",
+      "affected": [
+        {"introduced": "2.7.0", "fixed": "2.7.49"},
+        {"introduced": "2.8.0", "fixed": "2.8.44"},
+        {"introduced": "3.0.0", "fixed": "3.3.18"},
+        {"introduced": "3.4.0", "fixed": "3.4.14"},
+        {"introduced": "4.0.0", "fixed": "4.0.14"},
+        {"introduced": "4.1.0", "fixed": "4.1.3"}
+      ],
+      "reference": "https://osv.dev/vulnerability/GHSA-8wgj-6wx8-h5hq"
+    },
+    {
+      "id": "GHSA-h7v2-2qwg-h829",
+      "aliases": ["CVE-2014-6061"],
+      "summary": "Symfony has a security issue when parsing the Authorization header",
+      "published": "2024-05-30",
+      "severity": "medium",
+      "package": "symfony/http-foundation",
+      "affected": [
+        {"introduced": "2.0.0", "fixed": "2.3.19"},
+        {"introduced": "2.4.0", "fixed": "2.4.9"},
+        {"introduced": "2.5.0", "fixed": "2.5.4"}
+      ],
+      "reference": "https://osv.dev/vulnerability/GHSA-h7v2-2qwg-h829"
+    },
+    {
+      "id": "GHSA-mcx4-f5f5-4859",
+      "aliases": ["CVE-2020-5255"],
+      "summary": "Prevent cache poisoning via a Response Content-Type header in Symfony",
+      "published": "2020-03-30",
+      "severity": "low",
+      "package": "symfony/http-foundation",
+      "affected": [
+        {"introduced": "4.4.0", "fixed": "4.4.7"},
+        {"introduced": "5.0.0", "fixed": "5.0.7"}
+      ],
+      "reference": "https://osv.dev/vulnerability/GHSA-mcx4-f5f5-4859"
+    },
+    {
+      "id": "GHSA-mrqx-rp3w-jpjp",
+      "aliases": ["CVE-2024-50345"],
+      "summary": "Symfony vulnerable to open redirect via browser-sanitized URLs",
+      "published": "2024-11-06",
+      "severity": "low",
       "package": "symfony/http-foundation",
       "affected": [
         {"introduced": "0", "fixed": "5.4.46"},
         {"introduced": "6.0.0", "fixed": "6.4.14"},
         {"introduced": "7.0.0", "fixed": "7.1.7"}
       ],
-      "reference": "https://symfony.com/blog/cve-2024-50340"
+      "reference": "https://osv.dev/vulnerability/GHSA-mrqx-rp3w-jpjp"
     },
     {
-      "id": "GHSA-7q22-x757-cmgc",
-      "aliases": ["CVE-2024-3651"],
-      "summary": "idna package quadratic complexity DoS in Punycode/IDN handling used by guzzlehttp/guzzle.",
-      "published": "2024-04-11",
+      "id": "GHSA-p684-f7fh-jv2j",
+      "aliases": ["CVE-2015-2309"],
+      "summary": "Symfony has unsafe methods in the Request class",
+      "published": "2024-05-30",
       "severity": "medium",
-      "package": "guzzlehttp/guzzle",
+      "package": "symfony/http-foundation",
       "affected": [
-        {"introduced": "0", "fixed": "7.9.0"}
+        {"introduced": "2.0.0", "fixed": "2.3.27"},
+        {"introduced": "2.4.0", "fixed": "2.5.11"},
+        {"introduced": "2.6.0", "fixed": "2.6.6"}
       ],
-      "reference": "https://github.com/guzzle/guzzle/security/advisories/GHSA-7q22-x757-cmgc"
+      "reference": "https://osv.dev/vulnerability/GHSA-p684-f7fh-jv2j"
     },
     {
-      "id": "GHSA-cwmx-hcrq-mhc3",
-      "aliases": ["CVE-2022-29248"],
-      "summary": "Guzzle cross-domain cookie leakage on redirect.",
-      "published": "2022-06-09",
-      "severity": "high",
-      "package": "guzzlehttp/guzzle",
-      "affected": [
-        {"introduced": "0", "fixed": "7.4.5"}
-      ],
-      "reference": "https://github.com/guzzle/guzzle/security/advisories/GHSA-cwmx-hcrq-mhc3"
-    },
-    {
-      "id": "GHSA-5pjx-3p5x-2cph",
-      "aliases": ["CVE-2024-32988"],
-      "summary": "PHPSecLib RSA signature verification bypass.",
-      "published": "2024-05-31",
-      "severity": "high",
-      "package": "phpseclib/phpseclib",
-      "affected": [
-        {"introduced": "0", "fixed": "2.0.47"},
-        {"introduced": "3.0.0", "fixed": "3.0.36"}
-      ],
-      "reference": "https://github.com/phpseclib/phpseclib/security/advisories/GHSA-5pjx-3p5x-2cph"
-    },
-    {
-      "id": "GHSA-h35c-4j36-c6q7",
-      "aliases": ["CVE-2024-23341"],
-      "summary": "Smarty template engine sandbox escape via static method invocation.",
-      "published": "2024-02-23",
-      "severity": "high",
-      "package": "smarty/smarty",
-      "affected": [
-        {"introduced": "0", "fixed": "3.1.48"},
-        {"introduced": "4.0.0", "fixed": "4.5.1"}
-      ],
-      "reference": "https://github.com/smarty-php/smarty/security/advisories/GHSA-h35c-4j36-c6q7"
-    },
-    {
-      "id": "GHSA-mwx5-x42v-x2c4",
-      "aliases": ["CVE-2024-34273"],
-      "summary": "TinyMCE cross-site scripting via crafted media URLs in WYSIWYG content (Magento admin).",
-      "published": "2024-05-07",
+      "id": "GHSA-r2rq-3h56-fqm4",
+      "aliases": ["CVE-2018-11386"],
+      "summary": "Symfony DoS",
+      "published": "2022-05-14",
       "severity": "medium",
-      "package": "tinymce/tinymce",
+      "package": "symfony/http-foundation",
       "affected": [
-        {"introduced": "0", "fixed": "7.0.0"}
+        {"introduced": "2.7.0", "fixed": "2.7.48"},
+        {"introduced": "2.8.0", "fixed": "2.8.41"},
+        {"introduced": "3.3.0", "fixed": "3.3.17"},
+        {"introduced": "3.4.0", "fixed": "3.4.11"},
+        {"introduced": "4.0.0", "fixed": "4.0.11"}
       ],
-      "reference": "https://github.com/tinymce/tinymce/security/advisories/GHSA-mwx5-x42v-x2c4"
+      "reference": "https://osv.dev/vulnerability/GHSA-r2rq-3h56-fqm4"
     },
     {
-      "id": "GHSA-cf4j-29f4-66x9",
-      "aliases": ["CVE-2023-23924"],
-      "summary": "Dompdf URI validation bypass leading to SSRF and arbitrary file read.",
-      "published": "2023-02-15",
+      "id": "GHSA-v77v-x634-9m56",
+      "aliases": ["CVE-2014-5244"],
+      "summary": "Symfony vulnerable to denial of service via a malicious HTTP Host header",
+      "published": "2024-05-30",
+      "severity": "high",
+      "package": "symfony/http-foundation",
+      "affected": [
+        {"introduced": "2.0.0", "fixed": "2.3.19"},
+        {"introduced": "2.4.0", "fixed": "2.4.9"},
+        {"introduced": "2.5.0", "fixed": "2.5.4"}
+      ],
+      "reference": "https://osv.dev/vulnerability/GHSA-v77v-x634-9m56"
+    },
+    {
+      "id": "GHSA-vfm6-r2gc-pwww",
+      "aliases": [],
+      "summary": "Symfony2 security issue when the trust proxy mode is enabled",
+      "published": "2024-05-30",
+      "severity": "medium",
+      "package": "symfony/http-foundation",
+      "affected": [
+        {"introduced": "2.0.0", "fixed": "2.0.19"},
+        {"introduced": "2.1.0", "fixed": "2.1.4"}
+      ],
+      "reference": "https://osv.dev/vulnerability/GHSA-vfm6-r2gc-pwww"
+    },
+    {
+      "id": "GHSA-x92h-wmg2-6hp7",
+      "aliases": ["CVE-2019-10913"],
+      "summary": "Invalid HTTP method overrides allow possible XSS or other attacks in Symfony",
+      "published": "2019-12-02",
       "severity": "critical",
-      "package": "dompdf/dompdf",
+      "package": "symfony/http-foundation",
       "affected": [
-        {"introduced": "0", "fixed": "2.0.2"}
+        {"introduced": "2.7.0", "fixed": "2.7.51"},
+        {"introduced": "2.8.0", "fixed": "2.8.50"},
+        {"introduced": "3.0.0", "fixed": "3.4.26"},
+        {"introduced": "4.0.0", "fixed": "4.1.12"},
+        {"introduced": "4.2.0", "fixed": "4.2.7"}
       ],
-      "reference": "https://github.com/dompdf/dompdf/security/advisories/GHSA-cf4j-29f4-66x9"
+      "reference": "https://osv.dev/vulnerability/GHSA-x92h-wmg2-6hp7"
     },
     {
-      "id": "GHSA-c4xw-fmqc-7q2v",
-      "aliases": ["CVE-2024-37888"],
-      "summary": "CKEditor 4 XSS through pasted HTML content in the rich-text editor.",
-      "published": "2024-06-14",
-      "severity": "medium",
-      "package": "ckeditor/ckeditor",
+      "id": "GHSA-xhh6-956q-4q69",
+      "aliases": ["CVE-2019-18888"],
+      "summary": "Argument injection in a MimeTypeGuesser in Symfony",
+      "published": "2019-12-02",
+      "severity": "high",
+      "package": "symfony/http-foundation",
       "affected": [
-        {"introduced": "0", "fixed": "4.25.0-lts"}
+        {"introduced": "2.0.0", "fixed": "2.8.52"},
+        {"introduced": "3.0.0", "fixed": "3.4.35"},
+        {"introduced": "4.0.0", "fixed": "4.2.12"},
+        {"introduced": "4.3.0", "fixed": "4.3.8"}
       ],
-      "reference": "https://github.com/ckeditor/ckeditor4/security/advisories/GHSA-c4xw-fmqc-7q2v"
+      "reference": "https://osv.dev/vulnerability/GHSA-xhh6-956q-4q69"
     },
     {
-      "id": "GHSA-3xg5-h5gj-q5fh",
-      "aliases": ["CVE-2024-21645"],
-      "summary": "laminas-http log-injection via crafted request headers.",
-      "published": "2024-01-09",
+      "id": "GHSA-5c58-w9xc-qcj9",
+      "aliases": ["CVE-2015-2308"],
+      "summary": "Symfony Vulnerable to PHP Eval Injection",
+      "published": "2022-05-17",
       "severity": "medium",
-      "package": "laminas/laminas-http",
+      "package": "symfony/http-kernel",
       "affected": [
-        {"introduced": "0", "fixed": "2.19.0"}
+        {"introduced": "2.0.0", "fixed": "2.3.27"},
+        {"introduced": "2.4.0", "fixed": "2.5.11"},
+        {"introduced": "2.6.0", "fixed": "2.6.6"}
       ],
-      "reference": "https://github.com/laminas/laminas-http/security/advisories/GHSA-3xg5-h5gj-q5fh"
+      "reference": "https://osv.dev/vulnerability/GHSA-5c58-w9xc-qcj9"
     },
     {
-      "id": "GHSA-9p83-6cmp-pgcf",
-      "aliases": ["CVE-2023-49081"],
-      "summary": "monolog log-injection via crafted log context arrays.",
-      "published": "2023-11-29",
-      "severity": "medium",
-      "package": "monolog/monolog",
+      "id": "GHSA-6439-2f28-8p8q",
+      "aliases": ["CVE-2026-45075"],
+      "summary": "Symfony's HEAD Request Bypasses methods: ['GET'] Filter in #[IsGranted] / #[IsSignatureValid] / #[IsCsrfTokenValid]",
+      "published": "2026-05-27",
+      "severity": "high",
+      "package": "symfony/http-kernel",
       "affected": [
-        {"introduced": "0", "fixed": "2.9.2"},
-        {"introduced": "3.0.0", "fixed": "3.5.0"}
+        {"introduced": "7.4.0", "fixed": "7.4.12"},
+        {"introduced": "8.0.0", "fixed": "8.0.12"}
       ],
-      "reference": "https://github.com/Seldaek/monolog/security/advisories/GHSA-9p83-6cmp-pgcf"
+      "reference": "https://osv.dev/vulnerability/GHSA-6439-2f28-8p8q"
+    },
+    {
+      "id": "GHSA-754h-5r27-7x3r",
+      "aliases": ["CVE-2020-15094"],
+      "summary": "RCE in Symfony",
+      "published": "2020-09-02",
+      "severity": "high",
+      "package": "symfony/http-kernel",
+      "affected": [
+        {"introduced": "4.3.0", "fixed": "4.4.13"},
+        {"introduced": "5.0.0", "fixed": "5.1.5"}
+      ],
+      "reference": "https://osv.dev/vulnerability/GHSA-754h-5r27-7x3r"
+    },
+    {
+      "id": "GHSA-h7vf-5wrv-9fhv",
+      "aliases": ["CVE-2022-24894"],
+      "summary": "Symfony storing cookie headers in HttpCache",
+      "published": "2023-02-01",
+      "severity": "medium",
+      "package": "symfony/http-kernel",
+      "affected": [
+        {"introduced": "2.0.0", "fixed": "4.4.50"},
+        {"introduced": "5.0.0", "fixed": "5.4.20"},
+        {"introduced": "6.0.0", "fixed": "6.0.20"},
+        {"introduced": "6.1.0", "fixed": "6.1.12"},
+        {"introduced": "6.2.0", "fixed": "6.2.6"}
+      ],
+      "reference": "https://osv.dev/vulnerability/GHSA-h7vf-5wrv-9fhv"
+    },
+    {
+      "id": "GHSA-q3j3-w37x-hq2q",
+      "aliases": ["CVE-2021-41267"],
+      "summary": "Webcache Poisoning in symfony/http-kernel",
+      "published": "2021-11-24",
+      "severity": "medium",
+      "package": "symfony/http-kernel",
+      "affected": [
+        {"introduced": "5.2.0", "fixed": "5.3.12"}
+      ],
+      "reference": "https://osv.dev/vulnerability/GHSA-q3j3-w37x-hq2q"
+    },
+    {
+      "id": "GHSA-q8hg-pf8v-cxrv",
+      "aliases": ["CVE-2019-18887"],
+      "summary": "Symfony Http-Kernel has non-constant time comparison in UriSigner",
+      "published": "2022-03-26",
+      "severity": "high",
+      "package": "symfony/http-kernel",
+      "affected": [
+        {"introduced": "2.2.0", "fixed": "2.8.52"},
+        {"introduced": "3.0.0", "fixed": "3.4.35"},
+        {"introduced": "4.0.0", "fixed": "4.2.12"},
+        {"introduced": "4.3.0", "fixed": "4.3.8"}
+      ],
+      "reference": "https://osv.dev/vulnerability/GHSA-q8hg-pf8v-cxrv"
+    },
+    {
+      "id": "GHSA-qmqw-mpqp-mr54",
+      "aliases": ["CVE-2015-4050"],
+      "summary": "Symfony Incorrect Access Control",
+      "published": "2022-05-17",
+      "severity": "medium",
+      "package": "symfony/http-kernel",
+      "affected": [
+        {"introduced": "2.3.19", "fixed": "2.3.29"},
+        {"introduced": "2.4.9", "last_affected": "2.4.10"},
+        {"introduced": "2.5.4", "fixed": "2.5.12"},
+        {"introduced": "2.6.0", "fixed": "2.6.8"}
+      ],
+      "reference": "https://osv.dev/vulnerability/GHSA-qmqw-mpqp-mr54"
+    },
+    {
+      "id": "GHSA-wvjv-p5rr-mmqm",
+      "aliases": ["CVE-2014-5245"],
+      "summary": "Symfony allows direct access of ESI URLs behind a trusted proxy",
+      "published": "2024-05-30",
+      "severity": "high",
+      "package": "symfony/http-kernel",
+      "affected": [
+        {"introduced": "2.0.0", "fixed": "2.3.19"},
+        {"introduced": "2.4.0", "fixed": "2.4.9"},
+        {"introduced": "2.5.0", "fixed": "2.5.4"}
+      ],
+      "reference": "https://osv.dev/vulnerability/GHSA-wvjv-p5rr-mmqm"
+    },
+    {
+      "id": "GHSA-c49r-8gj6-768r",
+      "aliases": ["CVE-2017-16654"],
+      "summary": "Symfony Directory Traversal",
+      "published": "2022-05-14",
+      "severity": "high",
+      "package": "symfony/intl",
+      "affected": [
+        {"introduced": "2.7.0", "fixed": "2.7.38"},
+        {"introduced": "2.8.0", "fixed": "2.8.31"},
+        {"introduced": "3.0.0", "fixed": "3.2.14"},
+        {"introduced": "3.3.0", "fixed": "3.3.13"}
+      ],
+      "reference": "https://osv.dev/vulnerability/GHSA-c49r-8gj6-768r"
+    },
+    {
+      "id": "GHSA-xx3c-qf5g-hc39",
+      "aliases": ["CVE-2026-45068"],
+      "summary": "Symfony has an Argument Injection in SendmailTransport via Dash-Prefixed Recipient Address",
+      "published": "2026-05-27",
+      "severity": "medium",
+      "package": "symfony/mailer",
+      "affected": [
+        {"introduced": "0", "fixed": "5.4.52"},
+        {"introduced": "6.0.0", "fixed": "6.4.40"},
+        {"introduced": "7.0.0", "fixed": "7.4.12"},
+        {"introduced": "8.0.0", "fixed": "8.0.12"}
+      ],
+      "reference": "https://osv.dev/vulnerability/GHSA-xx3c-qf5g-hc39"
+    },
+    {
+      "id": "GHSA-qpmx-3rfj-7rhv",
+      "aliases": ["CVE-2026-45067"],
+      "summary": "Symfony has Email Header / SMTP Command Injection via CRLF in Symfony\\Component\\Mime\\Address",
+      "published": "2026-05-27",
+      "severity": "high",
+      "package": "symfony/mime",
+      "affected": [
+        {"introduced": "0", "fixed": "5.4.52"},
+        {"introduced": "6.0.0", "fixed": "6.4.40"},
+        {"introduced": "7.0.0", "fixed": "7.4.12"},
+        {"introduced": "8.0.0", "fixed": "8.0.12"}
+      ],
+      "reference": "https://osv.dev/vulnerability/GHSA-qpmx-3rfj-7rhv"
+    },
+    {
+      "id": "GHSA-vqc8-7275-q272",
+      "aliases": ["CVE-2026-45070"],
+      "summary": "Symfony has Email Header Injection via Non-Token Characters in Mime Parameter Names",
+      "published": "2026-05-27",
+      "severity": "medium",
+      "package": "symfony/mime",
+      "affected": [
+        {"introduced": "0", "fixed": "5.4.52"},
+        {"introduced": "6.0.0", "fixed": "6.4.40"},
+        {"introduced": "7.0.0", "fixed": "7.4.12"},
+        {"introduced": "8.0.0", "fixed": "8.0.12"}
+      ],
+      "reference": "https://osv.dev/vulnerability/GHSA-vqc8-7275-q272"
+    },
+    {
+      "id": "GHSA-xhh6-956q-4q69",
+      "aliases": ["CVE-2019-18888"],
+      "summary": "Argument injection in a MimeTypeGuesser in Symfony",
+      "published": "2019-12-02",
+      "severity": "high",
+      "package": "symfony/mime",
+      "affected": [
+        {"introduced": "4.3.0", "fixed": "4.3.8"}
+      ],
+      "reference": "https://osv.dev/vulnerability/GHSA-xhh6-956q-4q69"
+    },
+    {
+      "id": "GHSA-2xf4-cg6j-vhgq",
+      "aliases": ["CVE-2026-46644"],
+      "summary": "symfony/polyfill-intl-idn: xn-- labels with ASCII-only Punycode payloads are treated as equivalent to their decoded form",
+      "published": "2026-05-28",
+      "severity": "low",
+      "package": "symfony/polyfill-intl-idn",
+      "affected": [
+        {"introduced": "1.17.1", "fixed": "1.38.1"}
+      ],
+      "reference": "https://osv.dev/vulnerability/GHSA-2xf4-cg6j-vhgq"
+    },
+    {
+      "id": "GHSA-qq5c-677p-737q",
+      "aliases": ["CVE-2024-51736"],
+      "summary": "Symfony vulnerable to command execution hijack on Windows with Process class",
+      "published": "2024-11-06",
+      "severity": "high",
+      "package": "symfony/process",
+      "affected": [
+        {"introduced": "0", "fixed": "5.4.46"},
+        {"introduced": "6.0.0", "fixed": "6.4.14"},
+        {"introduced": "7.0.0", "fixed": "7.1.7"}
+      ],
+      "reference": "https://osv.dev/vulnerability/GHSA-qq5c-677p-737q"
+    },
+    {
+      "id": "GHSA-r39x-jcww-82v6",
+      "aliases": ["CVE-2026-24739"],
+      "summary": "Symfony's incorrect argument escaping under MSYS2/Git Bash can lead to destructive file operations on Windows",
+      "published": "2026-01-28",
+      "severity": "medium",
+      "package": "symfony/process",
+      "affected": [
+        {"introduced": "0", "fixed": "5.4.51"},
+        {"introduced": "6.4", "fixed": "6.4.33"},
+        {"introduced": "7.3", "fixed": "7.3.11"},
+        {"introduced": "7.4", "fixed": "7.4.5"},
+        {"introduced": "8.0", "fixed": "8.0.5"}
+      ],
+      "reference": "https://osv.dev/vulnerability/GHSA-r39x-jcww-82v6"
+    },
+    {
+      "id": "GHSA-w4rc-rx25-8m86",
+      "aliases": ["CVE-2019-11325"],
+      "summary": "Improper Input Validation in Symfony",
+      "published": "2020-02-12",
+      "severity": "critical",
+      "package": "symfony/var-exporter",
+      "affected": [
+        {"introduced": "4.2.0", "fixed": "4.2.12"},
+        {"introduced": "4.3.0", "fixed": "4.3.8"}
+      ],
+      "reference": "https://osv.dev/vulnerability/GHSA-w4rc-rx25-8m86"
+    },
+    {
+      "id": "GHSA-2r5h-6r7v-5m7c",
+      "aliases": ["CVE-2013-1348"],
+      "summary": "Symphony Vulnerable to PHP Code Injection via YAML Parsing",
+      "published": "2022-05-17",
+      "severity": "high",
+      "package": "symfony/yaml",
+      "affected": [
+        {"introduced": "2.0.0", "fixed": "2.0.22"}
+      ],
+      "reference": "https://osv.dev/vulnerability/GHSA-2r5h-6r7v-5m7c"
+    },
+    {
+      "id": "GHSA-4qpc-3hr4-r2p4",
+      "aliases": ["CVE-2026-45304"],
+      "summary": "Symfony's YAML Parser Vulnerable to Exponential Memory Allocation via Recursive Collection-Alias Expansion (\"Billion Laughs\")",
+      "published": "2026-05-27",
+      "severity": "low",
+      "package": "symfony/yaml",
+      "affected": [
+        {"introduced": "0", "fixed": "5.4.52"},
+        {"introduced": "6.0.0", "fixed": "6.4.40"},
+        {"introduced": "7.0.0", "fixed": "7.4.12"},
+        {"introduced": "8.0.0", "fixed": "8.0.12"}
+      ],
+      "reference": "https://osv.dev/vulnerability/GHSA-4qpc-3hr4-r2p4"
+    },
+    {
+      "id": "GHSA-7w53-hfpw-rg3g",
+      "aliases": ["CVE-2013-1397"],
+      "summary": "Symfony Arbitrary PHP code Execution",
+      "published": "2022-05-17",
+      "severity": "high",
+      "package": "symfony/yaml",
+      "affected": [
+        {"introduced": "2.0.0", "fixed": "2.0.22"},
+        {"introduced": "2.1.0", "fixed": "2.1.7"},
+        {"introduced": "2.2.0-BETA1", "fixed": "2.2.0-BETA2"}
+      ],
+      "reference": "https://osv.dev/vulnerability/GHSA-7w53-hfpw-rg3g"
+    },
+    {
+      "id": "GHSA-9frc-8383-795m",
+      "aliases": ["CVE-2026-45305"],
+      "summary": "Symfony's YAML Parser has a ReDoS via Catastrophic Backtracking in Parser::cleanup() Regex",
+      "published": "2026-05-27",
+      "severity": "low",
+      "package": "symfony/yaml",
+      "affected": [
+        {"introduced": "0", "fixed": "5.4.52"},
+        {"introduced": "6.0.0", "fixed": "6.4.40"},
+        {"introduced": "7.0.0", "fixed": "7.4.12"},
+        {"introduced": "8.0.0", "fixed": "8.0.12"}
+      ],
+      "reference": "https://osv.dev/vulnerability/GHSA-9frc-8383-795m"
+    },
+    {
+      "id": "GHSA-c2p3-7m5p-cv8x",
+      "aliases": ["CVE-2026-45133"],
+      "summary": "Symfony hardened the parser when handling untrusted input",
+      "published": "2026-05-27",
+      "severity": "low",
+      "package": "symfony/yaml",
+      "affected": [
+        {"introduced": "0", "fixed": "5.4.52"},
+        {"introduced": "6.0.0", "fixed": "6.4.40"},
+        {"introduced": "7.0.0", "fixed": "7.4.12"},
+        {"introduced": "8.0.0", "fixed": "8.0.12"}
+      ],
+      "reference": "https://osv.dev/vulnerability/GHSA-c2p3-7m5p-cv8x"
+    },
+    {
+      "id": "GHSA-3prj-6hqw-cm82",
+      "aliases": [],
+      "summary": "PHP JWT Library: PBES2-HS*+A*KW unwrap accepts an unbounded p2c iteration count, enabling CPU-amplification denial of service",
+      "published": "2026-06-18",
+      "severity": "high",
+      "package": "web-token/jwt-framework",
+      "affected": [
+        {"introduced": "0", "fixed": "3.4.10"},
+        {"introduced": "4.0.0", "fixed": "4.0.7"},
+        {"introduced": "4.1.0", "fixed": "4.1.7"}
+      ],
+      "reference": "https://osv.dev/vulnerability/GHSA-3prj-6hqw-cm82"
+    },
+    {
+      "id": "GHSA-jc38-x7x8-2xc8",
+      "aliases": [],
+      "summary": "PHP JWT Framework: JWSVerifier uses algorithm from unprotected header, enabling algorithm confusion attacks",
+      "published": "2026-06-18",
+      "severity": "high",
+      "package": "web-token/jwt-framework",
+      "affected": [
+        {"introduced": "0", "fixed": "3.4.10"},
+        {"introduced": "4.0.0", "fixed": "4.0.7"},
+        {"introduced": "4.1.0", "fixed": "4.1.7"}
+      ],
+      "reference": "https://osv.dev/vulnerability/GHSA-jc38-x7x8-2xc8"
+    },
+    {
+      "id": "GHSA-68jq-c3rv-pcrr",
+      "aliases": ["CVE-2026-40476"],
+      "summary": "graphql-php is affected by a Denial of Service via quadratic complexity in OverlappingFieldsCanBeMerged validation",
+      "published": "2026-04-14",
+      "severity": "medium",
+      "package": "webonyx/graphql-php",
+      "affected": [
+        {"introduced": "0", "fixed": "15.31.5"}
+      ],
+      "reference": "https://osv.dev/vulnerability/GHSA-68jq-c3rv-pcrr"
+    },
+    {
+      "id": "GHSA-fc86-6rv6-2jpm",
+      "aliases": [],
+      "summary": "webonyx/graphql-php has quadratic validation cost in OverlappingFieldsCanBeMerged via inline fragments",
+      "published": "2026-05-04",
+      "severity": "high",
+      "package": "webonyx/graphql-php",
+      "affected": [
+        {"introduced": "0", "fixed": "15.32.2"}
+      ],
+      "reference": "https://github.com/advisories/GHSA-9pv7-vfvm-6vr7"
+    },
+    {
+      "id": "GHSA-r7cg-qjjm-xhqq",
+      "aliases": ["CVE-2026-107376"],
+      "summary": "webonyx/graphql-php has unbounded recursion in parser that causes stack overflow on crafted nested input",
+      "published": "2026-05-05",
+      "severity": "high",
+      "package": "webonyx/graphql-php",
+      "affected": [
+        {"introduced": "0", "fixed": "15.32.3"}
+      ],
+      "reference": "https://osv.dev/vulnerability/GHSA-r7cg-qjjm-xhqq"
     }
   ]
 }
