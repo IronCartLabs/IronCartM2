@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Fixed
+
+- **Licence verifier: a JSON-array payload now fails as `malformed`, not `missing_field`** ([#218](https://github.com/IronCartLabs/IronCartM2/issues/218)). `LicenseVerifier::verify()` decoded the payload segment with `json_decode(..., true)`, so a JSON array such as `[1,2,3]` became a PHP array, passed the "is this an object" guard, and fell through to field validation. The payload is now decoded as an object and anything that is not a JSON object returns `REASON_MALFORMED`, matching the `Array.isArray` guard in the IronCartWeb signer (`lib/license/sign.ts`). Such a blob was already rejected before; only the reason code changes. An empty object `{}` still returns `missing_field`, as on the signer side.
+- **`IgnorePatterns::fromLists()` no longer always throws** ([#218](https://github.com/IronCartLabs/IronCartM2/issues/218)). The in-memory factory built the instance with `new self(__FILE__)`, so the constructor parsed `IgnorePatterns.php` itself as the JSON whitelist and threw `RuntimeException: Integrity ignore file IgnorePatterns.php is not valid JSON`. It now skips the constructor and reads no file. No production code path calls `fromLists()` (DI builds `IgnorePatterns` through its constructor and the bundled `etc/integrity-ignore.json`), so scan output is unchanged.
+
 ## [1.6.2] - 2026-06-19
 
 Critical admin-recovery patch. On every release that shipped the admin UI

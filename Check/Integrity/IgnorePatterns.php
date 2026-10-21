@@ -30,6 +30,7 @@ declare(strict_types=1);
 
 namespace IronCart\Scan\Check\Integrity;
 
+use ReflectionClass;
 use RuntimeException;
 
 /**
@@ -70,12 +71,15 @@ class IgnorePatterns
     /**
      * Construct directly from in-memory lists. Primarily for tests.
      *
+     * Skips the constructor so no whitelist file is read: the lists
+     * passed here are the whole rule set.
+     *
      * @param list<string> $prefixes
      * @param list<string> $exact
      */
     public static function fromLists(array $prefixes, array $exact): self
     {
-        $instance = new self(__FILE__); // any path; we overwrite below
+        $instance = (new ReflectionClass(self::class))->newInstanceWithoutConstructor();
         $instance->prefixes = self::sanitiseList($prefixes);
         $instance->exact = self::sanitiseList($exact);
         return $instance;
