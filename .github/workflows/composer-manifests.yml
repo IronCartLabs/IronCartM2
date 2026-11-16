@@ -93,15 +93,35 @@ jobs:
         # scheduled runs fall through to the same default list: the latest
         # patch of each supported 2.4.x line. Keep in sync with the
         # Makefile's MANIFEST_VERSIONS.
+        #
+        # The input is free text, so it is read via env (never inlined into
+        # the script) and every token is validated against a Magento version
+        # shape before being re-emitted as a single-space-joined output.
+        # Downstream steps (make, the PR title / commit message) consume
+        # only this validated output. See IronCartLabs/IronCartM2#212.
         env:
           INPUT_VERSIONS: ${{ github.event.inputs.magento_versions }}
         run: |
           set -euo pipefail
           if [ -n "${INPUT_VERSIONS}" ]; then
-            versions="${INPUT_VERSIONS}"
+            raw="${INPUT_VERSIONS}"
           else
             # Default for scheduled runs. Mirrors Makefile MANIFEST_VERSIONS.
-            versions='2.4.7-p10 2.4.8-p5 2.4.9'
+            raw='2.4.7-p10 2.4.8-p5 2.4.9'
+          fi
+          versions=''
+          set -f
+          for v in ${raw}; do
+            if ! [[ "${v}" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[A-Za-z0-9]+)?$ ]]; then
+              echo "::error::Invalid Magento version token in magento_versions input (expected e.g. 2.4.7-p10)."
+              exit 1
+            fi
+            versions="${versions:+${versions} }${v}"
+          done
+          set +f
+          if [ -z "${versions}" ]; then
+            echo "::error::No Magento versions to build."
+            exit 1
           fi
           echo "Manifest versions to build: ${versions}"
           echo "versions=${versions}" >> "${GITHUB_OUTPUT}"
@@ -139,6 +159,8 @@ jobs:
         # malformed run (e.g. composer resolve produced a stub) is
         # spottable from the Actions UI. The PR description (built by the
         # next step) gets a copy of the same numbers.
+        env:
+          VERSIONS: ${{ steps.versions.outputs.versions }}
         run: |
           set -euo pipefail
           echo "## Generated composer manifests" > /tmp/manifest-summary.md
@@ -163,13 +185,17 @@ jobs:
             fi
           done
           echo "" >> /tmp/manifest-summary.md
-          echo "Build command: \`make composer-manifests MANIFEST_VERSIONS=\"${{ steps.versions.outputs.versions }}\"\`" >> /tmp/manifest-summary.md
+          echo "Build command: \`make composer-manifests MANIFEST_VERSIONS=\"${VERSIONS}\"\`" >> /tmp/manifest-summary.md
 
       - name: Open PR with regenerated manifests
         # peter-evans/create-pull-request handles branch creation + push +
         # PR open in one step. It also no-ops if the diff is empty, so
         # scheduled runs that find nothing changed simply exit clean.
         uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
+        # `with:` values are passed to the action as inputs, not evaluated by
+        # a shell; the only free-text-derived value used below is
+        # steps.versions.outputs.versions, which the "Resolve versions" step
+        # has already validated token-by-token.
         with:
           # The default GITHUB_TOKEN can open PRs but cannot trigger
           # downstream workflow runs on the resulting branch — that's a
