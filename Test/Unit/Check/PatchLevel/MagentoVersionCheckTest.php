@@ -116,16 +116,48 @@ class MagentoVersionCheckTest extends TestCase
         }
     }
 
-    public function testReportsCriticalWhenMoreThanNinetyDaysBehind(): void
+    public function testTwoFourSixP10NoLongerReadsAsCurrent(): void
     {
-        // Running 2.4.6-p9 (2024-10-08), latest 2.4.6-p10 (2025-02-11).
-        // Gap = 126 days → critical.
-        $check = $this->makeCheck('2.4.6-p9', 'Community', '2025-03-01');
+        // 2.4.6-p10 was the newest 2.4.6 entry before the #220 refresh, so
+        // it graded INFO. Adobe dates it 2025-04-08 (the catalogue had
+        // 2025-02-11, one cycle early). 2.4.6-p10 → 2.4.6-p15 (2026-05-12)
+        // = 399 days → critical.
+        $check = $this->makeCheck('2.4.6-p10', 'Community', '2026-11-16');
         $finding = $check->run()[0];
 
         self::assertSame(Severity::CRITICAL, $finding['severity']);
-        self::assertGreaterThan(90, $finding['evidence']['days_behind_latest']);
-        self::assertSame('2.4.6-p10', $finding['evidence']['latest_known_in_line']);
+        self::assertSame(399, $finding['evidence']['days_behind_latest']);
+        self::assertSame('2.4.6-p15', $finding['evidence']['latest_known_in_line']);
+        self::assertSame('2025-04-08', $finding['evidence']['running_version_released']);
+    }
+
+    /**
+     * @dataProvider legacyLineLatestReleases
+     */
+    public function testLatestLegacyReleaseReportsInfo(string $version, string $edition): void
+    {
+        $check = $this->makeCheck($version, $edition, '2026-11-16');
+        $finding = $check->run()[0];
+
+        self::assertSame(Severity::INFO, $finding['severity']);
+        self::assertSame($version, $finding['evidence']['latest_known_in_line']);
+        self::assertSame(0, $finding['evidence']['days_behind_latest']);
+        self::assertSame('2026-05-12', $finding['evidence']['latest_known_in_line_released']);
+    }
+
+    /**
+     * 2.4.4-p18 and 2.4.5-p17 are Adobe Commerce-only extended support
+     * releases, so they are paired with the Commerce edition.
+     *
+     * @return array<string,array{string,string}>
+     */
+    public static function legacyLineLatestReleases(): array
+    {
+        return [
+            '2.4.4 line' => ['2.4.4-p18', 'Enterprise'],
+            '2.4.5 line' => ['2.4.5-p17', 'Enterprise'],
+            '2.4.6 line' => ['2.4.6-p15', 'Community'],
+        ];
     }
 
     public function testUnknownVersionFallsBackToInfo(): void
