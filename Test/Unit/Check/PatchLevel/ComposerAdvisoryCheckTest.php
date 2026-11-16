@@ -245,7 +245,10 @@ class ComposerAdvisoryCheckTest extends TestCase
         ]);
 
         $finding = $this->makeCheck($lock, $snapshot, '2025-01-01')->run()[0];
-        self::assertSame('https://osv.dev/vulnerability/GHSA-noref', $finding['remediation_url']);
+        // The OSV deep link lives in evidence.reference_url; remediation_url
+        // is the canonical ironcart.dev check page for every IC-002 finding (#23).
+        self::assertSame('https://osv.dev/vulnerability/GHSA-noref', $finding['evidence']['reference_url']);
+        self::assertSame(ComposerAdvisoryCheck::REMEDIATION_URL, $finding['remediation_url']);
     }
 
     /**
