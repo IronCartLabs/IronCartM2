@@ -14,6 +14,12 @@
  *   - `medium`   if 0–30 days newer
  *   - `info`     if the running version matches the latest known patch
  *
+ * When the running version is the latest `-pN` and Adobe has published
+ * monthly isolated security patches for the line since, the evidence
+ * also lists them (`isolated_patches_published_since`) with a message to
+ * verify them. Severity is unchanged: the version string cannot show
+ * whether patch files are applied (IronCartM2#221).
+ *
  * @copyright Copyright (c) Ironcart (https://ironcart.dev)
  * @license   MIT
  */
@@ -37,6 +43,10 @@ class MagentoVersionCheck implements CheckInterface
     public const ID = 'IC-001';
 
     public const REMEDIATION_URL = 'https://ironcart.dev/docs/checks/IC-001';
+
+    private const ISOLATED_PATCHES_MESSAGE = 'Adobe has published %d monthly isolated security patch(es) for this'
+        . ' line since %s (%s). They ship as patch files, not Composer versions, so IC-001 cannot tell'
+        . ' whether they are applied. Verify with Adobe\'s Commerce Version Tool (vendor/bin/patch-status).';
 
     public function __construct(
         private readonly ProductMetadataInterface $productMetadata,
@@ -77,6 +87,19 @@ class MagentoVersionCheck implements CheckInterface
             'days_behind_latest' => $daysBehind,
             'catalog_known' => $runningReleased !== null,
         ];
+
+        // Evidence only: IC-001 cannot see whether isolated patch files are
+        // applied, so the hint never changes severity (IronCartM2#221).
+        $isolated = MagentoPatchCatalog::isolatedPatchesSince($version, $edition, $now);
+        if ($isolated !== []) {
+            $evidence['isolated_patches_published_since'] = $isolated;
+            $evidence['isolated_patches_message'] = sprintf(
+                self::ISOLATED_PATCHES_MESSAGE,
+                count($isolated),
+                $version,
+                implode(', ', $isolated)
+            );
+        }
 
         return [
             [

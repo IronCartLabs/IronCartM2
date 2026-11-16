@@ -26,6 +26,7 @@ declare(strict_types=1);
 namespace IronCart\Scan\Check\PatchLevel;
 
 use DateTimeImmutable;
+use DateTimeInterface;
 use DateTimeZone;
 
 /**
@@ -128,6 +129,51 @@ final class MagentoPatchCatalog
         '2.4.9'    => '2026-05-12',
     ];
 
+    /**
+     * Adobe's monthly isolated security patch trains, oldest first.
+     *
+     * Each train is a set of patch files built against the latest `-pN`
+     * of every line it covers. It is never a Composer version, so labels
+     * are compared by `released` date only, never with
+     * {@see version_compare()}. `commerce` / `open_source` list the lines
+     * that have a fix in the bulletin's Solution table for that edition.
+     * Source: each bulletin's "Date published" and Solution table on
+     * https://www.adobe.com/trust/security/products/commerce/<id>.html
+     * (captured 2026-11-16; no November 2026 Commerce bulletin).
+     *
+     * @var list<array{label:string,released:string,bulletin:string,commerce:list<string>,open_source:list<string>}>
+     */
+    private const ISOLATED_PATCHES = [
+        [
+            'label' => '2026-jul',
+            'released' => '2026-07-14',
+            'bulletin' => 'APSB26-73',
+            'commerce' => ['2.4.4', '2.4.5', '2.4.6', '2.4.7', '2.4.8', '2.4.9'],
+            'open_source' => ['2.4.6', '2.4.7', '2.4.8', '2.4.9'],
+        ],
+        [
+            'label' => '2026-aug',
+            'released' => '2026-08-11',
+            'bulletin' => 'APSB26-92',
+            'commerce' => ['2.4.4', '2.4.5', '2.4.6', '2.4.7', '2.4.8', '2.4.9'],
+            'open_source' => ['2.4.6', '2.4.7', '2.4.8', '2.4.9'],
+        ],
+        [
+            'label' => '2026-sep',
+            'released' => '2026-09-08',
+            'bulletin' => 'APSB26-138',
+            'commerce' => ['2.4.4', '2.4.5', '2.4.6', '2.4.7', '2.4.8', '2.4.9'],
+            'open_source' => ['2.4.7', '2.4.8', '2.4.9'],
+        ],
+        [
+            'label' => '2026-oct',
+            'released' => '2026-10-13',
+            'bulletin' => 'APSB26-153',
+            'commerce' => ['2.4.4', '2.4.5', '2.4.6', '2.4.7', '2.4.8', '2.4.9'],
+            'open_source' => ['2.4.7', '2.4.8', '2.4.9'],
+        ],
+    ];
+
     private function __construct()
     {
     }
@@ -140,6 +186,52 @@ final class MagentoPatchCatalog
     public static function all(): array
     {
         return self::RELEASES;
+    }
+
+    /**
+     * Return the isolated security patch trains, oldest first.
+     *
+     * @return list<array{label:string,released:string,bulletin:string,commerce:list<string>,open_source:list<string>}>
+     */
+    public static function isolatedPatches(): array
+    {
+        return self::ISOLATED_PATCHES;
+    }
+
+    /**
+     * Labels of the isolated patch trains Adobe has published for the
+     * running version's line and edition since that version shipped.
+     *
+     * Returns an empty list unless `$version` is the latest catalogued
+     * release on its line: Adobe builds isolated patches only against
+     * the latest `-pN`, and a store behind it is graded on that gap.
+     * Edition `Community` is Magento Open Source; any other edition is
+     * treated as Adobe Commerce. Trains dated after `$now` are ignored.
+     *
+     * @return list<string>
+     */
+    public static function isolatedPatchesSince(string $version, string $edition, DateTimeInterface $now): array
+    {
+        $released = self::releaseDate($version);
+        $line = self::minorLine($version);
+        if ($released === null || $line === null || self::latestInMinorLine($version) !== $version) {
+            return [];
+        }
+
+        $editionKey = $edition === 'Community' ? 'open_source' : 'commerce';
+        $labels = [];
+        foreach (self::ISOLATED_PATCHES as $train) {
+            $trainDate = new DateTimeImmutable($train['released'], new DateTimeZone('UTC'));
+            if (
+                in_array($line, $train[$editionKey], true)
+                && $trainDate > $released
+                && $trainDate <= $now
+            ) {
+                $labels[] = $train['label'];
+            }
+        }
+
+        return $labels;
     }
 
     /**
