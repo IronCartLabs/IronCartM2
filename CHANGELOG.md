@@ -6,6 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Fixed
+
+- **IC-001 patch catalogue refreshed for the 2.4.4, 2.4.5 and 2.4.6 lines** ([#220](https://github.com/IronCartLabs/IronCartM2/issues/220)). The catalogue stopped at `2.4.4-p12`, `2.4.5-p11` and `2.4.6-p10`, so a store on any of those read as current (INFO) although each line has had five or six security releases since. `MagentoPatchCatalog::RELEASES` adds `2.4.4-p13` – `2.4.4-p18`, `2.4.5-p12` – `2.4.5-p17` and `2.4.6-p11` – `2.4.6-p15`, with dates from Adobe's [Released versions](https://experienceleague.adobe.com/en/docs/commerce-operations/release/versions) page. It also corrects 30 existing dates on these lines (`2.4.4-p3` onward, `2.4.5-p2` onward, `2.4.6-p1` onward). Each was earlier than Adobe's date, usually by one release cycle. For example, `2.4.6-p10` was listed as 2025-02-11 but shipped 2025-04-08. Effects:
+  - `2.4.6-p10` now grades CRITICAL, 399 days behind `2.4.6-p15`;
+  - the latest release on each line (`2.4.4-p18`, `2.4.5-p17`, `2.4.6-p15`) grades INFO;
+  - days-behind figures for older 2.4.4 – 2.4.6 releases change to match the corrected dates.
+
+  `2.4.4-p14` and later and `2.4.5-p15` and later are Adobe Commerce-only extended support releases. Isolated security patch files stay uncatalogued, as in 1.6.3.
+
 ## [1.6.3] - 2026-11-16
 
 Adds IC-003 for the exploited-in-the-wild CVE-2026-75650 (APSB26-146) and
