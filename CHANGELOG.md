@@ -6,16 +6,26 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
-## [1.6.3] - 2026-10-21
+## [1.6.3] - 2026-11-16
 
-Data refresh for the two patch-level checks. Before this release, IC-001
+Adds IC-003 for the exploited-in-the-wild CVE-2026-75650 (APSB26-146) and
+refreshes the data behind the two patch-level checks. Before this release, IC-001
 graded **every Magento 2.4.8 and 2.4.9 store as INFO**, however far behind it
 was, because the bundled patch catalogue stopped at `2.4.7-p5` (2025-04-08).
 For the same reason it also read `2.4.7-p5` as current. IC-002's OSV snapshot
-was five months stale. No check logic, CLI, config or report-schema field
-changed. Only the bundled data and the version bump differ from `1.6.2`.
-**Expect more IC-001 and IC-002 findings after upgrading.** That is the fix
+was five months stale. Apart from the new IC-003 check and the unit-level
+fixes listed below, no CLI, config or report-schema field changed.
+**Expect more IC-001, IC-002 and IC-003 findings after upgrading.** That is the fix
 working, not a regression.
+
+### Added
+
+- **IC-003: missing Adobe hotfix for CVE-2026-75650 (APSB26-146)** ([#207](https://github.com/IronCartLabs/IronCartM2/issues/207)). CVE-2026-75650 is an unauthenticated, CVSS 10.0 template-engine RCE that Adobe confirmed as exploited in the wild. Adobe ships the fix as the isolated patch `VULN-39341`, not as a Composer release, and APSB26-153 (`2.4.x-2026-oct`) still says to apply it separately. IC-001 and IC-002 therefore cannot see it. The new check reads four files the hotfix changes: `vendor/magento/framework/View/Element/BlockFactory.php`, `vendor/magento/module-backend/Model/Widget/Grid/Row/UrlGeneratorFactory.php`, `vendor/magento/framework/Webapi/ErrorProcessor.php` and `pub/errors/processor.php`. In each file it matches one line the hotfix removes and one line it adds. The markers come from all 10 published `VULN-39341` variants (2.4.4-p18 through 2.4.9), whose changed lines are byte-identical, so the result does not depend on the Magento line. Results:
+  - **CRITICAL** if any file still has the pre-hotfix code. This includes a `pub/errors/processor.php` reverted by a later `composer install`.
+  - **No finding** if all four files are patched.
+  - **INFO** if a file is missing, customised, or the install is not a `vendor/` layout.
+
+  The remediation text points to the Adobe KB and says Adobe also requires rotating the encryption key. The check states that it does not verify key rotation. No Adobe patch files are bundled; only single-line markers are.
 
 ### Fixed
 
@@ -26,6 +36,8 @@ working, not a regression.
 
   Adobe's monthly **isolated security patch files** (Jul–Oct 2026, labelled like `2.4.9-2026-sep` in bulletins) are intentionally **not** catalogued. They are applied as patch files and never change the installed `magento/product-community-edition` version, and the labels do not order correctly under `version_compare()`. IC-001 therefore cannot tell whether one is applied. File-level detection of the CVE-2026-75650 hotfix is tracked in [#207](https://github.com/IronCartLabs/IronCartM2/issues/207).
 - **IC-002 OSV snapshot regenerated** from the OSV.dev Packagist dump (`generated_at: 2026-10-21`, 273 advisories, ~166 KB against the 500 KB cap). The previous hand-curated file had 22 entries, and 19 of their GHSA IDs are not in OSV's Packagist data. The new file follows the `data/README.md` procedure. Its seed list is every package in `magento/magento2`'s own `composer.lock` at `2.4.7-p10`, `2.4.8-p5` and `2.4.9`, plus `magento/*` core packages. Core advisories that GHSA files under `magento/community-edition` are remapped to `magento/product-community-edition`, and ranges are clipped per release line. The rules are documented in `data/README.md`. The latest release on each supported line (2.4.4-p18 … 2.4.9) produces no core-Magento IC-002 finding. Third-party findings (Symfony, Guzzle, phpseclib, Composer, …) depend on what the merchant's own `composer.lock` resolved.
+- **Licence verifier: a JSON-array payload now fails as `malformed`, not `missing_field`** ([#218](https://github.com/IronCartLabs/IronCartM2/issues/218)). `LicenseVerifier::verify()` decoded the payload segment with `json_decode(..., true)`, so a JSON array such as `[1,2,3]` became a PHP array, passed the "is this an object" guard, and fell through to field validation. The payload is now decoded as an object and anything that is not a JSON object returns `REASON_MALFORMED`, matching the `Array.isArray` guard in the IronCartWeb signer (`lib/license/sign.ts`). Such a blob was already rejected before; only the reason code changes. An empty object `{}` still returns `missing_field`, as on the signer side.
+- **`IgnorePatterns::fromLists()` no longer always throws** ([#218](https://github.com/IronCartLabs/IronCartM2/issues/218)). The in-memory factory built the instance with `new self(__FILE__)`, so the constructor parsed `IgnorePatterns.php` itself as the JSON whitelist and threw `RuntimeException: Integrity ignore file IgnorePatterns.php is not valid JSON`. It now skips the constructor and reads no file. No production code path calls `fromLists()` (DI builds `IgnorePatterns` through its constructor and the bundled `etc/integrity-ignore.json`), so scan output is unchanged.
 
 ### Changed
 
@@ -34,7 +46,7 @@ working, not a regression.
 
 ### Notes
 
-- Adobe's APSB26-146 (CVE-2026-75650) and APSB26-153 fixes ship only as isolated patch files with no fixed Composer version, so they cannot be represented as OSV `fixed` ranges. They are also not yet in OSV's Packagist data.
+- Adobe's APSB26-146 (CVE-2026-75650) and APSB26-153 fixes ship only as isolated patch files with no fixed Composer version, so they cannot be represented as OSV `fixed` ranges. They are also not yet in OSV's Packagist data. CVE-2026-75650 is covered by file signature in IC-003 instead.
 - Catalogue entries for the 2.4.4 – 2.4.6 lines were not refreshed in this release (out of scope for #206). A follow-up is noted on the issue.
 - Tracking epic: [IronCartLabs/IronCartWeb#884](https://github.com/IronCartLabs/IronCartWeb/issues/884).
 

@@ -32,6 +32,8 @@
                 <!-- Patch-level check pack (#3) -->
                 <item name="IC-001" xsi:type="object">IronCart\Scan\Check\PatchLevel\MagentoVersionCheck</item>
                 <item name="IC-002" xsi:type="object">IronCart\Scan\Check\PatchLevel\ComposerAdvisoryCheck</item>
+                <!-- CVE-2026-75650 / APSB26-146 hotfix file signature (#207) -->
+                <item name="IC-003" xsi:type="object">IronCart\Scan\Check\PatchLevel\Cve202675650HotfixCheck</item>
                 <!-- Operational health check pack (#7) -->
                 <item name="IC-040" xsi:type="object">IronCart\Scan\Check\Operational\IndexerStateCheck</item>
                 <item name="IC-041" xsi:type="object">IronCart\Scan\Check\Operational\CronLastRunCheck</item>
