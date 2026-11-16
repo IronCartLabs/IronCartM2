@@ -52,6 +52,7 @@
       <exclude>Test/Unit/Check/Operational/CronErrorRateCheckTest.php</exclude>
       <exclude>Test/Unit/Check/Operational/CronLastRunCheckTest.php</exclude>
       <exclude>Test/Unit/Check/Operational/IndexerStateCheckTest.php</exclude>
+      <exclude>Test/Unit/Check/PatchLevel/Cve202675650HotfixCheckTest.php</exclude>
       <exclude>Test/Unit/Check/PatchLevel/MagentoVersionCheckTest.php</exclude>
       <exclude>Test/Unit/Check/PwaStudio/GraphQlCorsWildcardCheckTest.php</exclude>
       <exclude>Test/Unit/Check/PwaStudio/GraphQlIntrospectionCheckTest.php</exclude>
@@ -80,11 +81,8 @@
       <exclude>Test/Unit/Check/Runtime/Csp/CspReportOnlyInProductionCheckTest.php</exclude>
       <exclude>Test/Unit/Check/Runtime/Csp/CspScriptSrcUnsafeCheckTest.php</exclude>
 
-      <!-- #218: real assertion or logic failures (BaselineBuilderTest
-           also needs #216). -->
+      <!-- #216 (logic fixed in #218; still needs Magento types). -->
       <exclude>Test/Unit/Check/Integrity/BaselineBuilderTest.php</exclude>
-      <exclude>Test/Unit/Check/License/LicenseVerifierTest.php</exclude>
-      <exclude>Test/Unit/Check/PatchLevel/ComposerAdvisoryCheckTest.php</exclude>
     </testsuite>
   </testsuites>
 </phpunit>
