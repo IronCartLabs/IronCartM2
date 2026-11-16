@@ -125,9 +125,12 @@ final class TokenScanner
      * Return true if the token at $index is a function-call to the named
      * bareword (e.g. `shell_exec(`), not a method, static, or definition.
      *
-     * Accepts an optional leading `T_NS_SEPARATOR` so `\shell_exec(` is
-     * also detected. Rejects `Foo::shell_exec(`, `$x->shell_exec(`,
-     * `function shell_exec(` and similar.
+     * Also detects the explicit global form `\shell_exec(`. Since PHP 8.0
+     * the lexer emits that as a single `T_NAME_FULLY_QUALIFIED` token
+     * (value `\shell_exec`), not `T_NS_SEPARATOR` + `T_STRING`. Only a
+     * single-segment name counts: `\Foo\shell_exec(` is a namespaced
+     * function, not the global one. Rejects `Foo::shell_exec(`,
+     * `$x->shell_exec(`, `function shell_exec(` and similar.
      *
      * @param list<array{0:int,1:string,2:int}|string> $tokens
      * @param list<string>                             $names lowercase bareword names
@@ -135,11 +138,19 @@ final class TokenScanner
     public static function isFunctionCall(array $tokens, int $index, array $names): bool
     {
         $token = $tokens[$index];
-        if (!is_array($token) || $token[0] !== T_STRING) {
+        if (!is_array($token)) {
             return false;
         }
 
-        if (!in_array(strtolower($token[1]), $names, true)) {
+        if ($token[0] === T_STRING) {
+            $name = $token[1];
+        } elseif ($token[0] === T_NAME_FULLY_QUALIFIED && substr_count($token[1], '\\') === 1) {
+            $name = substr($token[1], 1);
+        } else {
+            return false;
+        }
+
+        if (!in_array(strtolower($name), $names, true)) {
             return false;
         }
 
@@ -150,14 +161,8 @@ final class TokenScanner
         }
 
         // The immediately preceding non-trivia token must not flag this
-        // as a method call, static call, definition, etc. A leading
-        // namespace separator (`\shell_exec(...)`) is allowed — step
-        // back past it before inspecting context.
+        // as a method call, static call, definition, etc.
         $prev = self::previousNonTrivia($tokens, $index - 1);
-        if ($prev !== null && is_array($tokens[$prev]) && $tokens[$prev][0] === T_NS_SEPARATOR) {
-            $prev = self::previousNonTrivia($tokens, $prev - 1);
-        }
-
         if ($prev !== null && is_array($tokens[$prev]) && in_array($tokens[$prev][0], self::NON_CALL_PRECEDERS, true)) {
             return false;
         }

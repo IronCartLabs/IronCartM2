@@ -33,8 +33,8 @@ final class GraphQlQueryComplexityCheckTest extends TestCase
     {
         $config = $this->createMock(ScopeConfigInterface::class);
         $config->method('getValue')->willReturnMap([
-            [GraphQlQueryComplexityCheck::CONFIG_MAX_DEPTH, null, null, '20'],
-            [GraphQlQueryComplexityCheck::CONFIG_MAX_COMPLEXITY, null, null, '300'],
+            [GraphQlQueryComplexityCheck::CONFIG_MAX_DEPTH, ScopeConfigInterface::SCOPE_TYPE_DEFAULT, null, '20'],
+            [GraphQlQueryComplexityCheck::CONFIG_MAX_COMPLEXITY, ScopeConfigInterface::SCOPE_TYPE_DEFAULT, null, '300'],
         ]);
         $check = new GraphQlQueryComplexityCheck(
             $this->detectorReturning(true),
@@ -47,8 +47,8 @@ final class GraphQlQueryComplexityCheckTest extends TestCase
     {
         $config = $this->createMock(ScopeConfigInterface::class);
         $config->method('getValue')->willReturnMap([
-            [GraphQlQueryComplexityCheck::CONFIG_MAX_DEPTH, null, null, '500'],
-            [GraphQlQueryComplexityCheck::CONFIG_MAX_COMPLEXITY, null, null, '300'],
+            [GraphQlQueryComplexityCheck::CONFIG_MAX_DEPTH, ScopeConfigInterface::SCOPE_TYPE_DEFAULT, null, '500'],
+            [GraphQlQueryComplexityCheck::CONFIG_MAX_COMPLEXITY, ScopeConfigInterface::SCOPE_TYPE_DEFAULT, null, '300'],
         ]);
         $check = new GraphQlQueryComplexityCheck(
             $this->detectorReturning(true),
@@ -85,8 +85,8 @@ final class GraphQlQueryComplexityCheckTest extends TestCase
     {
         $config = $this->createMock(ScopeConfigInterface::class);
         $config->method('getValue')->willReturnMap([
-            [GraphQlQueryComplexityCheck::CONFIG_MAX_DEPTH, null, null, 'unlimited'],
-            [GraphQlQueryComplexityCheck::CONFIG_MAX_COMPLEXITY, null, null, '300'],
+            [GraphQlQueryComplexityCheck::CONFIG_MAX_DEPTH, ScopeConfigInterface::SCOPE_TYPE_DEFAULT, null, 'unlimited'],
+            [GraphQlQueryComplexityCheck::CONFIG_MAX_COMPLEXITY, ScopeConfigInterface::SCOPE_TYPE_DEFAULT, null, '300'],
         ]);
         $check = new GraphQlQueryComplexityCheck(
             $this->detectorReturning(true),

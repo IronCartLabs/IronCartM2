@@ -33,6 +33,8 @@ use IronCart\Scan\Check\Upload\UploadPayloadBuilder;
 use IronCart\Scan\Check\Upload\UploadRunner;
 use IronCart\Scan\Check\PatchLevel\ComposerLockReader;
 use IronCart\Scan\Cron\UploadScan;
+use IronCart\Scan\Model\ScanEngineRunner;
+use IronCart\Scan\Report\ReportBuilder;
 use IronCart\Scan\Test\Unit\Check\Upload\FakeUploadClient;
 use Magento\Framework\App\Config\ScopeConfigInterface;
 use Magento\Framework\App\ProductMetadataInterface;
@@ -302,7 +304,12 @@ class UploadScanTest extends TestCase
 
         $registry ??= $this->makeRecordingRegistry();
 
-        return new UploadScan($scope, $registry, $runner, $logger);
+        return new UploadScan(
+            $scope,
+            new ScanEngineRunner($registry, new ReportBuilder(), $productMetadata),
+            $runner,
+            $logger
+        );
     }
 
     /**
