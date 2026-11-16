@@ -265,7 +265,7 @@ jobs:
         uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2.37.2
         with:
           php-version: ${{ matrix.php }}
-          tools: composer:v2, phpunit:10
+          tools: composer:v2
           coverage: none
 
       - name: Generate vendor autoloader (no magento/framework)
@@ -280,9 +280,10 @@ jobs:
         #     `~8.1.0||~8.2.0||~8.3.0` floor does not refuse to install on
         #     PHP 8.4 (the 8.4 cell is allowed in CI ahead of #154's
         #     composer widening).
-        # symfony/console is declared as require-dev in composer.json so
-        # it satisfies the ReportRenderer tests' BufferedOutput import
-        # without any further CI surgery.
+        # phpunit/phpunit and symfony/console are declared as require-dev
+        # in composer.json, so this install provides the test runner and
+        # the ReportRenderer tests' BufferedOutput import without any
+        # further CI surgery.
         # The original composer.json is restored so the working tree is
         # unchanged for any subsequent steps.
         run: |
@@ -297,36 +298,12 @@ jobs:
           composer install --no-interaction --no-progress --no-scripts --no-plugins
           mv composer.json.bak composer.json
 
-      - name: Write phpunit config (CI override)
-        # At v0 the unit job runs without magento/framework on the
-        # classpath (see "Generate vendor autoloader" step above). That
-        # means any test under Test/Unit that touches Magento types fails
-        # at autoload. We restrict the testsuite to Test/Unit/Report (the
-        # Magento-free slice authored alongside the v0 report schema in
-        # #2). Magento-dependent test subtrees (Test/Unit/Check/**, etc.)
-        # are validated end-to-end by the integration job inside the
-        # docker-compose Magento sandbox. We always write phpunit.xml
-        # here so the test scope is deterministic regardless of whatever
-        # phpunit.xml the repo grows over time — the override is
-        # CI-specific and never persists to the working tree.
-        run: |
-          mkdir -p Test/Unit/Report
-          cat > phpunit.xml <<'XML'
-          <?xml version="1.0" encoding="UTF-8"?>
-          <phpunit
-            xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-            bootstrap="vendor/autoload.php"
-            colors="true">
-            <testsuites>
-              <testsuite name="unit">
-                <directory>Test/Unit/Report</directory>
-              </testsuite>
-            </testsuites>
-          </phpunit>
-          XML
-
-      - name: PHPUnit (Test/Unit/Report/**)
-        run: phpunit --testsuite=unit --do-not-cache-result
+      - name: PHPUnit (composer test -> phpunit.xml.dist)
+        # Runs the committed phpunit.xml.dist via the same `composer test`
+        # script contributors run locally, so CI and local scope cannot
+        # drift (#214). PHPUnit comes from require-dev (installed by the
+        # step above), not a setup-php tool, for the same reason.
+        run: composer test
 
   integration:
     name: Integration (Magento ${{ matrix.magento }} / PHP ${{ matrix.php }})

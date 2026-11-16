@@ -4,8 +4,9 @@
  * IronCart_Scan — composer-lock manifest generator for IC-072.
  *
  * Runs `composer create-project --no-interaction --no-install
- * magento/project-community-edition:<version>` into a tmpdir, parses the
- * resulting `composer.lock`, and writes
+ * magento/project-community-edition:<version>` into a tmpdir, then
+ * `composer update --no-install` there to write `composer.lock`, parses
+ * it, and writes
  * `etc/manifests/composer-sha1-community-<version>.json` in the schema the
  * runtime check expects.
  *
@@ -19,8 +20,9 @@
  * the runtime scanner.
  *
  * `--no-install` is passed because we only need the lockfile — no
- * `vendor/` extraction. This both speeds the build up and avoids needing
- * the full extension set that an install would require.
+ * `vendor/` extraction. This speeds the build up; `ext-*` platform
+ * requirements are ignored during the resolve so the full Magento
+ * extension set is not needed either.
  *
  * @copyright Copyright (c) Ironcart (https://ironcart.dev)
  * @license   MIT
@@ -118,19 +120,36 @@ function composerCreateProject(string $version, string $workdir): void
         fwrite(STDERR, "ERROR: refusing to create-project with unexpected version: {$version}\n");
         exit(1);
     }
-    // `--no-install` keeps this fast and dependency-light — we only need
-    // composer.lock. `--no-interaction` is belt-and-braces for CI; the
-    // script is not interactive on its own.
-    $cmd = sprintf(
-        'composer create-project --no-interaction --no-install --no-progress --no-secure-http=false %s %s %s',
+    // Step 1: fetch the root project package only. Its dist is a bare
+    // composer.json (no composer.lock), so `--no-install` here produces no
+    // lockfile on its own. The 2.4.x project package is not on Packagist,
+    // hence the explicit repo.magento.com repository URL. secure-http
+    // stays at its default (on).
+    // `--no-scripts` / `--no-plugins` keep third-party code from running.
+    runComposer(sprintf(
+        'composer create-project --no-interaction --no-install --no-progress --no-scripts --no-plugins'
+            . ' --repository-url=https://repo.magento.com/ %s %s %s',
         escapeshellarg(PROJECT_PACKAGE),
         escapeshellarg($workdir),
         escapeshellarg($version)
-    );
+    ));
+    // Step 2: resolve and write composer.lock without extracting vendor/.
+    // Extension requirements are ignored because they do not change which
+    // dist (and so which shasum) gets locked; the PHP version still counts.
+    runComposer(sprintf(
+        'composer update --working-dir=%s --no-interaction --no-install --no-progress --no-scripts --no-plugins'
+            . ' --ignore-platform-req=%s',
+        escapeshellarg($workdir),
+        escapeshellarg('ext-*')
+    ));
+}
+
+function runComposer(string $cmd): void
+{
     fwrite(STDOUT, "  $cmd\n");
     passthru($cmd, $exit);
     if ($exit !== 0) {
-        fwrite(STDERR, "ERROR: composer create-project exited with status {$exit}\n");
+        fwrite(STDERR, "ERROR: composer exited with status {$exit}\n");
         exit(1);
     }
 }
