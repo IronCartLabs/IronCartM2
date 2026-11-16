@@ -1282,7 +1282,19 @@ jobs:
         #   2.4.8 → cumulative fixes via APSB25-50 → -p2 floor).
         #   - 2.4.7-p5 picks up cumulative fixes since -p1 while
         #     staying below the 2.4.7-p8+ resolve bug from
-        #     magento/magento2#40539.
+        #     magento/magento2#40539 (p8+ also hits the firebase/php-jwt
+        #     advisory PKSA-y2cr-5h3j-g3ys, so moving up would need a
+        #     second advisory ignore).
+        #   - 2.4.7 needs one scoped advisory ignore (#229): every
+        #     2.4.7 release (GA through -p10) requires league/flysystem
+        #     ^2.4, and PKSA-w9tt-7782-78jx (GHSA-cxf4-7mrp-vvpr, low
+        #     severity) covers flysystem <=3.35.2, so no 2.4.7 patch
+        #     resolves under `block-insecure`. The "Prepare Magento
+        #     source" step adds only that advisory ID to the 2.4.7
+        #     project's `audit.ignore`. `block-insecure` stays on for
+        #     every other package and every other cell. Drop the ignore
+        #     if Adobe ships a 2.4.7 patch on flysystem ^3, or when the
+        #     2.4.7 line leaves the matrix.
         #   - 2.4.8-p2 / -p3 match the highest 2.4.8 patches known
         #     clean on the runner PHP at PR time; staying at -p2 (in
         #     parallel with the default `integration` cell) keeps the
@@ -1393,6 +1405,18 @@ jobs:
             "${GITHUB_WORKSPACE}/.magento"
           (
             cd "${GITHUB_WORKSPACE}/.magento"
+            case "${MAGENTO_VERSION}" in
+              2.4.7*)
+                # #229 — see the matrix comment block. Ignore only
+                # PKSA-w9tt-7782-78jx (league/flysystem <=3.35.2) for
+                # the 2.4.7 line, which pins flysystem ^2.4 on every
+                # patch level. `block-insecure` stays enabled. jq's
+                # `+=` errors (and set -e fails the step) if upstream
+                # ever ships audit.ignore in object form.
+                jq '.config.audit.ignore += ["PKSA-w9tt-7782-78jx"]' composer.json > composer.json.tmp
+                mv composer.json.tmp composer.json
+                ;;
+            esac
             composer install --no-interaction --no-progress
           )
 
