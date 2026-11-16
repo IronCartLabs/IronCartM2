@@ -133,6 +133,17 @@ class ShellExecCheckTest extends TestCase
         self::assertCount(1, $findings);
     }
 
+    public function testMultiSegmentQualifiedCallNotFlagged(): void
+    {
+        // `\Acme\Lib\exec(...)` is a namespaced function, not the global exec().
+        $this->sandbox->writeFile(
+            'app/code/Acme/Ok/Qualified.php',
+            "<?php\nnamespace Acme\\Ok;\nclass Qualified { public function go() { return \\Acme\\Lib\\exec('id'); } }\n"
+        );
+
+        self::assertSame([], (new ShellExecCheck($this->sandbox->walker()))->run());
+    }
+
     public function testVendorTreeNotWalked(): void
     {
         $this->sandbox->writeFile(

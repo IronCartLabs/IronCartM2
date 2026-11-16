@@ -4,10 +4,9 @@
   this exact file, so local and CI scope stay identical.
 
   The suite is the whole of Test/Unit. New tests are picked up
-  automatically. The <exclude> entries below are the files that failed
-  the first time the full suite ran in CI (PR #215, identical on PHP
-  8.1-8.4). Each one links to the issue that removes it. Do not add to
-  this list without filing an issue: an excluded test runs nowhere.
+  automatically. The last <exclude> entries were removed in #225. Do not
+  add one without filing an issue that removes it: an excluded test runs
+  nowhere.
 -->
 <phpunit
   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
@@ -18,16 +17,6 @@
   <testsuites>
     <testsuite name="unit">
       <directory>Test/Unit</directory>
-
-      <!-- #225: test drift / check-logic bugs that surfaced once #216 put
-           the Magento type stubs on the classpath. Not a classpath issue. -->
-      <exclude>Test/Unit/Check/AdminAudit/RecentActionsCheckTest.php</exclude>
-      <exclude>Test/Unit/Check/CodeSmell/ShellExecCheckTest.php</exclude>
-      <exclude>Test/Unit/Check/Hyva/TailwindConfigExposureCheckTest.php</exclude>
-      <exclude>Test/Unit/Check/License/LicenseConfigTest.php</exclude>
-      <exclude>Test/Unit/Check/PwaStudio/GraphQlQueryComplexityCheckTest.php</exclude>
-      <exclude>Test/Unit/Console/UploadFlagTest.php</exclude>
-      <exclude>Test/Unit/Cron/UploadScanTest.php</exclude>
     </testsuite>
   </testsuites>
 </phpunit>

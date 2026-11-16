@@ -75,6 +75,28 @@ final class TailwindConfigExposureCheckTest extends TestCase
         self::assertStringContainsString('tailwind.config.js', $paths[0]);
     }
 
+    public function testFlagsDeployedTailwindDirUnderLocale(): void
+    {
+        // Where `setup:static-content:deploy` puts Hyvä's
+        // `web/tailwind/tailwind.config.js` on a real store.
+        $tailwindDir = $this->tmpRoot
+            . '/pub/static/frontend/Hyva/default/en_US/tailwind';
+        mkdir($tailwindDir, 0o755, true);
+        file_put_contents($tailwindDir . '/tailwind.config.js', "module.exports = {};\n");
+
+        $check = new TailwindConfigExposureCheck(
+            $this->detectorReturning(true),
+            $this->tmpRoot
+        );
+        $findings = $check->run();
+
+        self::assertCount(1, $findings);
+        $paths = $findings[0]['evidence']['exposed_paths'];
+        self::assertCount(1, $paths);
+        self::assertStringContainsString('en_US', $paths[0]);
+        self::assertStringEndsWith('tailwind.config.js', $paths[0]);
+    }
+
     public function testFlagsNestedTailwindSubdirectory(): void
     {
         $tailwindDir = $this->tmpRoot

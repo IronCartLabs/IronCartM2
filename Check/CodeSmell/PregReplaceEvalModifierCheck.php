@@ -94,7 +94,7 @@ class PregReplaceEvalModifierCheck extends AbstractCodeSmellCheck
                 if ($depth === 1 && is_array($current) && $current[0] === T_CONSTANT_ENCAPSED_STRING) {
                     if ($this->literalHasEModifier($current[1])) {
                         // isFunctionCall() above guarantees $token is
-                        // the T_STRING array form; line at index 2.
+                        // a name-token array; line at index 2.
                         /** @var array{0:int,1:string,2:int} $token */
                         $matches[] = $token[2];
                         // One finding per call site regardless of how

@@ -39,3 +39,7 @@ spl_autoload_register(static function (string $class): void {
         require $file;
     }
 });
+
+// Global functions cannot be autoloaded. Magento's `__()` helper is
+// declared here behind a function_exists() guard (#225).
+require __DIR__ . '/_stubs/functions.php';

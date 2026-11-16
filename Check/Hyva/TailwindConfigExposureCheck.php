@@ -14,7 +14,7 @@
  * inlined design tokens the merchant may have added.
  *
  * Read-only filesystem walk under `<magento_root>/pub/static/frontend/`,
- * bounded to two levels of theme/locale directories so the check stays
+ * bounded to three levels (vendor/theme/locale) so the check stays
  * cheap on large stores. The check only runs when Hyvä is detected;
  * non-Hyvä stores skip silently to keep IC-9xx noise out of Luma scans.
  *
@@ -90,10 +90,11 @@ class TailwindConfigExposureCheck implements CheckInterface
     }
 
     /**
-     * Walk `pub/static/frontend/<vendor>/<theme>/` (two levels deep) and
-     * return any matches against the EXPOSED_FILENAMES list. The walk
-     * is bounded so a wrecked deploy with hundreds of stale theme
-     * directories does not blow the scan timeout.
+     * Walk `pub/static/frontend/<vendor>/<theme>/[<locale>/]` (at most
+     * three levels deep) and return any matches against the
+     * EXPOSED_FILENAMES list. The walk is bounded so a wrecked deploy
+     * with hundreds of stale theme directories does not blow the scan
+     * timeout.
      *
      * @return list<string>
      */
@@ -127,28 +128,52 @@ class TailwindConfigExposureCheck implements CheckInterface
                 if (!is_dir($themePath)) {
                     continue;
                 }
-                foreach (self::EXPOSED_FILENAMES as $filename) {
-                    // Direct hit at the theme root.
-                    $candidate = $themePath . DIRECTORY_SEPARATOR . $filename;
-                    if (is_file($candidate)) {
-                        $exposed[] = $this->relativise($candidate, $root);
+                // Theme root: catches a file copied there by hand.
+                $exposed = array_merge($exposed, $this->findInDir($themePath, $root));
+
+                // Locale dirs: `setup:static-content:deploy` writes the
+                // theme's `web/` tree to `<vendor>/<theme>/<locale>/`, so
+                // Hyvä's `web/tailwind/*` lands at `<locale>/tailwind/`.
+                $level3 = @scandir($themePath);
+                if ($level3 === false) {
+                    continue;
+                }
+                foreach ($level3 as $locale) {
+                    if ($locale === '.' || $locale === '..' || $locale === 'tailwind') {
+                        continue;
                     }
-                    // And inside the tailwind/ subdir, which is where
-                    // Hyvä's default theme keeps the canonical copy.
-                    $tailwindCandidate = $themePath
-                        . DIRECTORY_SEPARATOR
-                        . 'tailwind'
-                        . DIRECTORY_SEPARATOR
-                        . $filename;
-                    if (is_file($tailwindCandidate)) {
-                        $exposed[] = $this->relativise($tailwindCandidate, $root);
+                    $localePath = $themePath . DIRECTORY_SEPARATOR . $locale;
+                    if (!is_dir($localePath)) {
+                        continue;
                     }
+                    $exposed = array_merge($exposed, $this->findInDir($localePath, $root));
                 }
             }
         }
 
         sort($exposed);
         return array_values(array_unique($exposed));
+    }
+
+    /**
+     * Return EXPOSED_FILENAMES hits directly in $dir and in its
+     * `tailwind/` subdir, where Hyvä's default theme keeps the
+     * canonical copy.
+     *
+     * @return list<string>
+     */
+    private function findInDir(string $dir, string $root): array
+    {
+        $hits = [];
+        foreach (self::EXPOSED_FILENAMES as $filename) {
+            foreach ([$dir, $dir . DIRECTORY_SEPARATOR . 'tailwind'] as $base) {
+                $candidate = $base . DIRECTORY_SEPARATOR . $filename;
+                if (is_file($candidate)) {
+                    $hits[] = $this->relativise($candidate, $root);
+                }
+            }
+        }
+        return $hits;
     }
 
     /**

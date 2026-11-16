@@ -22,6 +22,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   - days-behind figures for older 2.4.4 – 2.4.6 releases change to match the corrected dates.
 
   `2.4.4-p14` and later and `2.4.5-p15` and later are Adobe Commerce-only extended support releases. Isolated security patch files stay uncatalogued, as in 1.6.3.
+- **IC-051, IC-053 and IC-054 now detect fully-qualified calls such as `\shell_exec()`** ([#225](https://github.com/IronCartLabs/IronCartM2/issues/225)). Since PHP 8.0 the tokenizer emits `\shell_exec` as a single `T_NAME_FULLY_QUALIFIED` token, so the shared `TokenScanner::isFunctionCall()` helper, which accepted only `T_STRING`, never matched it on any supported PHP version. These calls produced no finding:
+  - IC-053: `\shell_exec()`, `\exec()`, `\passthru()`, `\system()`, `\popen()` and `\proc_open()`;
+  - IC-051: `\unserialize()` of a superglobal;
+  - IC-054: `\preg_replace()` with an `/e` pattern.
+
+  Code formatted with PHP-CS-Fixer's `native_function_invocation` rule writes every native call this way, and a leading backslash was a one-character evasion. **Expect new findings on modules that use the fully-qualified form.** Multi-segment names such as `\Acme\Lib\exec()` are namespaced functions and are still not flagged.
+- **IC-910 now checks the locale directories that static-content deploy writes** ([#225](https://github.com/IronCartLabs/IronCartM2/issues/225)). `setup:static-content:deploy` publishes a theme's `web/` tree to `pub/static/frontend/<Vendor>/<theme>/<locale>/`, so a Hyvä theme's `web/tailwind/tailwind.config.js` ends up at `<locale>/tailwind/tailwind.config.js`. The check only looked at `<Vendor>/<theme>/` and `<Vendor>/<theme>/tailwind/`, which on a standard deploy contain only locale directories. It now also checks `<locale>/` and `<locale>/tailwind/` for `tailwind.config.js`, `tailwind.source.css` and `postcss.config.js`. **Hyvä stores that serve these files from `pub/static` now get the MEDIUM finding.** The walk is still bounded, now at three directory levels.
 
 ## [1.6.3] - 2026-11-16
 

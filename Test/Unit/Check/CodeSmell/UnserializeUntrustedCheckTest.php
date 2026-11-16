@@ -46,6 +46,17 @@ class UnserializeUntrustedCheckTest extends TestCase
         self::assertSame(Severity::CRITICAL, $findings[0]['severity']);
     }
 
+    public function testFullyQualifiedUnserializeFlagged(): void
+    {
+        // `\unserialize(...)` lexes as one T_NAME_FULLY_QUALIFIED token on PHP 8.
+        $this->sandbox->writeFile(
+            'app/code/Acme/Bad/Qualified.php',
+            "<?php\nnamespace Acme\\Bad;\nclass Qualified { public function run() { return \\unserialize(\$_POST['x']); } }\n"
+        );
+
+        self::assertCount(1, (new UnserializeUntrustedCheck($this->sandbox->walker()))->run());
+    }
+
     public function testUnserializeOfGetPostCookieAllFlagged(): void
     {
         $this->sandbox->writeFile(

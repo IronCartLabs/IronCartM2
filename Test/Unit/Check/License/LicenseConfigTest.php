@@ -110,9 +110,23 @@ class LicenseConfigTest extends TestCase
             'sigVersion' => 1,
         ], $privateBytes);
 
-        // Mutate the JSON segment so the signature no longer matches.
+        // Rewrite a claim and keep the original signature. The payload
+        // stays well-formed JSON with every field valid, so the verifier
+        // reaches the signature check and rejects the blob there. Flipping
+        // a raw base64url char instead corrupts the JSON and yields
+        // `malformed`, which never exercises the signature path.
         [$json, $sig] = explode('.', $blob);
-        $tampered = substr($json, 0, -1) . 'A' . '.' . $sig;
+        $claims = json_decode(
+            base64_decode(strtr($json, '-_', '+/')) ?: '',
+            true,
+            512,
+            JSON_THROW_ON_ERROR
+        );
+        $claims['accountId'] = 'acct_attacker';
+        $tampered = $this->b64url(json_encode(
+            $claims,
+            JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR
+        )) . '.' . $sig;
 
         $verifier = new LicenseVerifier($publicB64);
         $config = $this->makeConfigWithVerifier($tampered, $verifier);

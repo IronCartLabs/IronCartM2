@@ -27,6 +27,7 @@ use IronCart\Scan\Check\Upload\UploadPayloadBuilder;
 use IronCart\Scan\Check\Upload\UploadRunner;
 use IronCart\Scan\Check\PatchLevel\ComposerLockReader;
 use IronCart\Scan\Console\Command\ScanCommand;
+use IronCart\Scan\Model\ScanEngineRunner;
 use IronCart\Scan\Report\ReportBuilder;
 use IronCart\Scan\Report\ReportRenderer;
 use IronCart\Scan\Test\Unit\Check\Upload\FakeUploadClient;
@@ -179,10 +180,8 @@ class UploadFlagTest extends TestCase
         $runner = new UploadRunner($config, $payloadBuilder, $client, 'test-cli-module-version');
 
         $command = new ScanCommand(
-            $productMetadata,
-            $reportBuilder,
+            new ScanEngineRunner($registry, $reportBuilder, $productMetadata),
             $reportRenderer,
-            $registry,
             $session,
             $runner
         );

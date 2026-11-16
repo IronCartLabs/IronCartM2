@@ -94,7 +94,7 @@ class UnserializeUntrustedCheck extends AbstractCodeSmellCheck
                 continue;
             }
 
-            // isFunctionCall() above guarantees $token is the T_STRING
+            // isFunctionCall() above guarantees $token is a name-token
             // array form; the line number lives at index 2.
             /** @var array{0:int,1:string,2:int} $token */
             $matches[] = $token[2];

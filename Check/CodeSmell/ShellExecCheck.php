@@ -76,7 +76,7 @@ class ShellExecCheck extends AbstractCodeSmellCheck
         // (1) Named function-call form: shell_exec(...), exec(...), etc.
         foreach ($tokens as $i => $token) {
             if (TokenScanner::isFunctionCall($tokens, $i, self::SHELL_FUNCTIONS)) {
-                // isFunctionCall() guarantees $token is a T_STRING
+                // isFunctionCall() guarantees $token is a name
                 // token array; line number lives at index 2.
                 /** @var array{0:int,1:string,2:int} $token */
                 $matches[] = $token[2];
