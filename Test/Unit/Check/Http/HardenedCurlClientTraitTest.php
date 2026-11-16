@@ -179,7 +179,6 @@ class HardenedCurlClientTraitTest extends TestCase
         ]);
 
         // No curl_close() — deprecated in PHP 8.5, no-op since PHP 8.0.
-        $this->expectNotToPerformAssertions();
     }
 
     public function testApplyHardenedOptionsReapplyOverridesUnsafeOverride(): void
@@ -210,7 +209,6 @@ class HardenedCurlClientTraitTest extends TestCase
         ]);
 
         // No curl_close() — deprecated in PHP 8.5, no-op since PHP 8.0.
-        $this->expectNotToPerformAssertions();
     }
 
     /**
