@@ -23,7 +23,7 @@ class CspReportOnlyInProductionCheckTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->helper = new CspCheckTestHelper($this);
+        $this->helper = new CspCheckTestHelper($this->createMock(...));
     }
 
     public function testEmitsHighWhenReportOnlyInProduction(): void

@@ -28,16 +28,6 @@
       <exclude>Test/Unit/Check/PwaStudio/GraphQlQueryComplexityCheckTest.php</exclude>
       <exclude>Test/Unit/Console/UploadFlagTest.php</exclude>
       <exclude>Test/Unit/Cron/UploadScanTest.php</exclude>
-
-      <!-- #217 (and #216): CspCheckTestHelper calls the protected
-           TestCase::createMock() from outside the TestCase. -->
-      <exclude>Test/Unit/Check/Runtime/Csp/CspBaseUrlConfiguredCheckTest.php</exclude>
-      <exclude>Test/Unit/Check/Runtime/Csp/CspFrameAncestorsCheckTest.php</exclude>
-      <exclude>Test/Unit/Check/Runtime/Csp/CspMissingCheckTest.php</exclude>
-      <exclude>Test/Unit/Check/Runtime/Csp/CspReportEndpointCheckTest.php</exclude>
-      <exclude>Test/Unit/Check/Runtime/Csp/CspReportOnlyInProductionCheckTest.php</exclude>
-      <exclude>Test/Unit/Check/Runtime/Csp/CspScriptSrcUnsafeCheckTest.php</exclude>
-
     </testsuite>
   </testsuites>
 </phpunit>
