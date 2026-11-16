@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+
+- **IC-001 evidence hint for monthly isolated security patches** ([#221](https://github.com/IronCartLabs/IronCartM2/issues/221)). Since July 2026 Adobe ships security fixes as monthly isolated patch files instead of new `-pN` releases. A store on the latest `-pN` for its line therefore graded INFO "current" even with none of them applied. When the running version is the latest `-pN` and Adobe has published isolated patches for that line and edition since, the IC-001 evidence now carries two keys:
+  - `isolated_patches_published_since`, e.g. `["2026-jul", "2026-aug", "2026-sep", "2026-oct"]`;
+  - `isolated_patches_message`, which tells the merchant to verify the patches with Adobe's Commerce Version Tool (`vendor/bin/patch-status`).
+
+  **Severity stays INFO.** IC-001 reads only the version string, so it cannot tell whether patch files are applied. Stores behind on `-pN` keep their current grading and get no new keys. The bundled list `MagentoPatchCatalog::ISOLATED_PATCHES` covers APSB26-73 (2026-07-14), APSB26-92 (2026-08-11), APSB26-138 (2026-09-08) and APSB26-153 (2026-10-13). It follows each bulletin's per-edition Solution tables: Magento Open Source has fixes only for 2.4.6 – 2.4.9 in July and August, and for 2.4.7 – 2.4.9 from September on. The report schema is unchanged (`v0`).
+
 ### Fixed
 
 - **IC-001 patch catalogue refreshed for the 2.4.4, 2.4.5 and 2.4.6 lines** ([#220](https://github.com/IronCartLabs/IronCartM2/issues/220)). The catalogue stopped at `2.4.4-p12`, `2.4.5-p11` and `2.4.6-p10`, so a store on any of those read as current (INFO) although each line has had five or six security releases since. `MagentoPatchCatalog::RELEASES` adds `2.4.4-p13` – `2.4.4-p18`, `2.4.5-p12` – `2.4.5-p17` and `2.4.6-p11` – `2.4.6-p15`, with dates from Adobe's [Released versions](https://experienceleague.adobe.com/en/docs/commerce-operations/release/versions) page. It also corrects 30 existing dates on these lines (`2.4.4-p3` onward, `2.4.5-p2` onward, `2.4.6-p1` onward). Each was earlier than Adobe's date, usually by one release cycle. For example, `2.4.6-p10` was listed as 2025-02-11 but shipped 2025-04-08. Effects:

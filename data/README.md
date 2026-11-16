@@ -115,6 +115,18 @@ maintainers refresh the snapshot by hand:
    page so IC-001 keeps grading severity correctly. Catalogue only Composer
    versions (`X.Y.Z` / `X.Y.Z-pN`). Never add isolated-patch labels such as
    `2.4.9-2026-sep`: a unit test enforces the key format.
+
+   **Every month, on Patch Tuesday:** when Adobe publishes a Commerce
+   bulletin that ships monthly isolated security patches, append one row
+   to `MagentoPatchCatalog::ISOLATED_PATCHES`. Take `released` from the
+   bulletin's "Date published", `label` from its `-YYYY-mon` suffix, and
+   `commerce` / `open_source` from the lines in its Adobe Commerce and
+   Magento Open Source Solution tables. Bulletin pages live at
+   `https://www.adobe.com/trust/security/products/commerce/<id>.html`.
+   IC-001 uses this list only as an evidence hint and never as a version.
+   Skip out-of-band hotfixes such as APSB26-146; file-signature checks
+   cover those. When the next `-pN` ships, older rows stop hinting
+   automatically, because they predate it.
 7. **Verify size**:
 
    ```bash

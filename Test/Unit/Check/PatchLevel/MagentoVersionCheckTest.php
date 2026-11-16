@@ -160,6 +160,48 @@ class MagentoVersionCheckTest extends TestCase
         ];
     }
 
+    public function testLatestPatchWithIsolatedPatchesSinceAddsHintAndStaysInfo(): void
+    {
+        // 2.4.8-p5 (2026-05-12) is the latest 2.4.8 -pN; Adobe has since
+        // shipped the Jul–Oct 2026 isolated patches (IronCartM2#221).
+        $check = $this->makeCheck('2.4.8-p5', 'Enterprise', '2026-11-16');
+        $finding = $check->run()[0];
+
+        self::assertSame(Severity::INFO, $finding['severity']);
+        self::assertSame(0, $finding['evidence']['days_behind_latest']);
+        self::assertSame(
+            ['2026-jul', '2026-aug', '2026-sep', '2026-oct'],
+            $finding['evidence']['isolated_patches_published_since']
+        );
+        $message = $finding['evidence']['isolated_patches_message'];
+        self::assertStringContainsString('since 2.4.8-p5', $message);
+        self::assertStringContainsString('2026-jul, 2026-aug, 2026-sep, 2026-oct', $message);
+        self::assertStringContainsString('Commerce Version Tool', $message);
+    }
+
+    public function testLatestPatchWithNoIsolatedPatchesSinceHasNoHint(): void
+    {
+        // The first isolated patch train shipped 2026-07-14.
+        $check = $this->makeCheck('2.4.9', 'Community', '2026-06-30');
+        $finding = $check->run()[0];
+
+        self::assertSame(Severity::INFO, $finding['severity']);
+        self::assertArrayNotHasKey('isolated_patches_published_since', $finding['evidence']);
+        self::assertArrayNotHasKey('isolated_patches_message', $finding['evidence']);
+    }
+
+    public function testBehindOnPatchKeepsGradingAndHasNoHint(): void
+    {
+        // Same grading as before #221: 2.4.8-p4 → 2.4.8-p5 = 63 days → high.
+        $check = $this->makeCheck('2.4.8-p4', 'Enterprise', '2026-11-16');
+        $finding = $check->run()[0];
+
+        self::assertSame(Severity::HIGH, $finding['severity']);
+        self::assertSame(63, $finding['evidence']['days_behind_latest']);
+        self::assertArrayNotHasKey('isolated_patches_published_since', $finding['evidence']);
+        self::assertArrayNotHasKey('isolated_patches_message', $finding['evidence']);
+    }
+
     public function testUnknownVersionFallsBackToInfo(): void
     {
         $check = $this->makeCheck('9.9.9-future', 'Enterprise', '2025-01-01');
