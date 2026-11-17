@@ -94,15 +94,60 @@ class ComposerLockIntegrityCheckTest extends TestCase
         self::assertSame(ComposerLockIntegrityCheck::REMEDIATION_URL, $findings[0]['remediation_url']);
     }
 
-    public function testMissingManifestEmitsSingleInformationalFinding(): void
+    public function testNoBundledManifestsReportsThatNothingWasChecked(): void
     {
-        // composer.lock with one mismatched package — but no manifest exists
-        // for the merchant's version, so the result must be exactly one
-        // IC-073 finding (not a HIGH IC-072 finding).
+        // The state every release up to v1.6.3 ships in: the manifest
+        // directory holds no composer manifest at all (#236). Even with a
+        // lockfile whose shasum would not match anything, the result is
+        // exactly one IC-073 finding that says the check did not run.
         $lockPath = $this->writeLock([
             ['name' => 'magento/framework', 'version' => '103.0.0', 'dist' => ['shasum' => str_repeat('9', 40)]],
         ]);
         $manifestDir = $this->mkTmpDir(); // empty manifests dir
+
+        $findings = $this->makeCheck('Community', '2.4.8-p2', $lockPath, $manifestDir)->run();
+
+        self::assertCount(1, $findings);
+        self::assertSame(ComposerLockIntegrityCheck::UNSUPPORTED_ID, $findings[0]['id']);
+        self::assertSame(Severity::LOW, $findings[0]['severity']);
+        self::assertSame(
+            'Composer package integrity not checked: no reference manifest for Magento 2.4.8-p2',
+            $findings[0]['title']
+        );
+        self::assertSame('no_manifests_bundled', $findings[0]['evidence']['reason']);
+        self::assertFalse($findings[0]['evidence']['checked']);
+        self::assertSame(['community' => []], $findings[0]['evidence']['bundled_versions']);
+        self::assertStringContainsString('not a clean result', $findings[0]['evidence']['note']);
+        self::assertSame(
+            ComposerLockIntegrityCheck::UNSUPPORTED_REMEDIATION_URL,
+            $findings[0]['remediation_url']
+        );
+    }
+
+    public function testNoBundledManifestsTakesPrecedenceOverUnsupportedEdition(): void
+    {
+        // Telling an Adobe Commerce merchant "unsupported edition" would
+        // imply Open Source stores are covered. With nothing bundled, they
+        // are not.
+        $findings = $this->makeCheck('Enterprise', '2.4.8-p2', $this->writeLock([]), $this->mkTmpDir())->run();
+
+        self::assertCount(1, $findings);
+        self::assertSame(ComposerLockIntegrityCheck::UNSUPPORTED_ID, $findings[0]['id']);
+        self::assertSame('no_manifests_bundled', $findings[0]['evidence']['reason']);
+    }
+
+    public function testMissingManifestEmitsSingleInformationalFinding(): void
+    {
+        // composer.lock with one mismatched package — but the only manifest
+        // on disk is for a different version than the merchant runs, so the
+        // result must be exactly one IC-073 finding (not a HIGH IC-072
+        // finding).
+        $lockPath = $this->writeLock([
+            ['name' => 'magento/framework', 'version' => '103.0.0', 'dist' => ['shasum' => str_repeat('9', 40)]],
+        ]);
+        $manifestDir = $this->writeManifest('community', '2.4.7-p5', [
+            'magento/framework' => str_repeat('a', 40),
+        ]);
 
         $findings = $this->makeCheck('Community', '9.9.9-future', $lockPath, $manifestDir)->run();
 
@@ -112,6 +157,8 @@ class ComposerLockIntegrityCheckTest extends TestCase
         self::assertSame('unsupported_version', $findings[0]['evidence']['reason']);
         self::assertSame('9.9.9-future', $findings[0]['evidence']['version']);
         self::assertSame(['community'], $findings[0]['evidence']['supported_editions']);
+        self::assertFalse($findings[0]['evidence']['checked']);
+        self::assertSame(['community' => ['2.4.7-p5']], $findings[0]['evidence']['bundled_versions']);
         self::assertSame(
             ComposerLockIntegrityCheck::UNSUPPORTED_REMEDIATION_URL,
             $findings[0]['remediation_url']
@@ -135,6 +182,7 @@ class ComposerLockIntegrityCheckTest extends TestCase
         self::assertCount(1, $findings);
         self::assertSame(ComposerLockIntegrityCheck::UNSUPPORTED_ID, $findings[0]['id']);
         self::assertSame('unsupported_edition', $findings[0]['evidence']['reason']);
+        self::assertFalse($findings[0]['evidence']['checked']);
     }
 
     public function testThirdPartyPackagesAreSilentlyIgnored(): void

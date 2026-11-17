@@ -164,8 +164,44 @@ class CoreFileIntegrityCheckTest extends TestCase
         self::assertSame([], $findings);
     }
 
+    public function testNoBundledManifestsReportsThatNothingWasChecked(): void
+    {
+        // The state every release up to v1.6.3 ships in: the manifest
+        // directory holds no core manifest at all (#236). The finding must
+        // say the check did not run rather than blame this store's version.
+        $findings = $this->makeCheck('Community', '2.4.8-p2')->run();
+
+        self::assertCount(1, $findings);
+        self::assertSame(CoreFileIntegrityCheck::UNSUPPORTED_ID, $findings[0]['id']);
+        self::assertSame(Severity::LOW, $findings[0]['severity']);
+        self::assertSame(
+            'Core file integrity not checked: no reference manifest for Magento 2.4.8-p2',
+            $findings[0]['title']
+        );
+        self::assertSame('no_manifests_bundled', $findings[0]['evidence']['reason']);
+        self::assertFalse($findings[0]['evidence']['checked']);
+        self::assertSame(['community' => []], $findings[0]['evidence']['bundled_versions']);
+        self::assertStringContainsString('not a clean result', $findings[0]['evidence']['note']);
+        self::assertSame(CoreFileIntegrityCheck::UNSUPPORTED_REMEDIATION_URL, $findings[0]['remediation_url']);
+    }
+
+    public function testNoBundledManifestsTakesPrecedenceOverUnsupportedEdition(): void
+    {
+        // Telling an Adobe Commerce merchant "unsupported edition" would
+        // imply Open Source stores are covered. With nothing bundled, they
+        // are not.
+        $findings = $this->makeCheck('Enterprise', '2.4.8-p2')->run();
+
+        self::assertCount(1, $findings);
+        self::assertSame(CoreFileIntegrityCheck::UNSUPPORTED_ID, $findings[0]['id']);
+        self::assertSame('no_manifests_bundled', $findings[0]['evidence']['reason']);
+    }
+
     public function testUnsupportedVersionEmitsInformationalFinding(): void
     {
+        // A manifest exists, but for a different version than the store runs.
+        $this->writeManifest('community', '2.4.7-p5', ['app/bootstrap.php' => str_repeat('e', 64)]);
+
         $findings = $this->makeCheck('Community', '9.9.9-future')->run();
 
         self::assertCount(1, $findings);
@@ -173,6 +209,8 @@ class CoreFileIntegrityCheckTest extends TestCase
         self::assertSame(Severity::LOW, $findings[0]['severity']);
         self::assertSame('unsupported_version', $findings[0]['evidence']['reason']);
         self::assertSame('9.9.9-future', $findings[0]['evidence']['version']);
+        self::assertFalse($findings[0]['evidence']['checked']);
+        self::assertSame(['community' => ['2.4.7-p5']], $findings[0]['evidence']['bundled_versions']);
     }
 
     public function testAdobeCommerceEmitsInformationalFinding(): void
@@ -187,6 +225,7 @@ class CoreFileIntegrityCheckTest extends TestCase
         self::assertSame(CoreFileIntegrityCheck::UNSUPPORTED_ID, $findings[0]['id']);
         self::assertSame('unsupported_edition', $findings[0]['evidence']['reason']);
         self::assertSame(['community'], $findings[0]['evidence']['supported_editions']);
+        self::assertFalse($findings[0]['evidence']['checked']);
     }
 
     public function testMassTamperingEmitsSummaryAndCapsDetailedFindings(): void

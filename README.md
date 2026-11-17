@@ -20,7 +20,7 @@ Representative checks:
 - Composer advisories against `composer.lock`
 - Secure cookie and HTTPS configuration
 - Indexer and cron health
-- Core file integrity (SHA-256 against bundled reference manifests)
+- Core file and Composer package integrity against reference manifests. **Not active yet:** no reference manifests ship with the module, so every scan reports IC-071 and IC-073 ("not checked") instead of running these two checks
 - Code-smell pattern scan over `app/code/` (`eval`, dynamic `include`, `preg_replace /e`, etc.)
 - Content-Security-Policy posture probe against the storefront base URL
 - Webhook subscription hygiene (plaintext HTTP, missing signing secret, private-network destinations)
@@ -61,10 +61,10 @@ The check inventory, in stable ID order:
 | IC-054 | critical | CodeSmell   | `preg_replace` with `/e` modifier, RCE vector |
 | IC-060 | varies   | Cve         | Composer package CVE cross-reference via `ironcart.dev/api/cve` proxy (opt-in, default OFF; severity from advisory CVSS v3 score) |
 | IC-061 | low      | Cve         | OSV cross-reference unavailable (IC-060 transport / parse failure fallback) |
-| [IC-070](https://ironcart.dev/docs/checks/IC-070) | high     | FileIntegrity | Core file SHA-256 differs from bundled reference manifest |
-| [IC-071](https://ironcart.dev/docs/checks/IC-071) | low      | FileIntegrity | Core file integrity manifest not available for this Magento version |
-| [IC-072](https://ironcart.dev/docs/checks/IC-072) | high     | FileIntegrity | `composer.lock` package `dist.shasum` differs from reference manifest |
-| [IC-073](https://ironcart.dev/docs/checks/IC-073) | low      | FileIntegrity | Composer integrity manifest not available for this Magento version |
+| [IC-070](https://ironcart.dev/docs/checks/IC-070) | high     | FileIntegrity | Core file SHA-256 differs from the reference manifest. Cannot fire yet: no reference manifest ships with the module |
+| [IC-071](https://ironcart.dev/docs/checks/IC-071) | low      | FileIntegrity | Core file integrity was not checked: no reference manifest for this Magento version and edition. Reported on every scan until manifests ship; a coverage gap, not a pass |
+| [IC-072](https://ironcart.dev/docs/checks/IC-072) | high     | FileIntegrity | `composer.lock` package `dist.shasum` differs from the reference manifest. Cannot fire yet: no reference manifest ships with the module |
+| [IC-073](https://ironcart.dev/docs/checks/IC-073) | low      | FileIntegrity | Composer package integrity was not checked: no reference manifest for this Magento version and edition. Reported on every scan until manifests ship; a coverage gap, not a pass |
 | IC-080 | high     | Runtime/Csp | Storefront response has no `Content-Security-Policy` header |
 | IC-081 | medium   | Runtime/Csp | CSP has no `report-uri` / `report-to` directive |
 | IC-082 | high     | Runtime/Csp | `script-src` (or `default-src` fallback) allows `'unsafe-inline'` / `'unsafe-eval'` |
@@ -93,7 +93,7 @@ The **Hyva** pack (IC-910..IC-913) only emits findings when the storefront is de
 
 The **PwaStudio** pack (IC-921..IC-923) only emits findings when PWA Studio is detected — either a `magento/pwa` / `magento/module-pwa` composer package is installed, or the Magento-root `package.json` references `@magento/pwa-studio` / `@magento/venia-ui` / `@magento/peregrine` / `@magento/venia-concept`, or a `pwa-studio.config.json` / `venia.config.json` / `packages/venia-concept/` marker exists at the Magento root. Detection is read-only.
 
-The **CodeSmell** pack scans `<magento_root>/app/code/**/*.php` only. Composer-managed code under `vendor/` is covered by IC-001/IC-002; core code is covered by the file-integrity pack (IC-070..IC-073).
+The **CodeSmell** pack scans `<magento_root>/app/code/**/*.php` only. Composer-managed code under `vendor/` is covered by IC-001/IC-002; core code is the job of the file-integrity pack (IC-070..IC-073), which does not run yet because no reference manifests ship (see the IC-071 / IC-073 rows above), so core code is currently not covered by any check.
 
 Remediation links follow the pattern `https://ironcart.dev/docs/checks/<ID>`.
 

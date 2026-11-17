@@ -6,8 +6,13 @@
  * Resolves a {@see Manifest} for a (edition, version) pair by reading the
  * matching `etc/manifests/magento-core-<edition>-<version>.json` file from
  * the module's own filesystem (NEVER the merchant's webroot). Manifests are
- * generated at build time by `bin/build-manifest.php` and committed to the
- * repo; runtime never makes outbound network calls.
+ * generated at build time by `bin/build-manifest.php`; runtime never makes
+ * outbound network calls.
+ *
+ * No manifest of this family has been committed or released yet
+ * (IronCartLabs/IronCartM2#236), so `find()` returns null on every install
+ * and the check reports IC-071 instead of running. See
+ * `etc/manifests/README.md` for what blocks shipping them.
  *
  * The on-disk JSON schema is:
  *
@@ -37,7 +42,8 @@ use IronCart\Scan\Check\Manifests\ManifestEntrySanitiser;
 use RuntimeException;
 
 /**
- * Loads bundled manifests from disk and caches them per-process.
+ * Loads manifests from the module's `etc/manifests/` directory and caches
+ * them per-process.
  *
  * Only Magento Open Source is supported in v2 (per IronCartLabs/IronCartM2#47
  * decision); requests for `enterprise` always return null so the caller can
@@ -109,18 +115,52 @@ class ManifestRepository
     }
 
     /**
+     * Versions that have a manifest file on disk, per supported edition.
+     *
+     * Every edition maps to an empty list when the module carries no
+     * manifest of this family. The caller uses that to report "nothing is
+     * bundled, the check cannot run on any version" rather than implying
+     * that only this store's version is uncovered.
+     *
+     * @return array<string,list<string>> `edition => versions`, e.g. `['community' => ['2.4.7-p10']]`
+     */
+    public function bundledVersions(): array
+    {
+        $names = @scandir($this->manifestDir()) ?: [];
+
+        $bundled = [];
+        foreach (self::SUPPORTED_EDITIONS as $edition) {
+            $prefix = sprintf('magento-core-%s-', $edition);
+            $versions = [];
+            foreach ($names as $name) {
+                if (str_starts_with($name, $prefix) && str_ends_with($name, '.json')) {
+                    $versions[] = substr($name, strlen($prefix), -strlen('.json'));
+                }
+            }
+            sort($versions, SORT_NATURAL);
+            $bundled[$edition] = $versions;
+        }
+
+        return $bundled;
+    }
+
+    private function manifestDir(): string
+    {
+        return rtrim($this->manifestDir ?? dirname(__DIR__, 2) . '/etc/manifests', '/\\');
+    }
+
+    /**
      * Build the absolute path to a manifest file.
      */
     private function manifestPath(string $edition, string $version): string
     {
-        $dir = $this->manifestDir ?? dirname(__DIR__, 2) . '/etc/manifests';
         // Defence-in-depth: version strings come from ProductMetadataInterface
         // (trusted), but normalise away any path separators in case a future
         // caller plumbs an untrusted value through here.
         $safeEdition = preg_replace('/[^a-z0-9_-]/', '', $edition) ?? '';
         $safeVersion = preg_replace('/[^a-z0-9._-]/', '', $version) ?? '';
 
-        return rtrim($dir, '/\\')
+        return $this->manifestDir()
             . DIRECTORY_SEPARATOR
             . sprintf('magento-core-%s-%s.json', $safeEdition, $safeVersion);
     }

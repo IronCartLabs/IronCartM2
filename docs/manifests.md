@@ -7,6 +7,14 @@ manifest entry that is missing from disk) raises a HIGH-severity
 finding; more than 200 alterations escalate to a single CRITICAL
 mass-tampering finding.
 
+> **Status: no manifest ships yet.** No `magento-core-community-*.json` has
+> been committed or released, so IC-070 does not run on any install and every
+> scan reports IC-071 ("not checked") instead. Do not commit generated
+> manifests before the path-model problem is fixed: see the Status section of
+> [`etc/manifests/README.md`](../etc/manifests/README.md) and
+> [#236](https://github.com/IronCartLabs/IronCartM2/issues/236). The rest of
+> this document describes the intended design.
+
 This document is a how-the-manifests-are-made companion to the runtime
 check. For why the manifest format is ours and not Adobe's, see issue
 [#47](https://github.com/IronCartLabs/IronCartM2/issues/47).
@@ -63,8 +71,10 @@ which:
    [`etc/manifests/README.md`](../etc/manifests/README.md).
 6. Deletes the tmpdir.
 
-A single manifest is roughly 900 KB. Building one takes a few minutes
-on a typical dev box, dominated by the git clone.
+No manifest has been built yet, so its size is unmeasured. The tree at
+tag `2.4.7-p10` has more than 40,000 files, which puts one manifest at
+several MB rather than the ~900 KB this document used to state. Building
+one takes a few minutes on a typical dev box, dominated by the git clone.
 
 ## Refresh procedure
 
@@ -93,7 +103,10 @@ documented in the class header. Briefly:
 - **IC-070 INFO** scan-complete summary when there are findings but
   the mass-tampering threshold is not hit.
 - **IC-071 LOW** when there is no manifest for this (edition,
-  version) — e.g. Adobe Commerce or an unsupported community tag.
+  version), which today is every install. The finding says core files
+  were not checked (`evidence.checked = false`) and gives the reason:
+  `no_manifests_bundled`, `unsupported_edition` (e.g. Adobe Commerce) or
+  `unsupported_version` (a community tag with no manifest).
 
 The check intentionally ignores these path prefixes / exact files
 (documented as constants on the class): `var/`, `generated/`,
