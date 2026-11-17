@@ -1,10 +1,39 @@
-# IronCartM2
+# IronCartM2: Magento 2 security scanner
 
-Magento 2 security scanner module by [Ironcart](https://ironcart.dev). Read-only security posture checks for Adobe Commerce and Magento Open Source, installable via Composer.
+[![Latest version on Packagist](https://img.shields.io/packagist/v/ironcartlabs/magento-scan)](https://packagist.org/packages/ironcartlabs/magento-scan)
+[![CI status](https://github.com/IronCartLabs/IronCartM2/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/IronCartLabs/IronCartM2/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/packagist/l/ironcartlabs/magento-scan)](LICENSE)
+[![PHP 8.1, 8.2, 8.3, 8.4, 8.5](https://img.shields.io/badge/PHP-8.1%20%7C%208.2%20%7C%208.3%20%7C%208.4%20%7C%208.5-777BB4)](https://packagist.org/packages/ironcartlabs/magento-scan)
+
+Read-only security checks for Magento 2 (Adobe Commerce and Magento Open Source), by [Ironcart][ironcart]. The module runs from `bin/magento` inside your store, so it can check things an external scanner cannot see: `composer.lock` advisories, admin 2FA coverage and stale admin accounts, `MAGE_MODE`, `app/etc/env.php` permissions, and risky PHP patterns in `app/code/`. 49 checks are registered, and 48 of them run with no account or licence. The result is a JSON report with severities and remediation links. The module is MIT-licensed and sends nothing to ironcart.dev unless you opt in.
+
+## Install
 
 ```bash
 composer require ironcartlabs/magento-scan
+bin/magento module:enable IronCart_Scan
+bin/magento setup:upgrade
 ```
+
+Requires Magento 2.4.4 or later and PHP 8.1 / 8.2 / 8.3 / 8.4 / 8.5. Works on Adobe Commerce and Magento Open Source.
+
+## Run
+
+```bash
+bin/magento ironcart:scan --format=json --output=./ironcart-scan.json
+```
+
+### Sample output
+
+The report has five top-level keys: `schema_version`, `generated_at`, `magento` (version and edition), `summary` (finding counts by severity) and `findings`. Each finding has an `id`, `title`, `severity`, `evidence` and `remediation_url`.
+
+This `summary` is real output from the CI sandbox: a freshly installed Magento Open Source 2.4.8-p2 on PHP 8.4, with the module installed by `composer require` ([CI run 43804470324](https://github.com/IronCartLabs/IronCartM2/actions/runs/43804470324), commit `b7bd65d`). CI logs the summary only, so no individual findings are reproduced here.
+
+```json
+{"critical": 9, "high": 6, "medium": 2, "low": 3, "info": 1}
+```
+
+**Docs and landing page:** [ironcart.dev/magento-security-scanner][landing]. Per-check reference: [ironcart.dev/docs/checks][checks].
 
 ## What it does
 
@@ -25,63 +54,65 @@ Representative checks:
 - Content-Security-Policy posture probe against the storefront base URL
 - Webhook subscription hygiene (plaintext HTTP, missing signing secret, private-network destinations)
 
-All 43+ checks are included free under MIT.
+49 checks are registered in `etc/di.xml`, and all of the code is MIT-licensed. 48 of them run with no account or licence. The 49th, the Recon file-integrity baseline diff (`Check/Integrity/FileHashCheck.php`, which reuses the IC-073 ID and adds IC-074), returns no findings without a verified Recon licence.
 
 ### Check IDs
 
-The check inventory, in stable ID order:
+The check inventory, in stable ID order. Each ID links to its reference page on ironcart.dev where one is published:
 
 | ID | Severity (default) | Pack | Summary |
 |----|--------------------|------|---------|
-| IC-001 | high     | PatchLevel  | Magento version vs latest security patch |
-| IC-002 | high     | PatchLevel  | Composer advisories against `composer.lock` |
-| [IC-003](https://ironcart.dev/docs/checks/IC-003) | critical | PatchLevel  | Adobe hotfix VULN-39341 for CVE-2026-75650 (APSB26-146, exploited in the wild) not applied, detected by file signature; info when the file layout is unrecognised |
-| IC-010 | high     | Admin       | Admin URL frontname is default `/admin` |
-| IC-011 | medium   | Admin       | Stale active admin accounts (no login > 90d) |
-| IC-012 | high     | Admin       | 2FA coverage across admin users |
-| IC-013 | medium   | Admin       | Weak-password indicators on admin accounts |
-| IC-020 | critical | Runtime     | `MAGE_MODE` is `developer` in production |
-| IC-021 | high     | Runtime     | Cookies not flagged secure / httpOnly |
-| IC-022 | high     | Runtime     | HTTPS not enforced on storefront/admin |
-| IC-023 | medium   | Runtime     | CSP mode (report-only vs. enforced) |
-| IC-024 | medium   | Runtime     | Profiler enabled in production |
-| IC-030 | high     | Filesystem  | `app/etc/env.php` is world-readable |
-| IC-031 | medium   | Filesystem  | `app/etc/env.php` ownership mismatch |
-| IC-032 | high     | Filesystem  | Crypt key missing or default-shaped |
-| IC-033 | medium   | Filesystem  | Unexpectedly writable directories |
-| IC-034 | low      | Filesystem  | Stray dev-tooling files in document root |
-| IC-040 | medium   | Operational | Indexer is in invalid / reindex-required state |
-| IC-041 | medium   | Operational | Cron last-run age exceeds threshold |
-| IC-042 | medium   | Operational | Cron error rate over the recent window |
-| IC-043 | medium   | Operational | Message-queue backlog over depth threshold |
-| IC-050 | critical | CodeSmell   | `eval()` invocation in `app/code/**` |
-| IC-051 | critical | CodeSmell   | `unserialize($_REQUEST/$_GET/$_POST/$_COOKIE)`, RCE vector |
-| IC-052 | high     | CodeSmell   | Dynamic `include`/`require` (variable path), LFI / RFI vector |
-| IC-053 | high     | CodeSmell   | Shell execution from PHP (`shell_exec`, `exec`, backticks, ...) |
-| IC-054 | critical | CodeSmell   | `preg_replace` with `/e` modifier, RCE vector |
-| IC-060 | varies   | Cve         | Composer package CVE cross-reference via `ironcart.dev/api/cve` proxy (opt-in, default OFF; severity from advisory CVSS v3 score) |
-| IC-061 | low      | Cve         | OSV cross-reference unavailable (IC-060 transport / parse failure fallback) |
-| [IC-070](https://ironcart.dev/docs/checks/IC-070) | high     | FileIntegrity | Core file SHA-256 differs from bundled reference manifest |
-| [IC-071](https://ironcart.dev/docs/checks/IC-071) | low      | FileIntegrity | Core file integrity manifest not available for this Magento version |
-| [IC-072](https://ironcart.dev/docs/checks/IC-072) | high     | FileIntegrity | `composer.lock` package `dist.shasum` differs from reference manifest |
-| [IC-073](https://ironcart.dev/docs/checks/IC-073) | low      | FileIntegrity | Composer integrity manifest not available for this Magento version |
-| IC-080 | high     | Runtime/Csp | Storefront response has no `Content-Security-Policy` header |
-| IC-081 | medium   | Runtime/Csp | CSP has no `report-uri` / `report-to` directive |
-| IC-082 | high     | Runtime/Csp | `script-src` (or `default-src` fallback) allows `'unsafe-inline'` / `'unsafe-eval'` |
-| IC-083 | medium   | Runtime/Csp | `frame-ancestors` missing or set to `*` |
-| IC-084 | high     | Runtime/Csp | Storefront CSP is `report-only` while `MAGE_MODE=production` |
-| IC-085 | low      | Runtime/Csp | Storefront base URL appears unconfigured (default `example.com`) |
-| IC-090 | high     | Webhooks    | Webhook destination over plaintext HTTP |
-| IC-091 | high     | Webhooks    | Webhook signature secret missing |
-| IC-092 | medium   | Webhooks    | Webhook retry policy unsafe (too many / too short) |
-| IC-093 | medium   | Webhooks    | Webhook destination resolves to a private network |
-| IC-910 | medium   | Hyva        | Hyvä Tailwind / postcss config file reachable under `pub/static/` |
-| IC-911 | medium / low | Hyva    | Hyvä Checkout CSP whitelist contains hashes not present in the installed checkout version (medium); manifest unavailable for installed version (low) |
-| IC-912 | high / medium | Hyva   | `hyva-themes/*` composer package installed below the bundled min-version floor (high when the floor is security-tagged, medium otherwise) |
-| IC-913 | medium   | Hyva        | Hyvä theme template references Alpine.js from a public JS CDN (jsdelivr / unpkg / cdnjs / esm.sh / jspm / skypack) instead of a vendored asset |
-| IC-921 | medium   | PwaStudio   | GraphQL introspection enabled (`graphql/validation/disable_introspection = 0`) while `MAGE_MODE=production` |
-| IC-922 | medium   | PwaStudio   | GraphQL `maximum_query_depth` / `maximum_query_complexity` missing or above safe ceilings (depth > 20, complexity > 300) |
-| IC-923 | high     | PwaStudio   | GraphQL `web/graphql/cors_allowed_origins` contains a wildcard (`*`, `null`, or `*.example.com`) |
+| [IC-001] | high     | PatchLevel  | Magento version vs latest security patch |
+| [IC-002] | high     | PatchLevel  | Composer advisories against `composer.lock` |
+| [IC-003] | critical | PatchLevel  | Adobe hotfix VULN-39341 for CVE-2026-75650 (APSB26-146, exploited in the wild) not applied, detected by file signature; info when the file layout is unrecognised |
+| [IC-010] | high     | Admin       | Admin URL frontname is default `/admin` |
+| [IC-011] | medium   | Admin       | Stale active admin accounts (no login > 90d) |
+| [IC-012] | high     | Admin       | 2FA coverage across admin users |
+| [IC-013] | medium   | Admin       | Weak-password indicators on admin accounts |
+| IC-014 | high / medium / info | AdminAudit | Admin activity in the last 24 hours: new admin users (high), modified admin user rows and password resets (medium), a login IP-prefix summary (info), and logins outside the configured business hours (high). Finding IDs carry a suffix, for example `IC-014.new-admin` |
+| [IC-020] | critical | Runtime     | `MAGE_MODE` is `developer` in production |
+| [IC-021] | high     | Runtime     | Cookies not flagged secure / httpOnly |
+| [IC-022] | high     | Runtime     | HTTPS not enforced on storefront/admin |
+| [IC-023] | medium   | Runtime     | CSP mode (report-only vs. enforced) |
+| [IC-024] | medium   | Runtime     | Profiler enabled in production |
+| [IC-030] | high     | Filesystem  | `app/etc/env.php` is world-readable |
+| [IC-031] | medium   | Filesystem  | `app/etc/env.php` ownership mismatch |
+| [IC-032] | high     | Filesystem  | Crypt key missing or default-shaped |
+| [IC-033] | medium   | Filesystem  | Unexpectedly writable directories |
+| [IC-034] | low      | Filesystem  | Stray dev-tooling files in document root |
+| [IC-040] | medium   | Operational | Indexer is in invalid / reindex-required state |
+| [IC-041] | medium   | Operational | Cron last-run age exceeds threshold |
+| [IC-042] | medium   | Operational | Cron error rate over the recent window |
+| [IC-043] | medium   | Operational | Message-queue backlog over depth threshold |
+| [IC-050] | critical | CodeSmell   | `eval()` invocation in `app/code/**` |
+| [IC-051] | critical | CodeSmell   | `unserialize($_REQUEST/$_GET/$_POST/$_COOKIE)`, RCE vector |
+| [IC-052] | high     | CodeSmell   | Dynamic `include`/`require` (variable path), LFI / RFI vector |
+| [IC-053] | high     | CodeSmell   | Shell execution from PHP (`shell_exec`, `exec`, backticks, ...) |
+| [IC-054] | critical | CodeSmell   | `preg_replace` with `/e` modifier, RCE vector |
+| [IC-060] | varies   | Cve         | Composer package CVE cross-reference via `ironcart.dev/api/cve` proxy (opt-in, default OFF; severity from advisory CVSS v3 score) |
+| [IC-061] | low      | Cve         | OSV cross-reference unavailable (IC-060 transport / parse failure fallback) |
+| [IC-070] | high     | FileIntegrity | Core file SHA-256 differs from bundled reference manifest |
+| [IC-071] | low      | FileIntegrity | Core file integrity manifest not available for this Magento version |
+| [IC-072] | high     | FileIntegrity | `composer.lock` package `dist.shasum` differs from reference manifest |
+| [IC-073] | low      | FileIntegrity | Composer integrity manifest not available for this Magento version |
+| IC-074 | low      | Integrity   | Recon file-integrity baseline not yet generated. Emitted only with a Recon licence, until `bin/magento recon:integrity:rebaseline` has been run |
+| [IC-080] | high     | Runtime/Csp | Storefront response has no `Content-Security-Policy` header |
+| [IC-081] | medium   | Runtime/Csp | CSP has no `report-uri` / `report-to` directive |
+| [IC-082] | high     | Runtime/Csp | `script-src` (or `default-src` fallback) allows `'unsafe-inline'` / `'unsafe-eval'` |
+| [IC-083] | medium   | Runtime/Csp | `frame-ancestors` missing or set to `*` |
+| [IC-084] | high     | Runtime/Csp | Storefront CSP is `report-only` while `MAGE_MODE=production` |
+| [IC-085] | low      | Runtime/Csp | Storefront base URL appears unconfigured (default `example.com`) |
+| [IC-090] | high     | Webhooks    | Webhook destination over plaintext HTTP |
+| [IC-091] | high     | Webhooks    | Webhook signature secret missing |
+| [IC-092] | medium   | Webhooks    | Webhook retry policy unsafe (too many / too short) |
+| [IC-093] | medium   | Webhooks    | Webhook destination resolves to a private network |
+| [IC-910] | medium   | Hyva        | Hyvä Tailwind / postcss config file reachable under `pub/static/` |
+| [IC-911] | medium / low | Hyva    | Hyvä Checkout CSP whitelist contains hashes not present in the installed checkout version (medium); manifest unavailable for installed version (low) |
+| [IC-912] | high / medium | Hyva   | `hyva-themes/*` composer package installed below the bundled min-version floor (high when the floor is security-tagged, medium otherwise) |
+| [IC-913] | medium   | Hyva        | Hyvä theme template references Alpine.js from a public JS CDN (jsdelivr / unpkg / cdnjs / esm.sh / jspm / skypack) instead of a vendored asset |
+| [IC-921] | medium   | PwaStudio   | GraphQL introspection enabled (`graphql/validation/disable_introspection = 0`) while `MAGE_MODE=production` |
+| [IC-922] | medium   | PwaStudio   | GraphQL `maximum_query_depth` / `maximum_query_complexity` missing or above safe ceilings (depth > 20, complexity > 300) |
+| [IC-923] | high     | PwaStudio   | GraphQL `web/graphql/cors_allowed_origins` contains a wildcard (`*`, `null`, or `*.example.com`) |
 | IC-200 | high     | Integrity   | `app/etc/env.php` file mode is not `0640` or stricter |
 | IC-201 | high     | Integrity   | `app/etc/env.php` owner is `root` or a known webserver user |
 | IC-202 | high     | Integrity   | `app/etc/env.php` is a symlink |
@@ -106,27 +137,11 @@ Every check is **read-only by default**. The module's outbound surface is intent
 3. **`bin/magento ironcart:scan --upload`** (optional): one HTTPS POST to `https://ironcart.dev/api/scan/ingest` after a scan, gated by `ironcart_scan/upload/enabled` (default `0`). Host-pinned to `ironcart.dev`, full TLS verification, `FOLLOWLOCATION=0`, HTTPS-only protocol set. Payload contains findings, composer package list, Magento version + edition, and the store base URL; **never** the admin email or any customer / order PII. See [docs/UPLOAD.md](docs/UPLOAD.md).
 4. **Continuous monitoring cron** (optional): Magento cron job `ironcart_scan_upload_cron` runs `bin/magento ironcart:scan --upload` on the operator-configured schedule (default daily at 03:00 store time). Gated by `ironcart_scan/cron/enabled` (default `0`) AND requires the `--upload` flow above to be enabled. **Outbound only**: the merchant store never accepts inbound connections from ironcart.dev. The merchant controls when scans run by editing the schedule in admin. See [Continuous monitoring](#continuous-monitoring-optional) below.
 
-## Install
-
-```bash
-composer require ironcartlabs/magento-scan
-bin/magento module:enable IronCart_Scan
-bin/magento setup:upgrade
-```
-
-Requires Magento 2.4.4 or later and PHP 8.1 / 8.2 / 8.3 / 8.4 / 8.5. Works on Adobe Commerce and Magento Open Source.
-
-## Run
-
-```bash
-bin/magento ironcart:scan --format=json --output=./ironcart-scan.json
-```
-
 ## Upload to ironcart.dev (optional)
 
-The `--upload` flag POSTs the scan results to [ironcart.dev](https://ironcart.dev) for a hosted, shareable report. **Off by default.** Enable in admin:
+The `--upload` flag POSTs the scan results to [ironcart.dev][ironcart] for a hosted, shareable report. **Off by default.** Enable in admin:
 
-1. Sign up at [ironcart.dev/scanner](https://ironcart.dev/scanner) (or claim an existing anonymous scan) and copy your token.
+1. Sign up at [ironcart.dev/scanner][token-signup] (or claim an existing anonymous scan) and copy your token.
 2. In Magento admin: **Stores > Configuration > Ironcart > Scan > Scan Upload**.
 3. Set **Enable scan upload to ironcart.dev** = Yes.
 4. Paste your token into **ironcart.dev upload token**.
@@ -159,7 +174,7 @@ Verification posture is identical at every layer — the same Ed25519 `LicenseVe
 
 ## Continuous monitoring (optional)
 
-The module ships a Magento cron job that runs `bin/magento ironcart:scan --upload` on a schedule you control, so [ironcart.dev](https://ironcart.dev) always has a fresh view of your store's posture without you remembering to run the CLI by hand.
+The module ships a Magento cron job that runs `bin/magento ironcart:scan --upload` on a schedule you control, so [ironcart.dev][ironcart] always has a fresh view of your store's posture without you remembering to run the CLI by hand.
 
 > **Outbound only.** Your store does **not** accept any inbound connections from ironcart.dev. The cron is a pull-from-store-and-push-outbound loop: the merchant store decides when to run, and ironcart.dev is purely a receiver. This preserves the read-only, opt-in-network posture of the module.
 
@@ -190,7 +205,7 @@ If your free-tier quota on ironcart.dev is exhausted, the cron logs an "upgrade 
 [2026-05-17T03:00:04+00:00] ironcart_scan_cron.WARNING: IronCart_Scan: cron upload blocked (upgrade required) {"upgrade_url":"https://ironcart.dev/pricing?from=cron-402","category":"quota_exceeded"}
 ```
 
-Full documentation: [ironcart.dev/docs/scanner/continuous-monitoring](https://ironcart.dev/docs/scanner/continuous-monitoring).
+Full documentation: [ironcart.dev/docs/scanner/continuous-monitoring][continuous-monitoring].
 
 ## Running scans asynchronously
 
@@ -281,3 +296,58 @@ See [SECURITY.md](SECURITY.md) for the vulnerability disclosure policy.
 ## License
 
 MIT, see [LICENSE](LICENSE).
+
+[ironcart]: https://ironcart.dev/?utm_source=github-readme&utm_medium=oss-funnel&utm_campaign=oss-module-install
+[landing]: https://ironcart.dev/magento-security-scanner?utm_source=github-readme&utm_medium=oss-funnel&utm_campaign=oss-module-install
+[checks]: https://ironcart.dev/docs/checks?utm_source=github-readme&utm_medium=oss-funnel&utm_campaign=oss-module-install
+[token-signup]: https://ironcart.dev/scanner?utm_source=github-readme&utm_medium=oss-funnel&utm_campaign=oss-module-install
+[continuous-monitoring]: https://ironcart.dev/docs/scanner/continuous-monitoring?utm_source=github-readme&utm_medium=oss-funnel&utm_campaign=oss-module-install
+[IC-001]: https://ironcart.dev/docs/checks/IC-001?utm_source=github-readme&utm_medium=oss-funnel&utm_campaign=oss-module-install
+[IC-002]: https://ironcart.dev/docs/checks/IC-002?utm_source=github-readme&utm_medium=oss-funnel&utm_campaign=oss-module-install
+[IC-003]: https://ironcart.dev/docs/checks/IC-003?utm_source=github-readme&utm_medium=oss-funnel&utm_campaign=oss-module-install
+[IC-010]: https://ironcart.dev/docs/checks/IC-010?utm_source=github-readme&utm_medium=oss-funnel&utm_campaign=oss-module-install
+[IC-011]: https://ironcart.dev/docs/checks/IC-011?utm_source=github-readme&utm_medium=oss-funnel&utm_campaign=oss-module-install
+[IC-012]: https://ironcart.dev/docs/checks/IC-012?utm_source=github-readme&utm_medium=oss-funnel&utm_campaign=oss-module-install
+[IC-013]: https://ironcart.dev/docs/checks/IC-013?utm_source=github-readme&utm_medium=oss-funnel&utm_campaign=oss-module-install
+[IC-020]: https://ironcart.dev/docs/checks/IC-020?utm_source=github-readme&utm_medium=oss-funnel&utm_campaign=oss-module-install
+[IC-021]: https://ironcart.dev/docs/checks/IC-021?utm_source=github-readme&utm_medium=oss-funnel&utm_campaign=oss-module-install
+[IC-022]: https://ironcart.dev/docs/checks/IC-022?utm_source=github-readme&utm_medium=oss-funnel&utm_campaign=oss-module-install
+[IC-023]: https://ironcart.dev/docs/checks/IC-023?utm_source=github-readme&utm_medium=oss-funnel&utm_campaign=oss-module-install
+[IC-024]: https://ironcart.dev/docs/checks/IC-024?utm_source=github-readme&utm_medium=oss-funnel&utm_campaign=oss-module-install
+[IC-030]: https://ironcart.dev/docs/checks/IC-030?utm_source=github-readme&utm_medium=oss-funnel&utm_campaign=oss-module-install
+[IC-031]: https://ironcart.dev/docs/checks/IC-031?utm_source=github-readme&utm_medium=oss-funnel&utm_campaign=oss-module-install
+[IC-032]: https://ironcart.dev/docs/checks/IC-032?utm_source=github-readme&utm_medium=oss-funnel&utm_campaign=oss-module-install
+[IC-033]: https://ironcart.dev/docs/checks/IC-033?utm_source=github-readme&utm_medium=oss-funnel&utm_campaign=oss-module-install
+[IC-034]: https://ironcart.dev/docs/checks/IC-034?utm_source=github-readme&utm_medium=oss-funnel&utm_campaign=oss-module-install
+[IC-040]: https://ironcart.dev/docs/checks/IC-040?utm_source=github-readme&utm_medium=oss-funnel&utm_campaign=oss-module-install
+[IC-041]: https://ironcart.dev/docs/checks/IC-041?utm_source=github-readme&utm_medium=oss-funnel&utm_campaign=oss-module-install
+[IC-042]: https://ironcart.dev/docs/checks/IC-042?utm_source=github-readme&utm_medium=oss-funnel&utm_campaign=oss-module-install
+[IC-043]: https://ironcart.dev/docs/checks/IC-043?utm_source=github-readme&utm_medium=oss-funnel&utm_campaign=oss-module-install
+[IC-050]: https://ironcart.dev/docs/checks/IC-050?utm_source=github-readme&utm_medium=oss-funnel&utm_campaign=oss-module-install
+[IC-051]: https://ironcart.dev/docs/checks/IC-051?utm_source=github-readme&utm_medium=oss-funnel&utm_campaign=oss-module-install
+[IC-052]: https://ironcart.dev/docs/checks/IC-052?utm_source=github-readme&utm_medium=oss-funnel&utm_campaign=oss-module-install
+[IC-053]: https://ironcart.dev/docs/checks/IC-053?utm_source=github-readme&utm_medium=oss-funnel&utm_campaign=oss-module-install
+[IC-054]: https://ironcart.dev/docs/checks/IC-054?utm_source=github-readme&utm_medium=oss-funnel&utm_campaign=oss-module-install
+[IC-060]: https://ironcart.dev/docs/checks/IC-060?utm_source=github-readme&utm_medium=oss-funnel&utm_campaign=oss-module-install
+[IC-061]: https://ironcart.dev/docs/checks/IC-061?utm_source=github-readme&utm_medium=oss-funnel&utm_campaign=oss-module-install
+[IC-070]: https://ironcart.dev/docs/checks/IC-070?utm_source=github-readme&utm_medium=oss-funnel&utm_campaign=oss-module-install
+[IC-071]: https://ironcart.dev/docs/checks/IC-071?utm_source=github-readme&utm_medium=oss-funnel&utm_campaign=oss-module-install
+[IC-072]: https://ironcart.dev/docs/checks/IC-072?utm_source=github-readme&utm_medium=oss-funnel&utm_campaign=oss-module-install
+[IC-073]: https://ironcart.dev/docs/checks/IC-073?utm_source=github-readme&utm_medium=oss-funnel&utm_campaign=oss-module-install
+[IC-080]: https://ironcart.dev/docs/checks/IC-080?utm_source=github-readme&utm_medium=oss-funnel&utm_campaign=oss-module-install
+[IC-081]: https://ironcart.dev/docs/checks/IC-081?utm_source=github-readme&utm_medium=oss-funnel&utm_campaign=oss-module-install
+[IC-082]: https://ironcart.dev/docs/checks/IC-082?utm_source=github-readme&utm_medium=oss-funnel&utm_campaign=oss-module-install
+[IC-083]: https://ironcart.dev/docs/checks/IC-083?utm_source=github-readme&utm_medium=oss-funnel&utm_campaign=oss-module-install
+[IC-084]: https://ironcart.dev/docs/checks/IC-084?utm_source=github-readme&utm_medium=oss-funnel&utm_campaign=oss-module-install
+[IC-085]: https://ironcart.dev/docs/checks/IC-085?utm_source=github-readme&utm_medium=oss-funnel&utm_campaign=oss-module-install
+[IC-090]: https://ironcart.dev/docs/checks/IC-090?utm_source=github-readme&utm_medium=oss-funnel&utm_campaign=oss-module-install
+[IC-091]: https://ironcart.dev/docs/checks/IC-091?utm_source=github-readme&utm_medium=oss-funnel&utm_campaign=oss-module-install
+[IC-092]: https://ironcart.dev/docs/checks/IC-092?utm_source=github-readme&utm_medium=oss-funnel&utm_campaign=oss-module-install
+[IC-093]: https://ironcart.dev/docs/checks/IC-093?utm_source=github-readme&utm_medium=oss-funnel&utm_campaign=oss-module-install
+[IC-910]: https://ironcart.dev/docs/checks/IC-910?utm_source=github-readme&utm_medium=oss-funnel&utm_campaign=oss-module-install
+[IC-911]: https://ironcart.dev/docs/checks/IC-911?utm_source=github-readme&utm_medium=oss-funnel&utm_campaign=oss-module-install
+[IC-912]: https://ironcart.dev/docs/checks/IC-912?utm_source=github-readme&utm_medium=oss-funnel&utm_campaign=oss-module-install
+[IC-913]: https://ironcart.dev/docs/checks/IC-913?utm_source=github-readme&utm_medium=oss-funnel&utm_campaign=oss-module-install
+[IC-921]: https://ironcart.dev/docs/checks/IC-921?utm_source=github-readme&utm_medium=oss-funnel&utm_campaign=oss-module-install
+[IC-922]: https://ironcart.dev/docs/checks/IC-922?utm_source=github-readme&utm_medium=oss-funnel&utm_campaign=oss-module-install
+[IC-923]: https://ironcart.dev/docs/checks/IC-923?utm_source=github-readme&utm_medium=oss-funnel&utm_campaign=oss-module-install
