@@ -3,8 +3,13 @@
 /**
  * IronCart_Scan — IC-070 core-file-integrity check.
  *
- * Compares the live SHA-256 of every file in a bundled manifest against the
- * expected hash, and emits one HIGH-severity finding per mismatch.
+ * Compares the live SHA-256 of every file in a reference manifest against
+ * the expected hash, and emits one HIGH-severity finding per mismatch.
+ *
+ * **No reference manifest ships with the module yet**
+ * (IronCartLabs/IronCartM2#236). Until one does, this check compares nothing
+ * on any install: it returns a single IC-071 finding that says core files
+ * were not checked. That finding is a coverage gap, never a pass.
  *
  * The manifest is derived from the public `magento/magento2` git tag for the
  * merchant's reported version. **There is no Adobe-published file-hash
@@ -18,7 +23,10 @@
  *   - `IC-070` HIGH — `evidence.kind = "mismatch"`: file present, SHA differs from manifest
  *   - `IC-070` HIGH — `evidence.kind = "missing"`: manifest entry not on disk
  *   - `IC-070` HIGH — `evidence.kind = "mass_tampering"`: > 200 altered files (summary)
- *   - `IC-071` LOW  — manifest not available for this (edition, version)
+ *   - `IC-071` LOW  — not checked: no manifest for this (edition, version).
+ *                     `evidence.reason` is `no_manifests_bundled` (the module
+ *                     carries none at all), `unsupported_edition` or
+ *                     `unsupported_version`; `evidence.checked` is `false`
  *
  * Adobe Commerce merchants always receive IC-071 in v2 — manifest coverage
  * for AC is deferred to v3 hosted backend. Extra files in the webroot that
@@ -41,7 +49,7 @@ use IronCart\Scan\Report\Severity;
 use Magento\Framework\App\ProductMetadataInterface;
 
 /**
- * IC-070 — Core file integrity (file-level SHA-256 against bundled manifest).
+ * IC-070 — Core file integrity (file-level SHA-256 against a reference manifest).
  */
 class CoreFileIntegrityCheck implements CheckInterface
 {
@@ -202,15 +210,19 @@ class CoreFileIntegrityCheck implements CheckInterface
      */
     private function unsupportedFinding(string $edition, string $version): array
     {
-        $editionKey = strtolower(trim($edition));
-        $reason = in_array($editionKey, ManifestRepository::SUPPORTED_EDITIONS, true)
-            ? 'unsupported_version'
-            : 'unsupported_edition';
+        $bundledVersions = $this->manifestRepository->bundledVersions();
+        if (array_filter($bundledVersions) === []) {
+            $reason = 'no_manifests_bundled';
+        } elseif (!in_array(strtolower(trim($edition)), ManifestRepository::SUPPORTED_EDITIONS, true)) {
+            $reason = 'unsupported_edition';
+        } else {
+            $reason = 'unsupported_version';
+        }
 
         return [
             'id' => self::UNSUPPORTED_ID,
             'title' => sprintf(
-                'File integrity manifest not available for Magento %s',
+                'Core file integrity not checked: no reference manifest for Magento %s',
                 $version !== '' ? $version : '(unknown version)'
             ),
             'severity' => Severity::LOW,
@@ -218,7 +230,11 @@ class CoreFileIntegrityCheck implements CheckInterface
                 'edition' => $edition,
                 'version' => $version,
                 'reason' => $reason,
+                'checked' => false,
                 'supported_editions' => ManifestRepository::SUPPORTED_EDITIONS,
+                'bundled_versions' => $bundledVersions,
+                'note' => 'IC-070 did not run: no core file was compared against a reference hash. '
+                    . 'This is a coverage gap, not a clean result.',
             ],
             'remediation_url' => self::UNSUPPORTED_REMEDIATION_URL,
         ];

@@ -1,7 +1,43 @@
-# `etc/manifests/` — bundled file-integrity manifests
+# `etc/manifests/` — file-integrity manifests
 
-This directory holds two families of file-integrity manifests, both consumed
-at runtime by the `Check/FileIntegrity/` pack:
+## Status: no IC-070 / IC-072 manifest ships yet
+
+As of v1.6.3 this directory holds only the Hyvä manifests (`hyva-checkout/`,
+`hyva-modules/`). No `magento-core-community-*.json` or
+`composer-sha1-community-*.json` file has ever been committed or released
+([#236](https://github.com/IronCartLabs/IronCartM2/issues/236)). At runtime
+that means:
+
+- IC-070 and IC-072 never run. Every scan reports IC-071 and IC-073 with
+  `evidence.reason = "no_manifests_bundled"` and `evidence.checked = false`.
+- Those two findings are a coverage gap. They do not mean core files or
+  Composer packages were verified.
+
+The generators described below exist, but their output must not be committed
+until these are resolved:
+
+- **IC-070 path model.** `bin/build-manifest.php` hashes the
+  `magento/magento2` git tree, where modules live under `app/code/Magento/`
+  and the framework under `lib/internal/Magento/Framework/`. A Composer
+  install (what `composer create-project` produces, and the normal production
+  layout) has those files under `vendor/magento/*` instead. The check resolves
+  every manifest path against the Magento root, so on a Composer install each
+  of those entries would be reported as a missing core file and a clean store
+  would get the CRITICAL mass-tampering finding. At tag `2.4.7-p10` that is
+  26,560 files under `app/code/` and 4,380 under `lib/internal/`.
+- **IC-070 exact-version match.** A manifest only applies to the exact
+  version string it was built for. `MANIFEST_VERSIONS` lists the latest patch
+  of each supported line, so a store one patch behind would still get IC-071.
+- **IC-072 generation.** `bin/build-composer-manifest.php` needs
+  repo.magento.com credentials, which exist only as CI secrets. The
+  `composer-manifests` workflow that runs it has not completed a run yet.
+
+The rest of this file documents the intended design.
+
+## Manifest families
+
+Two families of file-integrity manifests are designed to live here, both
+consumed at runtime by the `Check/FileIntegrity/` pack:
 
 - `magento-core-community-<version>.json` — IC-070 (SHA-256 per file across the
   `magento/magento2` source tree). Built by
@@ -77,8 +113,9 @@ Only `community` (Magento Open Source) is supported in v2 for either
 manifest. Adobe Commerce coverage requires paid composer auth at build
 time and is deferred to the v3 hosted backend, which can fetch manifests
 server-side. Merchants running Adobe Commerce receive IC-071 / IC-073
-informational findings ("manifest not available for this edition")
-rather than an IC-070 / IC-072 scan.
+"not checked" findings rather than an IC-070 / IC-072 scan. Once manifests
+ship, `evidence.reason` for them is `unsupported_edition`; until then every
+edition gets `no_manifests_bundled`.
 
 ## Generating manifests
 
@@ -123,7 +160,10 @@ for the half that wasn't rebuilt.
 
 ## Size
 
-An IC-070 manifest is roughly 900 KB on disk (~6000 files × ~150 bytes
-per entry, pretty-printed). An IC-072 manifest is far smaller — closer
-to 60 KB (~400 packages × ~120 bytes per entry). The combined set fits
-comfortably in the module's repo without bloating composer installs.
+No manifest has been built yet, so these are estimates. The
+`magento/magento2` tree at tag `2.4.7-p10` has more than 40,000 files, so
+an IC-070 manifest built from it would be several MB per version at
+~150 bytes per pretty-printed entry, not the ~900 KB (~6000 files) this
+file used to state. An IC-072 manifest is far smaller: closer to 60 KB
+(~400 packages × ~120 bytes per entry). Measure both before committing a
+set, because they ship in every composer install of the module.

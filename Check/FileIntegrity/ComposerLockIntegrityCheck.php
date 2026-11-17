@@ -6,8 +6,13 @@
  * Composer-level companion to {@see CoreFileIntegrityCheck} (IC-070). For
  * every package recorded in the merchant's `composer.lock`, compares
  * `dist.shasum` (the SHA-1 the package was downloaded against) to the
- * value recorded in a bundled per-version reference manifest produced from
- * a clean `composer create-project magento/project-community-edition:<version>`.
+ * value recorded in a per-version reference manifest produced from a clean
+ * `composer create-project magento/project-community-edition:<version>`.
+ *
+ * **No reference manifest ships with the module yet**
+ * (IronCartLabs/IronCartM2#236). Until one does, this check compares nothing
+ * on any install: it returns a single IC-073 finding that says composer
+ * packages were not checked. That finding is a coverage gap, never a pass.
  *
  * A mismatch means the on-disk `vendor/` tree was installed from a
  * tampered or impersonated source package — the realistic Magecart vector
@@ -19,7 +24,14 @@
  *
  *   - `IC-072` HIGH — `dist.shasum` differs from the reference manifest for
  *                     a known-magento package
- *   - `IC-073` LOW  — manifest not available for this (edition, version)
+ *   - `IC-073` LOW  — not checked: no manifest for this (edition, version).
+ *                     `evidence.reason` is `no_manifests_bundled` (the module
+ *                     carries none at all), `unsupported_edition` or
+ *                     `unsupported_version`; `evidence.checked` is `false`
+ *
+ * `IC-073` is also the ID of the unrelated Recon baseline-drift finding in
+ * {@see \IronCart\Scan\Check\Integrity\FileHashCheck}; splitting the two is
+ * tracked in IronCartLabs/IronCartM2#239.
  *
  * Packages NOT in the reference manifest are silently ignored (third-party
  * marketplace modules — we have no public oracle for those at v2).
@@ -130,15 +142,20 @@ class ComposerLockIntegrityCheck implements CheckInterface
      */
     private function unsupportedFinding(string $edition, string $version): array
     {
-        $editionKey = strtolower(trim($edition));
-        $reason = in_array($editionKey, ComposerLockManifestRepository::SUPPORTED_EDITIONS, true)
-            ? 'unsupported_version'
-            : 'unsupported_edition';
+        $bundledVersions = $this->manifestRepository->bundledVersions();
+        $supportedEditions = ComposerLockManifestRepository::SUPPORTED_EDITIONS;
+        if (array_filter($bundledVersions) === []) {
+            $reason = 'no_manifests_bundled';
+        } elseif (!in_array(strtolower(trim($edition)), $supportedEditions, true)) {
+            $reason = 'unsupported_edition';
+        } else {
+            $reason = 'unsupported_version';
+        }
 
         return [
             'id' => self::UNSUPPORTED_ID,
             'title' => sprintf(
-                'Composer integrity manifest not available for Magento %s',
+                'Composer package integrity not checked: no reference manifest for Magento %s',
                 $version !== '' ? $version : '(unknown version)'
             ),
             'severity' => Severity::LOW,
@@ -146,7 +163,11 @@ class ComposerLockIntegrityCheck implements CheckInterface
                 'edition' => $edition,
                 'version' => $version,
                 'reason' => $reason,
-                'supported_editions' => ComposerLockManifestRepository::SUPPORTED_EDITIONS,
+                'checked' => false,
+                'supported_editions' => $supportedEditions,
+                'bundled_versions' => $bundledVersions,
+                'note' => 'IC-072 did not run: no composer.lock dist.shasum was compared against a reference '
+                    . 'value. This is a coverage gap, not a clean result.',
             ],
             'remediation_url' => self::UNSUPPORTED_REMEDIATION_URL,
         ];

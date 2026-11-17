@@ -54,6 +54,38 @@ class ManifestRepositoryTest extends TestCase
         self::assertNull($repository->find('Community', '9.9.9-future'));
     }
 
+    public function testBundledVersionsIsEmptyWhenNoCoreManifestIsOnDisk(): void
+    {
+        // Files of other manifest families must not count as core manifests.
+        $this->sandbox->writeFile('README.md', '# manifests');
+        $this->sandbox->writeFile('composer-sha1-community-2.4.7-p5.json', '{}');
+        $this->sandbox->writeFile('hyva-checkout/1.1.16.json', '{}');
+        $repository = new ManifestRepository($this->sandbox->root());
+
+        self::assertSame(['community' => []], $repository->bundledVersions());
+    }
+
+    public function testBundledVersionsIsEmptyWhenTheDirectoryDoesNotExist(): void
+    {
+        $repository = new ManifestRepository($this->sandbox->root() . '/no-such-dir');
+
+        self::assertSame(['community' => []], $repository->bundledVersions());
+    }
+
+    public function testBundledVersionsListsCoreManifestsInVersionOrder(): void
+    {
+        $entries = ['app/bootstrap.php' => str_repeat('a', 64)];
+        $this->writeManifest('community', '2.4.8-p5', $entries);
+        $this->writeManifest('community', '2.4.7-p10', $entries);
+        $this->writeManifest('community', '2.4.7-p9', $entries);
+        $repository = new ManifestRepository($this->sandbox->root());
+
+        self::assertSame(
+            ['community' => ['2.4.7-p9', '2.4.7-p10', '2.4.8-p5']],
+            $repository->bundledVersions()
+        );
+    }
+
     public function testCaseInsensitiveEditionLookup(): void
     {
         $this->writeManifest('community', '2.4.7-p5', ['app/bootstrap.php' => str_repeat('a', 64)]);
