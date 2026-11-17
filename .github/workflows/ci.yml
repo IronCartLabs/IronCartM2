@@ -602,6 +602,14 @@ jobs:
           ic072 = [f for f in data['findings'] if f.get('id') == 'IC-072']
           assert ic072 == [], f'unexpected IC-072 findings on clean install: {ic072}'
           print('scan.json OK:', json.dumps(data['summary']))
+          # File-integrity coverage on a clean install, printed so the job
+          # log shows what IC-070..IC-073 actually report. No core or
+          # composer reference manifest ships in the module (#236), so the
+          # IC-072 assertion above cannot fail yet: it passes because the
+          # check did not run, not because the lockfile was verified.
+          for f in data['findings']:
+              if f.get('id') in ('IC-070', 'IC-071', 'IC-072', 'IC-073'):
+                  print('file-integrity finding:', json.dumps(f, sort_keys=True))
           PY
 
       - name: Surface sandbox logs on failure
@@ -965,6 +973,14 @@ jobs:
           ic072 = [f for f in data['findings'] if f.get('id') == 'IC-072']
           assert ic072 == [], f'unexpected IC-072 findings on clean install: {ic072}'
           print('scan.json OK:', json.dumps(data['summary']))
+          # File-integrity coverage on a clean install, printed so the job
+          # log shows what IC-070..IC-073 actually report. No core or
+          # composer reference manifest ships in the module (#236), so the
+          # IC-072 assertion above cannot fail yet: it passes because the
+          # check did not run, not because the lockfile was verified.
+          for f in data['findings']:
+              if f.get('id') in ('IC-070', 'IC-071', 'IC-072', 'IC-073'):
+                  print('file-integrity finding:', json.dumps(f, sort_keys=True))
           PY
 
       - name: Surface sandbox logs on failure
